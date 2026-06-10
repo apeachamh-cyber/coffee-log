@@ -316,6 +316,14 @@ body.map-mode .mapconsole{display:flex}
 }
 .photodrop:hover{border-color:var(--caramel)}
 .photodrop.has{border-style:solid;color:transparent}
+.photothumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.photothumbs img{width:58px;height:58px;object-fit:cover;border-radius:12px;cursor:pointer;opacity:.75;border:2px solid transparent;box-shadow:var(--shadow-soft)}
+.photothumbs img.cover{opacity:1;border-color:var(--caramel)}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.gallery img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;box-shadow:var(--shadow-soft);cursor:pointer}
+#locresults{margin-top:8px}
+#locresults div{padding:9px 14px;font-size:12.5px;background:var(--glass);border:1px solid var(--glass-line);border-radius:14px;margin-bottom:6px;cursor:pointer;font-weight:350}
+#locresults div:hover{background:var(--paper-deep)}
 /* bean input */
 .beanpick{display:flex;gap:8px;margin-top:4px}
 .beanpick button{background:none;border:none;cursor:pointer;padding:2px}
@@ -551,6 +559,7 @@ window.openVisit=id=>{
           <span class="axis">再訪 ${beanRow(v.again)}</span>
         </div>
         ${v.memo?`<p style="font-size:13.5px;font-weight:350;margin-top:12px;border-top:1px solid var(--line-soft);padding-top:12px">${esc(v.memo)}</p>`:''}
+        ${(v.photos&&v.photos.length>1)?`<div class="gallery">${v.photos.slice(1).map(p=>`<img src="${p}" loading="lazy" onclick="event.stopPropagation();this.closest('article').querySelector('img.main').src=this.src">`).join('')}</div>`:''}
         <div class="toolbar">
           <button class="minibtn" onclick="shareVisit('${v.id}')">Share ↗</button>
           <button class="minibtn danger" onclick="delVisit('${v.id}')">Delete</button>
@@ -628,33 +637,45 @@ function wireMapConsole(){
 }
 let _nbT=null;
 const loadNearbyDebounced=()=>{clearTimeout(_nbT);_nbT=setTimeout(loadNearby,700)};
+const discCache=new Map(); // osm id -> {lat,lng,name} 一度取れたピンは消さない
+let nearbyBusy=false;
 async function loadNearby(){
   if(map.getZoom()<13){toast('もう少しズームすると周辺カフェが出ます');return}
-  const b=map.getBounds();
+  if(nearbyBusy)return;nearbyBusy=true;
+  const b=map.getBounds().pad(.3); // 画面より広めに取得して移動時のチラつきを防ぐ
   const bb=`${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
-  const q=`[out:json][timeout:15];(node["amenity"="cafe"](${bb});way["amenity"="cafe"](${bb}););out center 80;`;
+  const q=`[out:json][timeout:20];(node["amenity"="cafe"](${bb});way["amenity"="cafe"](${bb}););out center 120;`;
   try{
     let data=null;
     for(const ep of ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']){
       try{
         const r=await fetch(ep,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}});
+        if(!r.ok)continue;
         data=await r.json();break;
       }catch(e){}
     }
-    if(!data)throw new Error('overpass');
-    discLayer.clearLayers();
-    const visitedNames=new Set(cafes.map(c=>c.name));
-    data.elements.forEach(el=>{
-      const lat=el.lat??el.center?.lat,lng=el.lon??el.center?.lon;
-      const name=el.tags?.name;
-      if(!lat||!name||visitedNames.has(name))return;
-      const icon=L.divIcon({className:'bean-pin disc-pin',html:'<div class="dot"><span>☕</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
-      L.marker([lat,lng],{icon}).addTo(discLayer).bindPopup(`
-        <div class="pop"><div class="pad"><h4>${esc(name)}</h4>
-        <div class="visits">未訪問</div>
-        <a onclick="recordHere('${esc(name).replace(/'/g,'&#39;')}',${lat},${lng})">☕ ここを記録する →</a></div></div>`);
-    });
-  }catch(e){toast('周辺カフェの取得に失敗しました')}
+    // 失敗時は既存ピンを保持（クリアしない）
+    if(data){
+      data.elements.forEach(el=>{
+        const lat=el.lat??el.center?.lat,lng=el.lon??el.center?.lon;
+        const name=el.tags?.name;
+        if(lat&&name)discCache.set(el.type+el.id,{lat,lng,name});
+      });
+      renderDisc();
+    }
+  }finally{nearbyBusy=false}
+}
+function renderDisc(){
+  discLayer.clearLayers();
+  const visitedNames=new Set(cafes.map(c=>c.name));
+  discCache.forEach(d=>{
+    if(visitedNames.has(d.name))return;
+    const icon=L.divIcon({className:'bean-pin disc-pin',html:'<div class="dot"><span>☕</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
+    L.marker([d.lat,d.lng],{icon}).addTo(discLayer).bindPopup(`
+      <div class="pop"><div class="pad"><h4>${esc(d.name)}</h4>
+      <div class="visits">未訪問</div>
+      <a onclick="recordHere('${esc(d.name).replace(/'/g,'&#39;')}',${d.lat},${d.lng})">☕ ここを記録する →</a></div></div>`);
+  });
 }
 async function searchPlace(){
   const q=$('#mapq').value.trim();if(!q)return;
@@ -686,18 +707,21 @@ $('#sheetBack').onclick=closeSheet;
 
 $('#fab').onclick=()=>openAdd();
 function openAdd(prefill){
-  draft={photo:null,taste:0,space:0,again:0,tags:[],lat:prefill?.lat??null,lng:prefill?.lng??null};
+  draft={photos:[],taste:0,space:0,again:0,tags:[],lat:prefill?.lat??null,lng:prefill?.lng??null};
   openSheet(`
     <h2>New Entry<small>今日の一杯を記録</small></h2>
-    <div class="field"><label>Photograph — 写真</label>
-      <div class="photodrop" id="pdrop" onclick="$('#pfile').click()"><span style="font-family:var(--serif);font-size:26px;font-style:italic">+</span><span>タップして写真を選ぶ</span></div>
-      <input type="file" id="pfile" accept="image/*" hidden>
+    <div class="field"><label>Photographs — 写真（複数OK）</label>
+      <div class="photodrop" id="pdrop" onclick="$('#pfile').click()"><span style="font-family:var(--serif);font-size:26px;font-style:italic">+</span><span>タップして写真を選ぶ（何枚でも）</span></div>
+      <div class="photothumbs" id="pthumbs"></div>
+      <input type="file" id="pfile" accept="image/*" multiple hidden>
     </div>
     <div class="field"><label>Café — お店</label>
       <select id="fcafe">${cafes.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}<option value="__new">＋ 新しいカフェを登録…</option></select>
     </div>
     <div class="field" id="newcafe" style="display:${cafes.length?'none':'block'}">
       <label>New Café Name — 店名</label><input type="text" id="fcname" placeholder="例：COFFEE COUNTY">
+      <div class="btnrow" style="margin-top:12px"><button class="btn ghost" type="button" id="findLoc" style="flex:none;padding:11px 20px;font-size:11px">🔍 店名から場所を検索</button></div>
+      <div id="locresults"></div>
       <label style="margin-top:16px">Tags — タグ</label>
       <div class="chips">${TAGS.map(t=>`<button class="chip" data-tag="${t}">${t}</button>`).join('')}</div>
       <label style="margin-top:16px">Location — 場所（地図をタップ）</label>
@@ -722,13 +746,16 @@ function openAdd(prefill){
 
 let pickmap=null,pickmarker=null;
 function wireSheet(){
-  // photo
-  $('#pfile').onchange=e=>{
-    const f=e.target.files[0];if(!f)return;
-    compress(f,1400,.82).then(durl=>{
-      draft.photo=durl;
-      const pd=$('#pdrop');pd.classList.add('has');pd.style.backgroundImage=`url(${durl})`;
-    });
+  // photos (multiple, 1st = cover)
+  $('#pfile').onchange=async e=>{
+    const files=[...e.target.files];if(!files.length)return;
+    for(const f of files){
+      const durl=await compress(f,1400,.82);
+      draft.photos.push(durl);
+    }
+    const pd=$('#pdrop');pd.classList.add('has');pd.style.backgroundImage=`url(${draft.photos[0]})`;
+    $('#pthumbs').innerHTML=draft.photos.map((p,i)=>`<img src="${p}" class="${i===0?'cover':''}" onclick="setCover(${i})" title="タップで表紙にする">`).join('');
+    e.target.value='';
   };
   // cafe select
   $('#fcafe').onchange=e=>{
@@ -754,7 +781,34 @@ function wireSheet(){
     });
   });
   $('#saveBtn').onclick=saveEntry;
+  // find location by cafe name (for registering after getting home)
+  $('#findLoc').onclick=async()=>{
+    const name=$('#fcname').value.trim();
+    if(!name){toast('先に店名を入力してください');return}
+    $('#findLoc').textContent='検索中…';
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ja&countrycodes=jp&q=${encodeURIComponent(name)}`);
+      let data=await r.json();
+      if(!data.length){
+        const r2=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ja&countrycodes=jp&q=${encodeURIComponent(name+' カフェ')}`);
+        data=await r2.json();
+      }
+      if(!data.length){toast('見つかりませんでした。地図タップで指定してください');return}
+      $('#locresults').innerHTML=data.map(d=>`<div onclick="pickLoc(${d.lat},${d.lon},this)">📍 ${esc(d.display_name)}</div>`).join('');
+    }catch(e){toast('検索に失敗しました')}
+    finally{$('#findLoc').textContent='🔍 店名から場所を検索'}
+  };
 }
+window.pickLoc=(lat,lng,el)=>{
+  draft.lat=lat;draft.lng=lng;
+  $('#locresults').innerHTML='';
+  if(pickmap){
+    pickmap.setView([lat,lng],17);
+    if(pickmarker)pickmap.removeLayer(pickmarker);
+    pickmarker=L.marker([lat,lng]).addTo(pickmap);
+  }
+  toast('ピンを置きました。ズレていたら地図タップで微調整');
+};
 function initPickMap(){
   if(pickmap){pickmap.remove();pickmap=null}
   const el=$('#pickmap');if(!el)return;
@@ -785,8 +839,13 @@ function compress(file,maxW,q){
     };img.src=URL.createObjectURL(file);
   });
 }
+window.setCover=i=>{
+  draft.photos.unshift(...draft.photos.splice(i,1));
+  $('#pdrop').style.backgroundImage=`url(${draft.photos[0]})`;
+  $('#pthumbs').innerHTML=draft.photos.map((p,j)=>`<img src="${p}" class="${j===0?'cover':''}" onclick="setCover(${j})">`).join('');
+};
 async function saveEntry(){
-  if(!draft.photo){toast('写真を選んでください');return}
+  if(!draft.photos.length){toast('写真を選んでください');return}
   let cafeId=$('#fcafe').value;
   if(cafeId==='__new'){
     const name=$('#fcname').value.trim();
@@ -794,7 +853,7 @@ async function saveEntry(){
     const c={id:uid(),name,tags:draft.tags,lat:draft.lat,lng:draft.lng};
     await DB.put('cafes',c);cafes.push(c);cafeId=c.id;
   }
-  const v={id:uid(),cafeId,photo:draft.photo,drink:$('#fdrink').value.trim(),
+  const v={id:uid(),cafeId,photo:draft.photos[0],photos:draft.photos,drink:$('#fdrink').value.trim(),
     taste:draft.taste||3,space:draft.space||3,again:draft.again||3,
     memo:$('#fmemo').value.trim(),date:new Date().toISOString()};
   await DB.put('visits',v);visits.unshift(v);
