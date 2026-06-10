@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#F5EFE4">
-<title>COFFEE LOG — A Personal Café Journal</title>
+<title>Drippin — A Personal Café Journal</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Shippori+Mincho:wght@500;600&family=Noto+Sans+JP:wght@350;400;500;700&display=swap" rel="stylesheet">
@@ -60,8 +62,9 @@ header.masthead{
 }
 .masthead h1{
   font-family:var(--serif);font-weight:600;letter-spacing:.04em;
-  font-size:clamp(40px,9vw,76px);line-height:1.05;padding:18px 0 4px;
+  font-size:clamp(40px,9vw,76px);line-height:1.05;padding:6px 0 4px;
 }
+.masthead .mark{display:block;margin:16px auto 0;animation:riseIn 1s .22s cubic-bezier(.2,.7,.2,1) both}
 /* opening sequence */
 @keyframes riseIn{from{opacity:0;transform:translateY(34px) scale(.97);filter:blur(10px)}to{opacity:1;transform:none;filter:none}}
 @keyframes lineGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
@@ -399,7 +402,15 @@ footer{
 
 <header class="masthead">
   <div class="issue"><span>Vol. 1</span><span>Est. 2026</span><span id="issueDate">—</span></div>
-  <h1>Coffee <span class="amp">&</span> Log</h1>
+  <svg class="mark" width="46" height="58" viewBox="0 0 100 132" aria-hidden="true">
+    <defs><linearGradient id="ghead" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C49A6A"/><stop offset="1" stop-color="#8C5E36"/></linearGradient></defs>
+    <path d="M8 12 L92 12 L61 70 L39 70 Z" fill="none" stroke="url(#ghead)" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M24 28 L76 28" stroke="#D9C5A6" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M50 84 C50 84 38 99 38 108 a12 12 0 0 0 24 0 C62 99 50 84 50 84 Z" fill="url(#ghead)"/>
+    <path d="M46.5 96 C53 102 46 110 51.5 115" fill="none" stroke="#F5EFE4" stroke-width="3" stroke-linecap="round"/>
+  </svg>
+  <h1>Drippin</h1>
   <div class="sub">A Personal Café Journal</div>
   <div class="rule"></div>
 </header>
@@ -430,7 +441,7 @@ footer{
   <section class="view" id="view-detail"></section>
 </main>
 
-<footer>Coffee &amp; Log — brewed with care</footer>
+<footer>Drippin — drip by drip, pin by pin</footer>
 
 <button class="fab" id="fab" title="記録する">＋</button>
 
@@ -910,7 +921,7 @@ function drawShare(cv,v,c,tpl){
       if(v.drink)ctx.fillText(fitText(ctx,v.drink,W-200),W/2,H*0.72+272);
       drawBeans(ctx,W/2,H*0.72+352,v.again);
       ctx.font='500 30px "Playfair Display"';ctx.fillStyle='#B07D4F';
-      ctx.fillText('C O F F E E   &   L O G',W/2,H-70);
+      ctx.fillText('D R I P P I N',W/2,H-70);
     }else{
       // polaroid
       ctx.fillStyle='#E8DEC9';ctx.fillRect(0,0,W,H);
@@ -928,7 +939,7 @@ function drawShare(cv,v,c,tpl){
       ctx.fillText(fmtDate(v.date),W/2,py+ph+90+168);
       ctx.restore();
       ctx.textAlign='center';ctx.font='500 30px "Playfair Display"';ctx.fillStyle='#8C5E36';
-      ctx.fillText('C O F F E E   &   L O G',W/2,H-80);
+      ctx.fillText('D R I P P I N',W/2,H-80);
     }
   };
   img.src=v.photo;
