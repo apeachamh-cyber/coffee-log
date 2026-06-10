@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drippin — Logo Proposals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Quicksand:wght@500;600;700&family=Noto+Sans+JP:wght@350;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --espresso:#2B2018;--roast:#4A372A;--caramel:#B07D4F;--caramel-deep:#8C5E36;
+  --cream:#F5EFE4;--milk:#FDFBF6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans JP',sans-serif;background:#EFE7D8;color:var(--espresso);padding:48px 28px 120px}
+.head{text-align:center;margin-bottom:54px}
+.head h1{font-family:'Playfair Display',serif;font-size:clamp(34px,6vw,56px);font-weight:600}
+.head p{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--caramel-deep);margin-top:6px}
+.grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:28px}
+.card{background:var(--milk);border-radius:26px;box-shadow:0 2px 6px rgba(43,32,24,.06),0 24px 60px rgba(43,32,24,.14);overflow:hidden}
+.card .stage{display:flex;align-items:center;justify-content:center;min-height:230px;padding:36px}
+.card .stage.dark{background:linear-gradient(145deg,#33251a,#211710)}
+.card .meta{padding:18px 24px 22px;border-top:1px solid rgba(43,32,24,.08)}
+.card .meta b{font-size:14px;display:block}
+.card .meta span{font-size:12px;font-weight:350;color:var(--roast);line-height:1.7;display:block;margin-top:4px}
+.tag{display:inline-block;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--caramel-deep);margin-bottom:6px}
+.row{max-width:1100px;margin:30px auto 0}
+svg{display:block}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <h1>Drippin</h1>
+  <p>Logo Proposals — 6 Directions</p>
+</div>
+
+<div class="grid">
+
+<!-- B1: THE MARK pin=drop=bean -->
+<div class="card">
+  <div class="stage">
+    <svg width="150" height="190" viewBox="0 0 100 128">
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#8C5E36"/><stop offset="1" stop-color="#3E2C1E"/>
+        </linearGradient>
+      </defs>
+      <!-- drop/pin body -->
+      <path d="M50 8 C50 8 14 52 14 78 a36 36 0 0 0 72 0 C86 52 50 8 50 8 Z" fill="url(#g1)"/>
+      <!-- bean crease -->
+      <path d="M38 46 C58 62 40 86 56 104" fill="none" stroke="#F5EFE4" stroke-width="7" stroke-linecap="round"/>
+      <!-- pin point -->
+      <circle cx="50" cy="122" r="5" fill="#3E2C1E"/>
+    </svg>
+  </div>
+  <div class="meta"><span class="tag">Icon / 本命</span><b>The Drop-Pin Bean</b>
+  <span>雫・地図ピン・コーヒー豆が1つの図形に重なるシンボル。逆さのピン＝落ちる雫、中の曲線＝豆のクレース（割れ目）。アプリアイコンにそのまま使える。</span></div>
+</div>
+
+<!-- B1 variations on dark -->
+<div class="card">
+  <div class="stage dark">
+    <svg width="280" height="120" viewBox="0 0 280 120">
+      <!-- solid cream -->
+      <path d="M50 8 C50 8 26 38 26 56 a24 24 0 0 0 48 0 C74 38 50 8 50 8 Z" fill="#F5EFE4"/>
+      <path d="M42 34 C55 45 43 60 54 72" fill="none" stroke="#2B2018" stroke-width="5" stroke-linecap="round"/>
+      <!-- outline -->
+      <path d="M140 8 C140 8 116 38 116 56 a24 24 0 0 0 48 0 C164 38 140 8 140 8 Z" fill="none" stroke="#D9B98F" stroke-width="4"/>
+      <path d="M132 34 C145 45 133 60 144 72" fill="none" stroke="#D9B98F" stroke-width="4" stroke-linecap="round"/>
+      <!-- gold gradient -->
+      <defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#E8C496"/><stop offset="1" stop-color="#B07D4F"/></linearGradient></defs>
+      <path d="M230 8 C230 8 206 38 206 56 a24 24 0 0 0 48 0 C254 38 230 8 230 8 Z" fill="url(#g2)"/>
+      <path d="M222 34 C235 45 223 60 234 72" fill="none" stroke="#33251a" stroke-width="5" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="meta"><span class="tag">Icon / バリエーション</span><b>Mark Variations</b>
+  <span>同じシンボルのソリッド・アウトライン・ゴールドグラデ展開。ダーク背景（スプラッシュ画面・SNSアイコン）での見え方。</span></div>
+</div>
+
+<!-- A1: serif wordmark with drop i-dots -->
+<div class="card">
+  <div class="stage">
+    <svg width="300" height="110" viewBox="0 0 300 110">
+      <text x="150" y="72" text-anchor="middle" font-family="'Playfair Display',serif" font-style="italic" font-weight="600" font-size="58" fill="#2B2018">Dr&#x131;pp&#x131;n</text>
+      <!-- drops as i-dots (positions tuned for italic serif) -->
+      <path d="M121 22 c-4 7 -6 9 -6 13 a6 6 0 0 0 12 0 c0 -4 -2 -6 -6 -13 Z" fill="#B07D4F"/>
+      <path d="M203 22 c-4 7 -6 9 -6 13 a6 6 0 0 0 12 0 c0 -4 -2 -6 -6 -13 Z" fill="#B07D4F"/>
+    </svg>
+  </div>
+  <div class="meta"><span class="tag">Wordmark / エディトリアル</span><b>Serif Italic + Drops</b>
+  <span>雑誌の題字のようなセリフイタリック。2つの「i」の点がキャラメル色の雫になっている。アプリのマストヘッドと同じ世界観。</span></div>
+</div>
+
+<!-- A2: rounded lowercase with dripping descenders -->
+<div class="card">
+  <div class="stage">
+    <svg width="300" height="130" viewBox="0 0 300 130">
+      <text x="150" y="62" text-anchor="middle" font-family="'Quicksand',sans-serif" font-weight="700" font-size="52" letter-spacing="1" fill="#2B2018">drippin</text>
+      <!-- elongated drips from the two p descenders -->
+      <path d="M130 68 l0 24 c0 6 3 8 3 12 a4.5 4.5 0 0 1 -9 0 c0 -4 3 -6 3 -12 l0 -24 Z" fill="#8C5E36"/>
+      <path d="M162 68 l0 36 c0 6 3 8 3 12 a4.5 4.5 0 0 1 -9 0 c0 -4 3 -6 3 -12 l0 -36 Z" fill="#B07D4F"/>
+    </svg>
+  </div>
+  <div class="meta"><span class="tag">Wordmark / モダンポップ</span><b>Dripping Letters</b>
+  <span>丸みのある小文字。2つの「p」の脚がそのまま雫になって滴り落ちる。「文字自体がドリップしている」遊び。親しみやすくアイコン化もしやすい。</span></div>
+</div>
+
+<!-- A3: bold caps with pin as second I -->
+<div class="card">
+  <div class="stage">
+    <svg width="300" height="110" viewBox="0 0 300 110">
+      <text x="196" y="74" text-anchor="end" font-family="'Quicksand',sans-serif" font-weight="700" font-size="46" letter-spacing="4" fill="#2B2018">DRIPP</text>
+      <!-- pin replacing second I -->
+      <path d="M212 32 C212 32 200 49 200 59 a12 12 0 0 0 24 0 C224 49 212 32 212 32 Z" fill="#B07D4F"/>
+      <circle cx="212" cy="58" r="4.5" fill="#FDFBF6"/>
+      <text x="232" y="74" text-anchor="start" font-family="'Quicksand',sans-serif" font-weight="700" font-size="46" fill="#2B2018">N</text>
+    </svg>
+  </div>
+  <div class="meta"><span class="tag">Wordmark / ロックアップ</span><b>Pin in the Name</b>
+  <span>大文字の力強いワードマーク。2つ目の「I」が地図ピン（＝雫）に置き換わる。名前の由来（drip×pin）が一目で伝わる説明力No.1。</span></div>
+</div>
+
+<!-- B2: dripper cone -->
+<div class="card">
+  <div class="stage dark">
+    <svg width="150" height="170" viewBox="0 0 100 120">
+      <defs><linearGradient id="g3" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#E8C496"/><stop offset="1" stop-color="#B07D4F"/></linearGradient></defs>
+      <!-- V60 cone -->
+      <path d="M18 18 L82 18 L58 62 L42 62 Z" fill="none" stroke="url(#g3)" stroke-width="6" stroke-linejoin="round"/>
+      <!-- ripple lines -->
+      <path d="M30 30 L70 30" stroke="#5d4632" stroke-width="3" stroke-linecap="round"/>
+      <!-- falling drop = pin -->
+      <path d="M50 76 C50 76 40 89 40 96 a10 10 0 0 0 20 0 C60 89 50 76 50 76 Z" fill="url(#g3)"/>
+    </svg>
+  </div>
+  <div class="meta"><span class="tag">Icon / ミニマルライン</span><b>The Dripper</b>
+  <span>V60ドリッパーから一滴が落ちる瞬間。落ちる雫がそのまま地図ピン。コーヒー好きには一瞬で伝わる、道具へのリスペクトがあるマーク。</span></div>
+</div>
+
+</div>
+
+<div class="row" style="text-align:center;font-size:12px;color:#4A372A;font-weight:350">
+  気に入った方向があれば、そこから精緻化（細部調整・アプリ組み込み・ファビコン/アイコン書き出し）に進みます。
+</div>
+
+</body>
+</html>
