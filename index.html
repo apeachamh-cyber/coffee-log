@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F5EFE4">
+<title>COFFEE LOG — A Personal Café Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Shippori+Mincho:wght@500;600&family=Noto+Sans+JP:wght@350;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --paper:#F5EFE4;
+  --paper-deep:#EDE4D3;
+  --espresso:#2B2018;
+  --roast:#4A372A;
+  --caramel:#B07D4F;
+  --caramel-deep:#8C5E36;
+  --milk:#FDFBF6;
+  --line:rgba(43,32,24,.16);
+  --line-soft:rgba(43,32,24,.08);
+  --shadow:0 10px 40px rgba(43,32,24,.10);
+  --shadow-soft:0 4px 18px rgba(43,32,24,.07);
+  --serif:'Playfair Display',serif;
+  --serif-jp:'Shippori Mincho',serif;
+  --sans:'Noto Sans JP',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);font-weight:400;color:var(--espresso);
+  background:var(--paper);
+  letter-spacing:.01em;line-height:1.75;
+  min-height:100vh;
+}
+/* paper grain */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.17 0 0 0 0 0.12 0 0 0 0 0.09 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+::selection{background:var(--caramel);color:var(--milk)}
+
+/* ---------- masthead ---------- */
+header.masthead{
+  text-align:center;padding:max(20px,env(safe-area-inset-top)) 24px 0;
+}
+.masthead .issue{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--roast);
+  border-bottom:1px solid var(--line);padding-bottom:10px;max-width:1080px;margin:0 auto;
+}
+.masthead h1{
+  font-family:var(--serif);font-weight:600;letter-spacing:.04em;
+  font-size:clamp(40px,9vw,76px);line-height:1.05;padding:18px 0 4px;
+}
+.masthead h1 .amp{font-style:italic;font-weight:400;color:var(--caramel)}
+.masthead .sub{
+  font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--caramel-deep);
+  padding-bottom:16px;
+}
+.masthead .rule{max-width:1080px;margin:0 auto;border-bottom:3px double var(--line)}
+
+/* ---------- nav ---------- */
+nav.tabs{
+  position:sticky;top:0;z-index:1200;
+  background:color-mix(in srgb,var(--paper) 88%,transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line-soft);
+}
+nav.tabs .inner{
+  max-width:1080px;margin:0 auto;display:flex;justify-content:center;gap:6px;padding:10px 16px;
+}
+.tab-btn{
+  font-family:var(--sans);font-size:12px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--roast);background:none;border:none;cursor:pointer;
+  padding:9px 18px;border-radius:99px;transition:all .35s cubic-bezier(.2,.7,.2,1);
+}
+.tab-btn:hover{background:var(--paper-deep)}
+.tab-btn.active{background:var(--espresso);color:var(--paper);box-shadow:var(--shadow-soft)}
+.tab-btn .jp{font-size:10px;letter-spacing:.1em;display:block;line-height:1;margin-top:2px;opacity:.55}
+
+main{max-width:1080px;margin:0 auto;padding:0 24px 140px}
+section.view{display:none;animation:fadeUp .6s cubic-bezier(.2,.7,.2,1) both}
+section.view.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- editorial bits ---------- */
+.kicker{
+  display:flex;align-items:center;gap:14px;margin:42px 0 20px;
+  font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--caramel-deep);
+}
+.kicker::before,.kicker::after{content:"";height:1px;background:var(--line);flex:0 0 36px}
+.kicker::after{flex:1}
+
+/* ---------- empty state ---------- */
+.empty{
+  text-align:center;padding:90px 20px;
+}
+.empty .glyph{font-family:var(--serif);font-size:64px;font-style:italic;color:var(--caramel);line-height:1}
+.empty h2{font-family:var(--serif-jp);font-weight:600;font-size:24px;margin:18px 0 8px;letter-spacing:.08em}
+.empty p{font-size:13px;color:var(--roast);opacity:.75;font-weight:350}
+
+/* ---------- hero (latest entry) ---------- */
+.hero{
+  position:relative;margin-top:34px;cursor:pointer;
+}
+.hero .photo{
+  aspect-ratio:4/5;max-height:72vh;width:100%;object-fit:cover;display:block;
+  box-shadow:var(--shadow);
+}
+@media(min-width:760px){.hero .photo{aspect-ratio:16/10}}
+.hero .caption{
+  background:var(--milk);box-shadow:var(--shadow);
+  margin:-64px 18px 0;position:relative;padding:26px 28px 24px;
+}
+@media(min-width:760px){
+  .hero .caption{width:min(480px,80%);margin:-110px auto 0}
+}
+.hero .date{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--caramel-deep)}
+.hero h2{font-family:var(--serif-jp);font-weight:600;font-size:clamp(22px,4.6vw,34px);line-height:1.3;letter-spacing:.04em;margin:6px 0 4px}
+.hero .drink{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--roast)}
+.hero .memo{font-size:13px;font-weight:350;color:var(--roast);margin-top:10px;border-top:1px solid var(--line-soft);padding-top:10px}
+
+/* bean rating */
+.beans{display:inline-flex;gap:3px;align-items:center}
+.beans svg{width:15px;height:15px;display:block}
+.beans .off{opacity:.18}
+.rating-row{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+.rating-row .axis{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.18em;color:var(--roast)}
+
+/* ---------- magazine grid ---------- */
+.maggrid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:22px 18px;margin-top:8px;
+}
+@media(min-width:760px){.maggrid{grid-template-columns:repeat(3,1fr);gap:38px 28px}}
+.entry{cursor:pointer;transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.entry:hover{transform:translateY(-4px)}
+.entry:nth-child(6n+1){grid-column:span 2}
+@media(min-width:760px){.entry:nth-child(6n+1){grid-column:span 2;grid-row:span 1}}
+.entry .ph{
+  width:100%;aspect-ratio:1/1;object-fit:cover;display:block;box-shadow:var(--shadow-soft);
+  background:var(--paper-deep);
+}
+.entry:nth-child(6n+1) .ph{aspect-ratio:16/9}
+.entry .meta{padding:12px 2px 0}
+.entry .d{font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--caramel-deep)}
+.entry h3{font-family:var(--serif-jp);font-weight:600;font-size:16px;letter-spacing:.04em;line-height:1.4;margin:2px 0}
+.entry .dr{font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--roast);opacity:.85}
+
+/* ---------- map (fullscreen) ---------- */
+#map{
+  position:fixed;inset:0;height:100dvh;z-index:900;
+  filter:sepia(.18) saturate(.85);
+}
+body.map-mode header.masthead,body.map-mode footer{display:none}
+/* floating console (Google Maps style) */
+body.map-mode nav.tabs{
+  position:fixed;top:0;left:0;right:0;background:transparent;border:none;
+  backdrop-filter:none;-webkit-backdrop-filter:none;pointer-events:none;
+}
+body.map-mode nav.tabs .inner{
+  pointer-events:auto;background:var(--milk);width:max-content;border-radius:99px;
+  box-shadow:var(--shadow);margin:14px auto 0;padding:6px 8px;
+}
+.mapconsole{
+  position:fixed;z-index:950;top:88px;left:50%;transform:translateX(-50%);
+  width:min(92vw,480px);display:none;flex-direction:column;gap:9px;
+}
+body.map-mode .mapconsole{display:flex}
+.searchbar{display:flex;align-items:center;background:var(--milk);border-radius:99px;box-shadow:var(--shadow);padding:4px 6px 4px 20px}
+.searchbar input{flex:1;border:none;background:none;outline:none;font-family:var(--sans);font-size:14px;color:var(--espresso);padding:10px 0;min-width:0}
+.searchbar input::placeholder{color:var(--roast);opacity:.45}
+.searchbar button{border:none;background:var(--espresso);color:var(--paper);border-radius:99px;padding:10px 18px;font-size:11px;letter-spacing:.14em;cursor:pointer;font-weight:500}
+.mapchips{display:flex;gap:8px;justify-content:center}
+.mapchip{font-size:11.5px;letter-spacing:.06em;padding:8px 16px;border-radius:99px;border:none;cursor:pointer;background:var(--milk);color:var(--roast);box-shadow:var(--shadow-soft);font-weight:500;transition:all .25s}
+.mapchip.on{background:var(--espresso);color:var(--paper)}
+.searchresults{background:var(--milk);box-shadow:var(--shadow);border-radius:20px;overflow:hidden;display:none}
+.searchresults div{padding:11px 20px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line-soft);font-weight:350}
+.searchresults div:last-child{border-bottom:none}
+.searchresults div:hover{background:var(--paper-deep)}
+.disc-pin .dot{background:var(--milk);border-color:var(--caramel)}
+.leaflet-top.leaflet-left{top:auto;bottom:96px}
+.leaflet-top .leaflet-control{margin-top:0}
+.leaflet-control-zoom{box-shadow:var(--shadow-soft)!important;border:none!important}
+.leaflet-control-zoom a{background:var(--milk)!important;color:var(--espresso)!important;border-color:var(--line-soft)!important}
+.leaflet-container{font-family:var(--sans);background:var(--paper-deep)}
+.leaflet-popup-content-wrapper{
+  background:var(--milk);border-radius:0;box-shadow:var(--shadow);
+}
+.leaflet-popup-content{margin:0;width:230px!important}
+.pop{padding:0}
+.pop img{width:100%;height:120px;object-fit:cover;display:block}
+.pop .pad{padding:12px 14px 14px}
+.pop h4{font-family:var(--serif-jp);font-weight:600;font-size:15px;letter-spacing:.04em}
+.pop .visits{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--caramel-deep);margin-top:2px}
+.pop a{font-size:11px;color:var(--caramel-deep);text-decoration:underline;cursor:pointer}
+.bean-pin{background:none;border:none}
+.bean-pin .dot{
+  width:30px;height:30px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);
+  background:var(--espresso);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(43,32,24,.35);border:2px solid var(--paper);
+}
+.bean-pin .dot span{transform:rotate(45deg);font-size:13px}
+
+/* ---------- cafés list ---------- */
+.cafelist{display:grid;gap:14px;margin-top:8px}
+@media(min-width:760px){.cafelist{grid-template-columns:1fr 1fr;gap:18px}}
+.cafecard{
+  background:var(--milk);box-shadow:var(--shadow-soft);padding:20px 22px;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+  transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s;
+  border-left:3px solid var(--caramel);
+}
+.cafecard:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.cafecard h3{font-family:var(--serif-jp);font-weight:600;font-size:17px;letter-spacing:.04em}
+.cafecard .tags{font-size:11px;color:var(--caramel-deep);font-weight:350;margin-top:2px}
+.cafecard .n{font-family:var(--serif);font-size:26px;font-weight:500;color:var(--caramel);line-height:1}
+.cafecard .nl{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--roast);opacity:.6;text-align:center}
+
+/* ---------- FAB ---------- */
+.fab{
+  position:fixed;right:22px;bottom:max(26px,env(safe-area-inset-bottom));z-index:1300;
+  width:62px;height:62px;border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(145deg,#3a2b20,#241a12);color:var(--paper);
+  font-size:28px;font-weight:300;line-height:1;
+  box-shadow:0 12px 30px rgba(43,32,24,.4),inset 0 1px 0 rgba(255,255,255,.12);
+  transition:transform .35s cubic-bezier(.2,.7,.2,1);
+}
+.fab:hover{transform:scale(1.07) rotate(90deg)}
+
+/* ---------- sheet (modal) ---------- */
+.sheet-back{
+  position:fixed;inset:0;background:rgba(28,20,14,.45);backdrop-filter:blur(4px);
+  z-index:1400;opacity:0;pointer-events:none;transition:opacity .35s;
+}
+.sheet-back.open{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:1500;
+  background:var(--paper);max-height:92vh;overflow-y:auto;
+  transform:translateY(105%);transition:transform .5s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 -18px 60px rgba(43,32,24,.3);
+  padding:26px 24px max(34px,env(safe-area-inset-bottom));
+}
+.sheet.open{transform:none}
+@media(min-width:760px){
+  .sheet{left:50%;right:auto;width:560px;transform:translate(-50%,105%)}
+  .sheet.open{transform:translate(-50%,0)}
+}
+.sheet .grab{width:42px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 18px}
+.sheet h2{font-family:var(--serif);font-weight:600;font-size:24px;letter-spacing:.03em}
+.sheet h2 small{font-family:var(--sans);display:block;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--caramel-deep);margin-top:4px;font-weight:500}
+.field{margin-top:20px}
+.field label{display:block;font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--roast);margin-bottom:7px;font-weight:500}
+.field input[type=text],.field textarea,.field select{
+  width:100%;border:none;border-bottom:1.5px solid var(--line);background:transparent;
+  font-family:var(--sans);font-size:16px;padding:8px 2px;color:var(--espresso);outline:none;
+  border-radius:0;transition:border-color .3s;
+}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--caramel)}
+.field textarea{resize:none;min-height:64px;line-height:1.7}
+/* photo drop */
+.photodrop{
+  margin-top:8px;aspect-ratio:16/9;border:1.5px dashed var(--line);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  color:var(--roast);font-size:12px;letter-spacing:.1em;background:var(--paper-deep);
+  background-size:cover;background-position:center;transition:border-color .3s;
+}
+.photodrop:hover{border-color:var(--caramel)}
+.photodrop.has{border-style:solid;color:transparent}
+/* bean input */
+.beanpick{display:flex;gap:8px;margin-top:4px}
+.beanpick button{background:none;border:none;cursor:pointer;padding:2px}
+.beanpick svg{width:26px;height:26px;transition:transform .2s,opacity .2s;opacity:.18}
+.beanpick button.on svg{opacity:1;transform:scale(1.08)}
+/* tag chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.chip{
+  font-size:12px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);
+  background:transparent;cursor:pointer;color:var(--roast);font-weight:350;transition:all .25s;
+}
+.chip.on{background:var(--espresso);color:var(--paper);border-color:var(--espresso)}
+/* mini map for cafe location */
+#pickmap{height:200px;margin-top:8px;box-shadow:var(--shadow-soft)}
+.hint{font-size:11px;color:var(--roast);opacity:.6;margin-top:6px;font-weight:350}
+/* buttons */
+.btnrow{display:flex;gap:12px;margin-top:30px}
+.btn{
+  flex:1;border:none;cursor:pointer;border-radius:99px;padding:15px 22px;
+  font-family:var(--sans);font-size:13px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  transition:transform .25s,box-shadow .25s;
+}
+.btn.primary{
+  background:linear-gradient(145deg,#c08a58,#9a6437);color:var(--milk);
+  box-shadow:0 8px 22px rgba(140,94,54,.4),inset 0 1px 0 rgba(255,255,255,.25);
+}
+.btn.primary:hover{transform:translateY(-2px)}
+.btn.ghost{background:transparent;color:var(--roast);border:1px solid var(--line)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.dark{background:var(--espresso);color:var(--paper);box-shadow:var(--shadow-soft)}
+
+/* ---------- detail view ---------- */
+.detail-top{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-top:36px;flex-wrap:wrap}
+.detail-top h2{font-family:var(--serif-jp);font-weight:600;font-size:clamp(26px,6vw,40px);letter-spacing:.05em;line-height:1.25}
+.backlink{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--caramel-deep);background:none;border:none;cursor:pointer;padding:6px 0}
+.visit-article{margin-top:46px}
+.visit-article img.main{width:100%;max-height:70vh;object-fit:cover;box-shadow:var(--shadow)}
+.visit-article .body{background:var(--milk);box-shadow:var(--shadow-soft);margin:-40px 14px 0;position:relative;padding:22px 24px}
+@media(min-width:760px){.visit-article .body{margin:-60px auto 0;width:min(560px,86%)}}
+.toolbar{display:flex;gap:10px;margin-top:16px}
+.minibtn{
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;
+  border:1px solid var(--line);background:transparent;color:var(--roast);
+  border-radius:99px;padding:8px 16px;cursor:pointer;transition:all .25s;
+}
+.minibtn:hover{background:var(--espresso);color:var(--paper);border-color:var(--espresso)}
+.minibtn.danger:hover{background:#8c3b2e;border-color:#8c3b2e}
+
+/* ---------- share modal ---------- */
+.share-wrap{text-align:center}
+.share-wrap canvas{
+  width:min(62vw,250px);box-shadow:var(--shadow);margin:18px auto 6px;display:block;
+}
+.tplrow{display:flex;justify-content:center;gap:10px;margin-top:14px}
+
+/* footer */
+footer{
+  text-align:center;padding:60px 20px 120px;
+  font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--roast);opacity:.5;
+}
+.toast{
+  position:fixed;left:50%;bottom:110px;transform:translate(-50%,20px);z-index:2000;
+  background:var(--espresso);color:var(--paper);font-size:13px;padding:12px 26px;border-radius:99px;
+  opacity:0;pointer-events:none;transition:all .4s cubic-bezier(.2,.7,.2,1);box-shadow:var(--shadow);
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="issue"><span>Vol. 1</span><span>Est. 2026</span><span id="issueDate">—</span></div>
+  <h1>Coffee <span class="amp">&</span> Log</h1>
+  <div class="sub">A Personal Café Journal</div>
+  <div class="rule"></div>
+</header>
+
+<nav class="tabs"><div class="inner">
+  <button class="tab-btn active" data-view="home">Journal<span class="jp">記録</span></button>
+  <button class="tab-btn" data-view="map">Map<span class="jp">地図</span></button>
+  <button class="tab-btn" data-view="cafes">Cafés<span class="jp">店</span></button>
+</div></nav>
+
+<main>
+  <!-- HOME -->
+  <section class="view active" id="view-home"></section>
+  <!-- MAP -->
+  <section class="view" id="view-map"><div id="map"></div>
+    <div class="mapconsole">
+      <div class="searchbar"><input id="mapq" placeholder="カフェ・場所を検索" enterkeyhint="search"><button id="mapgo">検索</button></div>
+      <div class="searchresults" id="mapresults"></div>
+      <div class="mapchips">
+        <button class="mapchip on" id="chipVisited">☕ 訪問済み</button>
+        <button class="mapchip" id="chipNearby">周辺のカフェ</button>
+      </div>
+    </div>
+  </section>
+  <!-- CAFES -->
+  <section class="view" id="view-cafes"><div class="kicker">The Collection</div><div class="cafelist" id="cafeList"></div></section>
+  <!-- DETAIL -->
+  <section class="view" id="view-detail"></section>
+</main>
+
+<footer>Coffee &amp; Log — brewed with care</footer>
+
+<button class="fab" id="fab" title="記録する">＋</button>
+
+<!-- ADD SHEET -->
+<div class="sheet-back" id="sheetBack"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div id="sheetBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* =============== utilities =============== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const BEAN='<svg viewBox="0 0 24 24" fill="#8C5E36" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C7 2 3.5 6.5 3.5 12S7 22 12 22s8.5-4.5 8.5-10S17 2 12 2zm0 2c1.2 0 2.3.4 3.2 1-1.5 1.6-2.2 3.3-2.6 5-.5 2-.9 3.9-2.9 5.7-1.3 1.2-2.7 1.8-4 2A8.6 8.6 0 0 1 5.5 12C5.5 7.6 8.4 4 12 4zm0 16c-1.2 0-2.3-.4-3.2-1 1.5-1.6 2.2-3.3 2.6-5 .5-2 .9-3.9 2.9-5.7 1.3-1.2 2.7-1.8 4-2a8.6 8.6 0 0 1 .2 3.7C18.5 16.4 15.6 20 12 20z"/></svg>';
+const beanRow=(v,sz)=>{let h='<span class="beans">';for(let i=1;i<=5;i++)h+=`<span class="${i<=v?'':'off'}">${BEAN}</span>`;return h+'</span>'};
+const fmtDate=iso=>{const d=new Date(iso);return d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})};
+const fmtDateJP=iso=>{const d=new Date(iso);return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400)}
+$('#issueDate').textContent=new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'});
+
+/* =============== data layer (IndexedDB now / Firebase later) =============== */
+const DB={
+  _db:null,
+  open(){return new Promise((res,rej)=>{
+    const r=indexedDB.open('coffeelog',1);
+    r.onupgradeneeded=e=>{const d=e.target.result;
+      if(!d.objectStoreNames.contains('cafes'))d.createObjectStore('cafes',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('visits'))d.createObjectStore('visits',{keyPath:'id'});
+    };
+    r.onsuccess=e=>{DB._db=e.target.result;res()};r.onerror=rej;
+  })},
+  all(store){return new Promise((res,rej)=>{const t=DB._db.transaction(store).objectStore(store).getAll();t.onsuccess=()=>res(t.result);t.onerror=rej})},
+  put(store,obj){return new Promise((res,rej)=>{const t=DB._db.transaction(store,'readwrite').objectStore(store).put(obj);t.onsuccess=res;t.onerror=rej})},
+  del(store,id){return new Promise((res,rej)=>{const t=DB._db.transaction(store,'readwrite').objectStore(store).delete(id);t.onsuccess=res;t.onerror=rej})},
+};
+let cafes=[],visits=[];
+async function load(){await DB.open();cafes=await DB.all('cafes');visits=await DB.all('visits');visits.sort((a,b)=>b.date.localeCompare(a.date));}
+
+/* =============== views =============== */
+const cafeById=id=>cafes.find(c=>c.id===id);
+function show(view){
+  $$('.view').forEach(v=>v.classList.remove('active'));
+  $('#view-'+view).classList.add('active');
+  $$('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  document.body.classList.toggle('map-mode',view==='map');
+  if(view==='map')setTimeout(initMap,60);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$$('.tab-btn').forEach(b=>b.onclick=()=>show(b.dataset.view));
+
+/* ---- home ---- */
+function renderHome(){
+  const el=$('#view-home');
+  if(!visits.length){
+    el.innerHTML=`<div class="empty"><div class="glyph">¶</div><h2>最初の一杯から始まる</h2><p>右下の「＋」から、今日のカフェを記録しましょう。</p></div>`;
+    return;
+  }
+  const[latest,...rest]=visits;
+  const lc=cafeById(latest.cafeId)||{name:'—'};
+  el.innerHTML=`
+  <div class="kicker">Latest Entry</div>
+  <article class="hero" onclick="openVisit('${latest.id}')">
+    <img class="photo" src="${latest.photo}" alt="">
+    <div class="caption">
+      <div class="date">${fmtDate(latest.date)}</div>
+      <h2>${esc(lc.name)}</h2>
+      <div class="drink">${esc(latest.drink)||'&nbsp;'}</div>
+      <div class="rating-row">
+        <span class="axis">味 ${beanRow(latest.taste)}</span>
+        <span class="axis">空間 ${beanRow(latest.space)}</span>
+        <span class="axis">再訪 ${beanRow(latest.again)}</span>
+      </div>
+      ${latest.memo?`<div class="memo">${esc(latest.memo)}</div>`:''}
+    </div>
+  </article>
+  ${rest.length?`<div class="kicker" style="margin-top:64px">Archive</div>
+  <div class="maggrid">${rest.map(v=>{const c=cafeById(v.cafeId)||{name:'—'};return`
+    <article class="entry" onclick="openVisit('${v.id}')">
+      <img class="ph" src="${v.photo}" loading="lazy" alt="">
+      <div class="meta">
+        <div class="d">${fmtDateJP(v.date)}</div>
+        <h3>${esc(c.name)}</h3>
+        <div class="dr">${esc(v.drink)||''}</div>
+      </div>
+    </article>`}).join('')}</div>`:''}`;
+}
+
+/* ---- cafés ---- */
+function renderCafes(){
+  const el=$('#cafeList');
+  if(!cafes.length){$('#view-cafes').innerHTML=`<div class="kicker">The Collection</div><div class="empty"><div class="glyph">¶</div><h2>まだ一軒もありません</h2><p>「＋」から最初のカフェを登録しましょう。</p></div>`;return}
+  const ranked=[...cafes].map(c=>{
+    const vs=visits.filter(v=>v.cafeId===c.id);
+    const avg=vs.length?vs.reduce((s,v)=>s+v.again,0)/vs.length:0;
+    return{...c,count:vs.length,avg};
+  }).sort((a,b)=>b.avg-a.avg||b.count-a.count);
+  el.innerHTML=ranked.map(c=>`
+    <div class="cafecard" onclick="openCafe('${c.id}')">
+      <div><h3>${esc(c.name)}</h3><div class="tags">${(c.tags||[]).map(esc).join(' ・ ')}</div></div>
+      <div><div class="n">${c.count}</div><div class="nl">visits</div></div>
+    </div>`).join('');
+}
+
+/* ---- detail: visit ---- */
+window.openVisit=id=>{
+  const v=visits.find(x=>x.id===id);if(!v)return;
+  const c=cafeById(v.cafeId)||{name:'—'};
+  $('#view-detail').innerHTML=`
+    <button class="backlink" onclick="show('home')">← Back to Journal</button>
+    <article class="visit-article">
+      <img class="main" src="${v.photo}" alt="">
+      <div class="body">
+        <div class="date" style="font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--caramel-deep)">${fmtDate(v.date)}</div>
+        <h2 style="font-family:var(--serif-jp);font-weight:600;font-size:26px;letter-spacing:.04em;margin:4px 0">${esc(c.name)}</h2>
+        <div style="font-family:var(--serif);font-style:italic;color:var(--roast)">${esc(v.drink)||''}</div>
+        <div class="rating-row">
+          <span class="axis">味 ${beanRow(v.taste)}</span>
+          <span class="axis">空間 ${beanRow(v.space)}</span>
+          <span class="axis">再訪 ${beanRow(v.again)}</span>
+        </div>
+        ${v.memo?`<p style="font-size:13.5px;font-weight:350;margin-top:12px;border-top:1px solid var(--line-soft);padding-top:12px">${esc(v.memo)}</p>`:''}
+        <div class="toolbar">
+          <button class="minibtn" onclick="shareVisit('${v.id}')">Share ↗</button>
+          <button class="minibtn danger" onclick="delVisit('${v.id}')">Delete</button>
+        </div>
+      </div>
+    </article>`;
+  show('detail');
+};
+window.delVisit=async id=>{
+  if(!confirm('この記録を削除しますか？'))return;
+  await DB.del('visits',id);visits=visits.filter(v=>v.id!==id);
+  renderAll();show('home');toast('削除しました');
+};
+
+/* ---- detail: cafe ---- */
+window.openCafe=id=>{
+  const c=cafeById(id);if(!c)return;
+  const vs=visits.filter(v=>v.cafeId===id);
+  $('#view-detail').innerHTML=`
+    <button class="backlink" onclick="show('cafes')">← Back to Cafés</button>
+    <div class="detail-top"><h2>${esc(c.name)}</h2>
+      <span style="font-size:11px;letter-spacing:.2em;color:var(--caramel-deep)">${vs.length} VISITS</span></div>
+    <div class="tags" style="font-size:12px;color:var(--caramel-deep)">${(c.tags||[]).map(esc).join(' ・ ')}</div>
+    <div class="maggrid" style="margin-top:30px">${vs.map(v=>`
+      <article class="entry" onclick="openVisit('${v.id}')">
+        <img class="ph" src="${v.photo}" loading="lazy" alt="">
+        <div class="meta"><div class="d">${fmtDateJP(v.date)}</div><div class="dr">${esc(v.drink)||''}</div></div>
+      </article>`).join('')||'<p class="hint">まだ記録がありません。</p>'}</div>`;
+  show('detail');
+};
+
+/* ---- map ---- */
+let map=null,visitedLayer=null,discLayer=null,showNearby=false;
+function initMap(){
+  if(!map){
+    map=L.map('map',{scrollWheelZoom:true,zoomControl:true}).setView([33.59,130.40],12); // 福岡
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+      attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
+    visitedLayer=L.layerGroup().addTo(map);
+    discLayer=L.layerGroup().addTo(map);
+    map.on('moveend',()=>{if(showNearby)loadNearbyDebounced()});
+    wireMapConsole();
+  }
+  visitedLayer.clearLayers();
+  const pts=[];
+  cafes.filter(c=>c.lat).forEach(c=>{
+    const vs=visits.filter(v=>v.cafeId===c.id);
+    const photo=vs[0]?.photo;
+    const icon=L.divIcon({className:'bean-pin',html:'<div class="dot"><span>☕</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
+    L.marker([c.lat,c.lng],{icon}).addTo(visitedLayer).bindPopup(`
+      <div class="pop">${photo?`<img src="${photo}">`:''}
+      <div class="pad"><h4>${esc(c.name)}</h4>
+      <div class="visits">${vs.length} visits</div>
+      <a onclick="openCafe('${c.id}')">記録を見る →</a></div></div>`);
+    pts.push([c.lat,c.lng]);
+  });
+  if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:15});
+  setTimeout(()=>map.invalidateSize(),120);
+}
+
+/* ---- map console: search / nearby / visited toggle ---- */
+function wireMapConsole(){
+  $('#chipVisited').onclick=()=>{
+    const on=$('#chipVisited').classList.toggle('on');
+    on?map.addLayer(visitedLayer):map.removeLayer(visitedLayer);
+  };
+  $('#chipNearby').onclick=()=>{
+    showNearby=$('#chipNearby').classList.toggle('on');
+    if(showNearby)loadNearby();else discLayer.clearLayers();
+  };
+  $('#mapgo').onclick=searchPlace;
+  $('#mapq').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace()});
+}
+let _nbT=null;
+const loadNearbyDebounced=()=>{clearTimeout(_nbT);_nbT=setTimeout(loadNearby,700)};
+async function loadNearby(){
+  if(map.getZoom()<13){toast('もう少しズームすると周辺カフェが出ます');return}
+  const b=map.getBounds();
+  const bb=`${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+  const q=`[out:json][timeout:15];(node["amenity"="cafe"](${bb});way["amenity"="cafe"](${bb}););out center 80;`;
+  try{
+    let data=null;
+    for(const ep of ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']){
+      try{
+        const r=await fetch(ep,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}});
+        data=await r.json();break;
+      }catch(e){}
+    }
+    if(!data)throw new Error('overpass');
+    discLayer.clearLayers();
+    const visitedNames=new Set(cafes.map(c=>c.name));
+    data.elements.forEach(el=>{
+      const lat=el.lat??el.center?.lat,lng=el.lon??el.center?.lon;
+      const name=el.tags?.name;
+      if(!lat||!name||visitedNames.has(name))return;
+      const icon=L.divIcon({className:'bean-pin disc-pin',html:'<div class="dot"><span>☕</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
+      L.marker([lat,lng],{icon}).addTo(discLayer).bindPopup(`
+        <div class="pop"><div class="pad"><h4>${esc(name)}</h4>
+        <div class="visits">未訪問</div>
+        <a onclick="recordHere('${esc(name).replace(/'/g,'&#39;')}',${lat},${lng})">☕ ここを記録する →</a></div></div>`);
+    });
+  }catch(e){toast('周辺カフェの取得に失敗しました')}
+}
+async function searchPlace(){
+  const q=$('#mapq').value.trim();if(!q)return;
+  const res=$('#mapresults');res.style.display='none';
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ja&q=${encodeURIComponent(q)}`);
+    const data=await r.json();
+    if(!data.length){toast('見つかりませんでした');return}
+    res.innerHTML=data.map(d=>`<div onclick='gotoPlace(${d.lat},${d.lon})'>${esc(d.display_name)}</div>`).join('');
+    res.style.display='block';
+  }catch(e){toast('検索に失敗しました')}
+}
+window.gotoPlace=(lat,lng)=>{
+  $('#mapresults').style.display='none';
+  map.setView([lat,lng],16);
+  if(showNearby)loadNearby();
+};
+window.recordHere=(name,lat,lng)=>{
+  map.closePopup();
+  openAdd({name,lat,lng});
+};
+
+/* =============== add sheet =============== */
+const TAGS=['自家焙煎','ハンドドリップ','電源あり','Wi-Fi','テラス','スイーツ','深夜営業','古民家','ロースター併設'];
+let draft={};
+function openSheet(html){$('#sheetBody').innerHTML=html;$('#sheet').classList.add('open');$('#sheetBack').classList.add('open')}
+function closeSheet(){$('#sheet').classList.remove('open');$('#sheetBack').classList.remove('open')}
+$('#sheetBack').onclick=closeSheet;
+
+$('#fab').onclick=()=>openAdd();
+function openAdd(prefill){
+  draft={photo:null,taste:0,space:0,again:0,tags:[],lat:prefill?.lat??null,lng:prefill?.lng??null};
+  openSheet(`
+    <h2>New Entry<small>今日の一杯を記録</small></h2>
+    <div class="field"><label>Photograph — 写真</label>
+      <div class="photodrop" id="pdrop" onclick="$('#pfile').click()"><span style="font-family:var(--serif);font-size:26px;font-style:italic">+</span><span>タップして写真を選ぶ</span></div>
+      <input type="file" id="pfile" accept="image/*" hidden>
+    </div>
+    <div class="field"><label>Café — お店</label>
+      <select id="fcafe">${cafes.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}<option value="__new">＋ 新しいカフェを登録…</option></select>
+    </div>
+    <div class="field" id="newcafe" style="display:${cafes.length?'none':'block'}">
+      <label>New Café Name — 店名</label><input type="text" id="fcname" placeholder="例：COFFEE COUNTY">
+      <label style="margin-top:16px">Tags — タグ</label>
+      <div class="chips">${TAGS.map(t=>`<button class="chip" data-tag="${t}">${t}</button>`).join('')}</div>
+      <label style="margin-top:16px">Location — 場所（地図をタップ）</label>
+      <div id="pickmap"></div><div class="hint" id="pickhint">現在地から自動でピンを置きました。タップで調整できます。</div>
+    </div>
+    <div class="field"><label>The Cup — 飲んだもの</label><input type="text" id="fdrink" placeholder="例：エチオピア ハンドドリップ"></div>
+    <div class="field"><label>味 — Taste</label><div class="beanpick" data-key="taste">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
+    <div class="field"><label>空間 — Atmosphere</label><div class="beanpick" data-key="space">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
+    <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
+    <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo" placeholder="窓際の席。浅煎りが華やかだった。"></textarea></div>
+    <div class="btnrow"><button class="btn ghost" onclick="closeSheet()">閉じる</button><button class="btn primary" id="saveBtn">記録する</button></div>
+  `);
+  wireSheet();
+  if(!cafes.length)$('#fcafe').value='__new';
+  if(prefill){
+    $('#fcafe').value='__new';
+    $('#newcafe').style.display='block';
+    $('#fcname').value=prefill.name||'';
+    setTimeout(initPickMap,120);
+  }
+}
+
+let pickmap=null,pickmarker=null;
+function wireSheet(){
+  // photo
+  $('#pfile').onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    compress(f,1400,.82).then(durl=>{
+      draft.photo=durl;
+      const pd=$('#pdrop');pd.classList.add('has');pd.style.backgroundImage=`url(${durl})`;
+    });
+  };
+  // cafe select
+  $('#fcafe').onchange=e=>{
+    const isNew=e.target.value==='__new';
+    $('#newcafe').style.display=isNew?'block':'none';
+    if(isNew)setTimeout(initPickMap,80);
+  };
+  if($('#fcafe').value==='__new'||!cafes.length)setTimeout(initPickMap,150);
+  // tags
+  $$('#newcafe .chip').forEach(ch=>ch.onclick=()=>{ch.classList.toggle('on');
+    const t=ch.dataset.tag;draft.tags=ch.classList.contains('on')?[...draft.tags,t]:draft.tags.filter(x=>x!==t)});
+  // beans
+  $$('.beanpick').forEach(bp=>{
+    bp.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      const v=+b.dataset.v;draft[bp.dataset.key]=v;
+      bp.querySelectorAll('button').forEach(x=>x.classList.toggle('on',+x.dataset.v<=v));
+    });
+  });
+  $('#saveBtn').onclick=saveEntry;
+}
+function initPickMap(){
+  if(pickmap){pickmap.remove();pickmap=null}
+  const el=$('#pickmap');if(!el)return;
+  pickmap=L.map('pickmap').setView([33.59,130.40],12);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(pickmap);
+  const set=(lat,lng)=>{draft.lat=lat;draft.lng=lng;
+    if(pickmarker)pickmap.removeLayer(pickmarker);
+    pickmarker=L.marker([lat,lng]).addTo(pickmap)};
+  pickmap.on('click',e=>set(e.latlng.lat,e.latlng.lng));
+  if(draft.lat){
+    pickmap.setView([draft.lat,draft.lng],16);set(draft.lat,draft.lng);
+  }else{
+    navigator.geolocation?.getCurrentPosition(p=>{
+      pickmap.setView([p.coords.latitude,p.coords.longitude],15);
+      set(p.coords.latitude,p.coords.longitude);
+    },()=>{},{timeout:4000});
+  }
+  setTimeout(()=>pickmap.invalidateSize(),150);
+}
+function compress(file,maxW,q){
+  return new Promise(res=>{
+    const img=new Image();img.onload=()=>{
+      const sc=Math.min(1,maxW/img.width);
+      const cv=document.createElement('canvas');
+      cv.width=img.width*sc;cv.height=img.height*sc;
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      res(cv.toDataURL('image/jpeg',q));
+    };img.src=URL.createObjectURL(file);
+  });
+}
+async function saveEntry(){
+  if(!draft.photo){toast('写真を選んでください');return}
+  let cafeId=$('#fcafe').value;
+  if(cafeId==='__new'){
+    const name=$('#fcname').value.trim();
+    if(!name){toast('カフェ名を入力してください');return}
+    const c={id:uid(),name,tags:draft.tags,lat:draft.lat,lng:draft.lng};
+    await DB.put('cafes',c);cafes.push(c);cafeId=c.id;
+  }
+  const v={id:uid(),cafeId,photo:draft.photo,drink:$('#fdrink').value.trim(),
+    taste:draft.taste||3,space:draft.space||3,again:draft.again||3,
+    memo:$('#fmemo').value.trim(),date:new Date().toISOString()};
+  await DB.put('visits',v);visits.unshift(v);
+  closeSheet();renderAll();show('home');toast('記録しました ☕');
+}
+
+/* =============== instagram story share =============== */
+window.shareVisit=id=>{
+  const v=visits.find(x=>x.id===id);const c=cafeById(v.cafeId)||{name:''};
+  openSheet(`
+    <h2>Share<small>ストーリー用カード</small></h2>
+    <div class="share-wrap">
+      <canvas id="shareCv" width="1080" height="1920"></canvas>
+      <div class="tplrow">
+        <button class="minibtn" data-tpl="full">写真全面</button>
+        <button class="minibtn" data-tpl="polaroid">ポラロイド</button>
+      </div>
+      <div class="btnrow"><button class="btn ghost" onclick="closeSheet()">閉じる</button><button class="btn dark" id="doShare">共有する ↗</button></div>
+    </div>`);
+  let tpl='full';
+  const draw=()=>drawShare($('#shareCv'),v,c,tpl);
+  $$('.tplrow .minibtn').forEach(b=>b.onclick=()=>{tpl=b.dataset.tpl;draw()});
+  draw();
+  $('#doShare').onclick=async()=>{
+    const cv=$('#shareCv');
+    cv.toBlob(async blob=>{
+      const file=new File([blob],'coffeelog.jpg',{type:'image/jpeg'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){
+        try{await navigator.share({files:[file]})}catch(e){}
+      }else{
+        const a=document.createElement('a');a.href=cv.toDataURL('image/jpeg',.92);
+        a.download='coffeelog.jpg';a.click();toast('画像を保存しました');
+      }
+    },'image/jpeg',.92);
+  };
+};
+function drawShare(cv,v,c,tpl){
+  const ctx=cv.getContext('2d');const W=1080,H=1920;
+  const img=new Image();
+  img.onload=()=>{
+    ctx.fillStyle='#F5EFE4';ctx.fillRect(0,0,W,H);
+    if(tpl==='full'){
+      // photo fills top 72%
+      coverDraw(ctx,img,0,0,W,H*0.72);
+      // cream band
+      ctx.fillStyle='#F5EFE4';ctx.fillRect(0,H*0.72,W,H*0.28);
+      ctx.fillStyle='#2B2018';
+      ctx.font='italic 500 44px "Playfair Display"';ctx.fillStyle='#8C5E36';
+      ctx.textAlign='center';
+      ctx.fillText(fmtDate(v.date).toUpperCase(),W/2,H*0.72+96);
+      ctx.fillStyle='#2B2018';ctx.font='600 84px "Shippori Mincho"';
+      ctx.fillText(fitText(ctx,c.name,W-160),W/2,H*0.72+200);
+      ctx.font='italic 500 48px "Playfair Display"';ctx.fillStyle='#4A372A';
+      if(v.drink)ctx.fillText(fitText(ctx,v.drink,W-200),W/2,H*0.72+272);
+      drawBeans(ctx,W/2,H*0.72+352,v.again);
+      ctx.font='500 30px "Playfair Display"';ctx.fillStyle='#B07D4F';
+      ctx.fillText('C O F F E E   &   L O G',W/2,H-70);
+    }else{
+      // polaroid
+      ctx.fillStyle='#E8DEC9';ctx.fillRect(0,0,W,H);
+      grain(ctx,W,H);
+      const pw=W-200,ph=pw, px=100, py=(H-ph-260)/2;
+      ctx.save();ctx.translate(W/2,py+ph/2+90);ctx.rotate(-0.02);ctx.translate(-W/2,-(py+ph/2+90));
+      ctx.shadowColor='rgba(43,32,24,.35)';ctx.shadowBlur=60;ctx.shadowOffsetY=24;
+      ctx.fillStyle='#FDFBF6';ctx.fillRect(px-36,py-36+90,pw+72,ph+260);
+      ctx.shadowColor='transparent';
+      coverDraw(ctx,img,px,py+90,pw,ph);
+      ctx.fillStyle='#2B2018';ctx.textAlign='center';
+      ctx.font='600 64px "Shippori Mincho"';
+      ctx.fillText(fitText(ctx,c.name,pw-60),W/2,py+ph+90+110);
+      ctx.font='italic 400 38px "Playfair Display"';ctx.fillStyle='#8C5E36';
+      ctx.fillText(fmtDate(v.date),W/2,py+ph+90+168);
+      ctx.restore();
+      ctx.textAlign='center';ctx.font='500 30px "Playfair Display"';ctx.fillStyle='#8C5E36';
+      ctx.fillText('C O F F E E   &   L O G',W/2,H-80);
+    }
+  };
+  img.src=v.photo;
+}
+function coverDraw(ctx,img,x,y,w,h){
+  const s=Math.max(w/img.width,h/img.height);
+  const iw=img.width*s,ih=img.height*s;
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+  ctx.drawImage(img,x+(w-iw)/2,y+(h-ih)/2,iw,ih);ctx.restore();
+}
+function fitText(ctx,text,maxW){
+  let t=text||'';while(ctx.measureText(t).width>maxW&&t.length>2)t=t.slice(0,-2)+'…';return t;
+}
+function drawBeans(ctx,cx,cy,n){
+  ctx.save();ctx.textAlign='center';ctx.font='44px serif';
+  let s='';for(let i=1;i<=5;i++)s+=(i<=n?'●':'○')+'  ';
+  ctx.fillStyle='#8C5E36';ctx.fillText(s.trim(),cx,cy);ctx.restore();
+}
+function grain(ctx,W,H){
+  for(let i=0;i<2200;i++){
+    ctx.fillStyle=`rgba(43,32,24,${Math.random()*0.05})`;
+    ctx.fillRect(Math.random()*W,Math.random()*H,2,2);
+  }
+}
+
+/* =============== boot =============== */
+function renderAll(){renderHome();renderCafes();if(map)initMap()}
+load().then(()=>{renderAll()});
+</script>
+</body>
+</html>
