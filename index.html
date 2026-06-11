@@ -813,24 +813,26 @@ async function loadNearby(){
   if(map.getZoom()<13){toast('もう少しズームすると周辺カフェが出ます');return}
   if(nearbyBusy)return;nearbyBusy=true;
   const c=map.getCenter();
+  const headers={'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.id,places.displayName,places.location'};
+  const loc={latitude:c.lat,longitude:c.lng};
   try{
-    const r=await fetch('https://places.googleapis.com/v1/places:searchNearby',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.id,places.displayName,places.location'},
-      body:JSON.stringify({
-        includedTypes:['cafe','coffee_shop','bakery','tea_house'],
-        languageCode:'ja',
-        maxResultCount:20,
-        locationRestriction:{circle:{center:{latitude:c.lat,longitude:c.lng},radius:1000}}
-      })
-    });
-    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(r.status+': '+(err.error?.message||''))}
-    const data=await r.json();
-    (data.places||[]).forEach(p=>{
-      const lat=p.location?.latitude,lng=p.location?.longitude;
-      const name=p.displayName?.text;
-      if(lat&&name)discCache.set(p.id,{lat,lng,name});
-    });
+    const [r1,r2]=await Promise.all([
+      fetch('https://places.googleapis.com/v1/places:searchNearby',{method:'POST',headers,
+        body:JSON.stringify({includedTypes:['cafe','coffee_shop','tea_house','bakery'],languageCode:'ja',maxResultCount:20,
+          locationRestriction:{circle:{center:loc,radius:1000}}})}),
+      fetch('https://places.googleapis.com/v1/places:searchText',{method:'POST',headers,
+        body:JSON.stringify({textQuery:'喫茶店 カフェ',languageCode:'ja',maxResultCount:20,
+          locationRestriction:{circle:{center:loc,radius:1000}}})})
+    ]);
+    for(const r of [r1,r2]){
+      if(!r.ok)continue;
+      const data=await r.json();
+      (data.places||[]).forEach(p=>{
+        const lat=p.location?.latitude,lng=p.location?.longitude;
+        const name=p.displayName?.text;
+        if(lat&&name)discCache.set(p.id,{lat,lng,name});
+      });
+    }
     renderDisc();
   }catch(e){console.error('nearby',e);toast('周辺カフェの取得に失敗しました')}
   finally{nearbyBusy=false}
