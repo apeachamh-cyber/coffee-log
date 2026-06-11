@@ -824,7 +824,7 @@ async function loadNearby(){
         locationBias:{circle:{center:{latitude:c.lat,longitude:c.lng},radius:1500}}
       })
     });
-    if(!r.ok)throw new Error(r.status);
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(r.status+': '+(err.error?.message||''))}
     const data=await r.json();
     (data.places||[]).forEach(p=>{
       const lat=p.location?.latitude,lng=p.location?.longitude;
@@ -832,7 +832,7 @@ async function loadNearby(){
       if(lat&&name)discCache.set(p.id,{lat,lng,name});
     });
     renderDisc();
-  }catch(e){console.error('nearby',e);toast('周辺カフェの取得に失敗しました')}
+  }catch(e){console.error('nearby',e);toast('エラー: '+e.message)}
   finally{nearbyBusy=false}
 }
 function renderDisc(){
