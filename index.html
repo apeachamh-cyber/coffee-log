@@ -99,6 +99,8 @@ nav.tabs .inner{
 .tab-btn:hover{background:var(--paper-deep)}
 .tab-btn.active{background:var(--espresso);color:var(--paper);box-shadow:var(--shadow-soft)}
 .tab-btn .jp{font-size:10px;letter-spacing:.1em;display:block;line-height:1;margin-top:2px;opacity:.55}
+.tab-btn.on{color:var(--caramel-deep)}
+.tab-btn.on .jp{opacity:.9}
 
 main{max-width:1080px;margin:0 auto;padding:0 24px 140px}
 section.view{display:none;animation:fadeUp .6s cubic-bezier(.2,.7,.2,1) both}
@@ -419,6 +421,7 @@ footer{
   <button class="tab-btn active" data-view="home">Journal<span class="jp">記録</span></button>
   <button class="tab-btn" data-view="map">Map<span class="jp">地図</span></button>
   <button class="tab-btn" data-view="cafes">Cafés<span class="jp">店</span></button>
+  <button class="tab-btn" id="syncBtn" onclick="cloudLogin()">☁<span class="jp">同期</span></button>
 </div></nav>
 
 <main>
@@ -454,6 +457,9 @@ footer{
 
 <div class="toast" id="toast"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* =============== utilities =============== */
@@ -484,6 +490,83 @@ const DB={
 };
 let cafes=[],visits=[];
 async function load(){await DB.open();cafes=await DB.all('cafes');visits=await DB.all('visits');visits.sort((a,b)=>b.date.localeCompare(a.date));}
+
+/* =============== Firebase cloud sync =============== */
+const firebaseConfig={
+  apiKey:"AIzaSyBWChasJHpnIneDqfvXl6_f1P0GL0ekMVk",
+  authDomain:"drippin-1d28e.firebaseapp.com",
+  projectId:"drippin-1d28e",
+  storageBucket:"drippin-1d28e.firebasestorage.app",
+  messagingSenderId:"911757313680",
+  appId:"1:911757313680:web:a6995261c65621eee17a15"
+};
+let fbAuth=null,fbDb=null,fbUser=null;
+if(window.firebase){
+  firebase.initializeApp(firebaseConfig);
+  fbAuth=firebase.auth();fbDb=firebase.firestore();
+  fbAuth.onAuthStateChanged(async u=>{
+    fbUser=u;updateSyncUI();
+    if(u){try{await cloudSync()}catch(e){console.error('sync',e);toast('同期に失敗しました')}}
+  });
+}
+function updateSyncUI(){
+  const b=$('#syncBtn');if(!b)return;
+  b.classList.toggle('on',!!fbUser);
+  b.querySelector('.jp').textContent=fbUser?'同期中':'同期';
+}
+window.cloudLogin=async()=>{
+  if(!fbAuth){toast('オフラインです');return}
+  if(fbUser){toast('同期ON：'+(fbUser.email||'ログイン済み'));return}
+  const prov=new firebase.auth.GoogleAuthProvider();
+  try{await fbAuth.signInWithPopup(prov)}
+  catch(e){try{await fbAuth.signInWithRedirect(prov)}catch(e2){toast('ログインできませんでした')}}
+};
+const uroot=()=>fbDb.collection('users').doc(fbUser.uid);
+async function cloudSaveCafe(c){if(!fbUser)return;await uroot().collection('cafes').doc(c.id).set(c)}
+async function cloudSaveVisit(v){
+  if(!fbUser)return;
+  const photos=v.photos||(v.photo?[v.photo]:[]);
+  const meta={...v};delete meta.photos;delete meta.photo;meta.photoCount=photos.length;
+  const writes=[uroot().collection('visits').doc(v.id).set(meta)];
+  photos.forEach((p,i)=>writes.push(uroot().collection('photos').doc(v.id+'_'+i).set({visitId:v.id,i,data:p})));
+  await Promise.all(writes);
+}
+async function cloudDeleteVisit(id,photoCount){
+  if(!fbUser)return;
+  const dels=[uroot().collection('visits').doc(id).delete()];
+  for(let i=0;i<(photoCount||10);i++)dels.push(uroot().collection('photos').doc(id+'_'+i).delete());
+  await Promise.all(dels);
+}
+async function cloudSync(){
+  // pull cloud data
+  const [cs,vs,ps]=await Promise.all([
+    uroot().collection('cafes').get(),
+    uroot().collection('visits').get(),
+    uroot().collection('photos').get()
+  ]);
+  const cloudCafes=cs.docs.map(d=>d.data());
+  const photoMap={};
+  ps.docs.forEach(d=>{const p=d.data();(photoMap[p.visitId]=photoMap[p.visitId]||[])[p.i]=p.data});
+  const cloudVisits=vs.docs.map(d=>{
+    const v=d.data();
+    v.photos=(photoMap[v.id]||[]).filter(Boolean);
+    v.photo=v.photos[0]||null;
+    return v;
+  });
+  // push local-only records to cloud
+  const cloudCafeIds=new Set(cloudCafes.map(c=>c.id));
+  const cloudVisitIds=new Set(cloudVisits.map(v=>v.id));
+  for(const c of cafes)if(!cloudCafeIds.has(c.id))await cloudSaveCafe(c);
+  for(const v of visits)if(!cloudVisitIds.has(v.id))await cloudSaveVisit(v);
+  // merge cloud-only records into local
+  const cafeIds=new Set(cafes.map(c=>c.id));
+  for(const c of cloudCafes)if(!cafeIds.has(c.id)){cafes.push(c);await DB.put('cafes',c)}
+  const visitIds=new Set(visits.map(v=>v.id));
+  for(const v of cloudVisits)if(!visitIds.has(v.id)&&v.photo){visits.push(v);await DB.put('visits',v)}
+  visits.sort((a,b)=>b.date.localeCompare(a.date));
+  renderAll();
+  toast('☁ 同期しました');
+}
 
 /* =============== views =============== */
 const cafeById=id=>cafes.find(c=>c.id===id);
@@ -581,7 +664,9 @@ window.openVisit=id=>{
 };
 window.delVisit=async id=>{
   if(!confirm('この記録を削除しますか？'))return;
+  const target=visits.find(v=>v.id===id);
   await DB.del('visits',id);visits=visits.filter(v=>v.id!==id);
+  cloudDeleteVisit(id,target?.photos?.length||1).catch(e=>console.error(e));
   renderAll();show('home');toast('削除しました');
 };
 
@@ -863,11 +948,13 @@ async function saveEntry(){
     if(!name){toast('カフェ名を入力してください');return}
     const c={id:uid(),name,tags:draft.tags,lat:draft.lat,lng:draft.lng};
     await DB.put('cafes',c);cafes.push(c);cafeId=c.id;
+    cloudSaveCafe(c).catch(e=>console.error(e));
   }
   const v={id:uid(),cafeId,photo:draft.photos[0],photos:draft.photos,drink:$('#fdrink').value.trim(),
     taste:draft.taste||3,space:draft.space||3,again:draft.again||3,
     memo:$('#fmemo').value.trim(),date:new Date().toISOString()};
   await DB.put('visits',v);visits.unshift(v);
+  cloudSaveVisit(v).catch(e=>console.error(e));
   closeSheet();renderAll();show('home');toast('記録しました ☕');
 }
 
