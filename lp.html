@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F5EFE4">
+<title>Drippin — あなたの一杯を、物語に。</title>
+<meta name="description" content="Drippinは、訪れたカフェと味わった一杯を美しく記録するパーソナル・カフェジャーナル。地図で巡り、写真で残し、豆で評価する。">
+<meta property="og:title" content="Drippin — あなたの一杯を、物語に。">
+<meta property="og:description" content="訪れたカフェと味わった一杯を、美しく記録するカフェジャーナルアプリ。">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,700&family=Shippori+Mincho:wght@500;600;700;800&family=Noto+Sans+JP:wght@300;350;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5EFE4;
+  --paper-deep:#EDE4D3;
+  --espresso:#2B2018;
+  --espresso-deep:#1C140E;
+  --roast:#4A372A;
+  --caramel:#B07D4F;
+  --caramel-deep:#8C5E36;
+  --gold:#E8C496;
+  --milk:#FDFBF6;
+  --line:rgba(43,32,24,.16);
+  --line-soft:rgba(43,32,24,.08);
+  --serif:'Playfair Display',serif;
+  --serif-jp:'Shippori Mincho',serif;
+  --sans:'Noto Sans JP',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);font-weight:400;color:var(--espresso);
+  background:var(--paper);
+  letter-spacing:.01em;line-height:1.9;
+  overflow-x:hidden;
+}
+::selection{background:var(--caramel);color:var(--milk)}
+
+/* paper grain over everything */
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9000;opacity:.45;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.17 0 0 0 0 0.12 0 0 0 0 0.09 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============ opening curtain ============ */
+#curtain{
+  position:fixed;inset:0;z-index:9800;display:flex;align-items:center;justify-content:center;
+  background:var(--espresso-deep);
+  transition:transform 1s cubic-bezier(.76,0,.24,1);
+}
+#curtain .c-logo{
+  font-family:var(--serif);font-style:italic;font-weight:700;
+  font-size:clamp(30px,6vw,54px);color:var(--gold);letter-spacing:.05em;
+  opacity:0;transform:translateY(18px);
+  transition:opacity .6s ease,transform .6s ease;
+}
+body.boot #curtain .c-logo{opacity:1;transform:none}
+body.lifted #curtain{transform:translateY(-101%)}
+body.lifted #curtain .c-logo{opacity:0;transition-delay:0s}
+
+/* ============ custom cursor (desktop) ============ */
+#cursorDot,#cursorRing{position:fixed;top:0;left:0;pointer-events:none;z-index:9700;display:none}
+@media(pointer:fine){
+  #cursorDot,#cursorRing{display:block}
+  #cursorDot{width:6px;height:6px;border-radius:50%;background:var(--caramel-deep);margin:-3px 0 0 -3px}
+  #cursorRing{
+    width:34px;height:34px;border-radius:50%;border:1.5px solid var(--caramel-deep);
+    margin:-17px 0 0 -17px;opacity:.5;
+    transition:width .3s,height .3s,margin .3s,opacity .3s,background .3s;
+  }
+  body.cursor-hover #cursorRing{
+    width:56px;height:56px;margin:-28px 0 0 -28px;opacity:.9;
+    background:rgba(176,125,79,.12);
+  }
+}
+
+/* ============ scroll progress : filling cup ============ */
+#cupProgress{
+  position:fixed;right:22px;bottom:22px;z-index:9500;width:46px;height:54px;
+  filter:drop-shadow(0 6px 18px rgba(43,32,24,.25));
+  opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s;
+}
+#cupProgress.show{opacity:1;transform:none}
+
+/* ============ nav ============ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:8000;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:18px clamp(20px,5vw,56px);
+  transition:background .4s,backdrop-filter .4s,box-shadow .4s,padding .4s,transform .5s;
+}
+nav.scrolled{
+  background:rgba(245,239,228,.72);
+  backdrop-filter:blur(18px) saturate(1.2);
+  -webkit-backdrop-filter:blur(18px) saturate(1.2);
+  box-shadow:0 1px 0 var(--line-soft);
+  padding-top:12px;padding-bottom:12px;
+}
+nav.hidden{transform:translateY(-110%)}
+.nav-logo{font-family:var(--serif);font-weight:700;font-size:22px;letter-spacing:.04em;color:var(--espresso);text-decoration:none}
+.nav-logo i{font-style:italic;color:var(--caramel-deep)}
+.nav-cta{
+  font-family:var(--sans);font-size:13px;font-weight:500;letter-spacing:.12em;
+  color:var(--milk);background:var(--espresso);text-decoration:none;
+  padding:10px 22px;border-radius:999px;
+  transition:transform .25s,background .25s,box-shadow .25s;
+}
+.nav-cta:hover{background:var(--caramel-deep);transform:translateY(-2px);box-shadow:0 10px 24px rgba(140,94,54,.35)}
+
+/* ============ hero ============ */
+.hero{
+  position:relative;min-height:100svh;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  text-align:center;padding:120px 24px 80px;
+  background:radial-gradient(130% 100% at 50% 0%,#FBF6EC 0%,#F5EFE4 50%,#E8DCC4 100%);
+  overflow:hidden;
+}
+/* giant outlined word behind everything, parallax via JS */
+.hero-word{
+  position:absolute;top:50%;left:50%;white-space:nowrap;
+  font-family:var(--serif);font-style:italic;font-weight:700;
+  font-size:clamp(140px,26vw,420px);line-height:1;
+  color:transparent;-webkit-text-stroke:1.5px rgba(140,94,54,.16);
+  pointer-events:none;user-select:none;
+  transform:translate(-50%,-50%);
+  will-change:transform;
+}
+/* slow rotating ring of text */
+.hero-ring{
+  position:absolute;top:50%;left:50%;width:min(150vw,1200px);height:min(150vw,1200px);
+  transform:translate(-50%,-50%);
+  animation:spin 90s linear infinite;opacity:.07;pointer-events:none;
+}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.hero-ring text{
+  font-family:var(--serif);font-size:30px;letter-spacing:.5em;fill:var(--espresso);
+  text-transform:uppercase;
+}
+/* drip animation */
+.drip-stage{position:relative;width:120px;height:170px;margin-bottom:8px;z-index:2}
+.drip-stage svg{width:100%;height:100%;overflow:visible}
+.droplet{
+  animation:drop 2.6s cubic-bezier(.55,0,.85,.4) infinite;
+  transform-origin:60px 24px;
+}
+@keyframes drop{
+  0%{transform:translateY(0) scaleY(.6);opacity:0}
+  12%{opacity:1;transform:translateY(2px) scaleY(1.1)}
+  55%{transform:translateY(88px) scaleY(1.2);opacity:1}
+  62%{transform:translateY(94px) scaleY(.4) scaleX(1.6);opacity:0}
+  100%{opacity:0}
+}
+.ripple{
+  fill:none;stroke:var(--caramel-deep);stroke-width:1.5;opacity:0;
+  animation:rip 2.6s ease-out infinite;
+  transform-origin:60px 136px;
+}
+@keyframes rip{
+  0%,60%{opacity:0;transform:scale(.2)}
+  67%{opacity:.7}
+  94%{opacity:0;transform:scale(1.6)}
+  100%{opacity:0}
+}
+.pinpop{
+  opacity:0;
+  animation:pinPop 2.6s ease-out infinite;
+  transform-origin:60px 136px;
+}
+@keyframes pinPop{
+  0%,60%{opacity:0;transform:translateY(8px) scale(.35)}
+  67%{opacity:1;transform:translateY(-3px) scale(1.14)}
+  73%{transform:translateY(0) scale(1)}
+  90%{opacity:1;transform:translateY(0) scale(1)}
+  100%{opacity:0;transform:translateY(0) scale(.9)}
+}
+.hero-eyebrow{
+  font-family:var(--sans);font-size:12px;font-weight:500;letter-spacing:.42em;
+  color:var(--caramel-deep);text-transform:uppercase;margin-bottom:22px;z-index:2;
+  opacity:0;transition:opacity .9s ease .9s,letter-spacing 1.2s ease .9s;
+}
+body.lifted .hero-eyebrow{opacity:1}
+.hero h1{
+  font-family:var(--serif-jp);font-weight:600;
+  font-size:clamp(34px,7.4vw,86px);line-height:1.32;letter-spacing:.06em;
+  margin-bottom:10px;z-index:2;
+}
+/* line mask reveal */
+.hline{display:block;overflow:hidden;padding:.06em 0}
+.hline>span{display:inline-block;transform:translateY(112%);transition:transform 1s cubic-bezier(.2,.65,.2,1)}
+body.lifted .hline:nth-child(1)>span{transition-delay:.55s;transform:none}
+body.lifted .hline:nth-child(2)>span{transition-delay:.7s;transform:none}
+.hero h1 .en{
+  display:block;font-family:var(--serif);font-style:italic;font-weight:500;
+  font-size:clamp(17px,2.6vw,30px);letter-spacing:.14em;color:var(--caramel-deep);
+  margin-top:18px;
+  opacity:0;transform:translateY(14px);transition:opacity .9s ease 1.05s,transform .9s ease 1.05s;
+}
+body.lifted .hero h1 .en{opacity:1;transform:none}
+.hero p.lead{
+  max-width:560px;font-size:clamp(14px,1.7vw,17px);font-weight:350;
+  color:var(--roast);margin:26px auto 44px;z-index:2;
+  opacity:0;transform:translateY(14px);transition:opacity .9s ease 1.2s,transform .9s ease 1.2s;
+}
+body.lifted .hero p.lead{opacity:1;transform:none}
+.hero-cta{
+  display:inline-flex;align-items:center;gap:14px;
+  font-family:var(--serif-jp);font-size:17px;letter-spacing:.18em;font-weight:600;
+  color:var(--milk);background:var(--espresso);text-decoration:none;
+  padding:20px 52px;border-radius:999px;position:relative;overflow:hidden;
+  transition:transform .3s,box-shadow .3s,opacity .9s ease 1.35s;
+  box-shadow:0 14px 38px rgba(43,32,24,.28);z-index:2;
+  will-change:transform;
+}
+.hero .hero-cta{opacity:0}
+body.lifted .hero .hero-cta{opacity:1}
+.hero-cta::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.18) 50%,transparent 70%);
+  transform:translateX(-110%);transition:transform .7s;
+}
+.hero-cta:hover{box-shadow:0 22px 50px rgba(43,32,24,.34)}
+.hero-cta:hover::before{transform:translateX(110%)}
+.hero-scroll{
+  position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
+  font-size:10px;letter-spacing:.4em;color:var(--roast);opacity:.6;
+  display:flex;flex-direction:column;align-items:center;gap:10px;z-index:2;
+}
+.hero-scroll::after{
+  content:"";width:1px;height:44px;background:var(--espresso);
+  animation:scrollHint 2s ease-in-out infinite;transform-origin:top;
+}
+@keyframes scrollHint{0%{transform:scaleY(0)}45%{transform:scaleY(1)}100%{transform:scaleY(1);opacity:0}}
+
+/* ============ marquee (double, opposite) ============ */
+.marquee{
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  padding:18px 0;overflow:hidden;white-space:nowrap;background:var(--paper-deep);
+  transform:rotate(-1.2deg) scale(1.02);margin:3vw 0;
+}
+.marquee .row{display:block;overflow:hidden}
+.marquee .row+.row{margin-top:6px}
+.marquee-track{display:inline-block;animation:marq 32s linear infinite}
+.marquee .row:nth-child(2) .marquee-track{animation:marqR 38s linear infinite}
+.marquee span{
+  font-family:var(--serif);font-style:italic;font-size:clamp(20px,3vw,32px);
+  letter-spacing:.1em;color:var(--roast);margin:0 34px;opacity:.85;
+}
+.marquee .row:nth-child(2) span{
+  color:transparent;-webkit-text-stroke:1px var(--caramel-deep);opacity:.7;font-style:normal;
+  font-family:var(--serif);font-weight:700;
+}
+.marquee span.dot{color:var(--caramel);font-style:normal;-webkit-text-stroke:0}
+@keyframes marq{to{transform:translateX(-50%)}}
+@keyframes marqR{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+
+/* ============ shared section bits ============ */
+section{position:relative}
+.wrap{max-width:1120px;margin:0 auto;padding:0 clamp(20px,5vw,48px)}
+.sec-label{
+  font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.42em;
+  color:var(--caramel-deep);text-transform:uppercase;
+  display:flex;align-items:center;gap:16px;margin-bottom:26px;
+}
+.sec-label::before{content:"";width:44px;height:1px;background:var(--caramel-deep)}
+h2.sec-title{
+  font-family:var(--serif-jp);font-weight:600;
+  font-size:clamp(28px,4.6vw,52px);line-height:1.45;letter-spacing:.05em;
+  margin-bottom:22px;
+}
+.rv{opacity:0;transform:translateY(36px);transition:opacity .9s cubic-bezier(.2,.65,.3,1),transform .9s cubic-bezier(.2,.65,.3,1)}
+.rv.in{opacity:1;transform:none}
+.rv.d1{transition-delay:.12s}.rv.d2{transition-delay:.24s}.rv.d3{transition-delay:.36s}
+
+/* ============ philosophy : scroll-scrub text ============ */
+.philo-scene{height:240vh;position:relative}
+.philo-sticky{
+  position:sticky;top:0;height:100svh;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  text-align:center;padding:0 24px;overflow:hidden;
+}
+.philo-big{
+  font-family:var(--serif-jp);font-weight:600;
+  font-size:clamp(21px,5vw,56px);line-height:2;letter-spacing:.08em;
+}
+.philo-big>span{white-space:nowrap}
+.philo-big .ch{opacity:.1;transition:opacity .18s linear;display:inline-block}
+.philo-big .ch.lit{opacity:1}
+.philo-big .ch.accent{color:var(--caramel-deep)}
+.philo-big .ch.accent.lit{
+  background:linear-gradient(transparent 68%,rgba(176,125,79,.28) 68%);
+}
+.philo-sub{
+  max-width:600px;margin:38px auto 0;font-weight:350;color:var(--roast);
+  font-size:clamp(13.5px,1.6vw,16px);
+  opacity:0;transform:translateY(20px);
+  transition:opacity .7s ease,transform .7s ease;
+}
+.philo-sub.show{opacity:1;transform:none}
+
+/* ============ features : horizontal cinema ============ */
+.hfeat-scene{position:relative}
+.hfeat-sticky{position:sticky;top:0;height:100svh;overflow:hidden;display:flex;align-items:center}
+.hfeat-head{
+  position:absolute;top:max(86px,10svh);right:clamp(20px,5vw,56px);z-index:3;
+}
+.hfeat-head .sec-label{flex-direction:row-reverse}
+.hfeat-head .sec-label::before{order:-1}
+.hfeat-progress{
+  position:absolute;bottom:max(30px,5svh);left:clamp(20px,5vw,56px);z-index:3;
+  display:flex;align-items:center;gap:18px;
+  font-family:var(--serif);font-style:italic;font-size:15px;color:var(--roast);letter-spacing:.1em;
+}
+.hfeat-bar{width:min(200px,30vw);height:1px;background:var(--line);position:relative}
+.hfeat-bar i{position:absolute;left:0;top:-0.5px;height:2px;width:0;background:var(--caramel-deep)}
+.hfeat-track{
+  display:flex;gap:clamp(30px,5vw,80px);
+  padding:0 clamp(20px,8vw,120px);
+  will-change:transform;align-items:center;
+}
+.hpanel{
+  flex:0 0 auto;width:min(860px,88vw);
+  display:grid;grid-template-columns:1fr 1.15fr;gap:clamp(24px,3.5vw,60px);
+  align-items:center;
+}
+.hpanel .feat-num{
+  font-family:var(--serif);font-style:italic;font-size:clamp(60px,8vw,110px);
+  font-weight:400;color:transparent;-webkit-text-stroke:1px var(--caramel);
+  line-height:1;margin-bottom:18px;opacity:.8;
+}
+.hpanel h3{
+  font-family:var(--serif-jp);font-weight:600;font-size:clamp(22px,2.6vw,34px);
+  letter-spacing:.06em;line-height:1.5;margin-bottom:16px;
+}
+.hpanel p{font-weight:350;color:var(--roast);font-size:14.5px;max-width:40ch}
+.hpanel .en-tag{
+  display:inline-block;font-family:var(--serif);font-style:italic;font-size:14px;
+  letter-spacing:.2em;color:var(--caramel-deep);margin-bottom:12px;
+}
+.feat-visual{position:relative;perspective:1100px}
+.vcard{
+  position:relative;border-radius:26px;overflow:hidden;
+  background:var(--milk);border:1px solid rgba(255,255,255,.65);
+  box-shadow:0 2px 6px rgba(43,32,24,.05),0 24px 60px rgba(43,32,24,.16),0 60px 120px rgba(43,32,24,.12);
+  transform:rotateY(0) rotateX(0);transition:transform .5s ease;
+  will-change:transform;
+}
+.vcard svg{display:block;width:100%;height:auto}
+@media(max-width:840px){
+  .hpanel{grid-template-columns:1fr;gap:16px;width:86vw;padding:96px 0 76px}
+  .hpanel .feat-num{font-size:50px;margin-bottom:8px}
+  .hpanel h3{font-size:19px;margin-bottom:10px}
+  .hpanel h3 br{display:none}
+  .hpanel p{font-size:13px;line-height:1.8}
+  .feat-visual .vcard{max-width:min(430px,78vw);margin:0 auto}
+  .hfeat-head{top:max(70px,8svh)}
+}
+
+/* ============ pour scene : page fills with coffee ============ */
+.pour-scene{height:300vh;position:relative;background:var(--paper)}
+.pour-sticky{
+  position:sticky;top:0;height:100svh;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.pour-word{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  font-family:var(--serif-jp);font-weight:700;
+  font-size:clamp(40px,9vw,110px);letter-spacing:.18em;color:var(--espresso);
+  opacity:0;white-space:nowrap;z-index:3;
+  transition:color .35s ease;will-change:opacity,transform;
+}
+.pour-word .pw-en{
+  display:block;text-align:center;font-family:var(--serif);font-style:italic;font-weight:500;
+  font-size:clamp(14px,2vw,22px);letter-spacing:.3em;color:var(--caramel-deep);margin-top:14px;
+  transition:color .35s ease;
+}
+.pour-word.lit-on-dark{color:#F7EFE2}
+.pour-word.lit-on-dark .pw-en{color:var(--gold)}
+.liquid{
+  position:absolute;left:0;right:0;bottom:0;height:0;z-index:2;
+  background:linear-gradient(180deg,#3A2A1E 0%,var(--espresso-deep) 30%);
+  will-change:height;
+}
+.liquid .wave{
+  position:absolute;left:0;top:-58px;width:200%;height:60px;display:flex;
+  animation:waveSlide 7s linear infinite;
+}
+.liquid .wave svg{width:50%;height:100%;flex:0 0 50%}
+@keyframes waveSlide{to{transform:translateX(-50%)}}
+.pour-hint{
+  position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:3;
+  font-size:10px;letter-spacing:.4em;color:var(--roast);opacity:.55;
+  transition:opacity .5s ease;
+}
+.pour-hint.off{opacity:0}
+
+/* ============ dark immersion section ============ */
+.dark{
+  background:linear-gradient(180deg,var(--espresso-deep) 0%,#241A11 55%,var(--espresso-deep) 100%);
+  color:#EFE6D8;padding:clamp(40px,7vw,90px) 0 clamp(110px,16vw,210px);
+  margin-top:-2px;
+}
+.dark .sec-label{color:#C99A6B}
+.dark .sec-label::before{background:#C99A6B}
+.dark h2.sec-title{color:#F7EFE2}
+.dark ::selection{background:#C99A6B;color:#1C140E}
+.dark-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(20px,3vw,36px);margin-top:clamp(40px,6vw,70px)}
+.dcard{
+  border:1px solid rgba(239,230,216,.14);border-radius:22px;
+  padding:34px 28px;background:rgba(255,255,255,.03);
+  backdrop-filter:blur(4px);
+  transition:transform .4s,border-color .4s,background .4s;
+}
+.dcard:hover{transform:translateY(-6px);border-color:rgba(201,154,107,.5);background:rgba(201,154,107,.06)}
+.dcard .ico{width:44px;height:44px;margin-bottom:20px}
+.dcard .ico path,.dcard .ico circle{stroke:#C99A6B}
+.dcard h4{font-family:var(--serif-jp);font-size:18px;font-weight:600;letter-spacing:.08em;margin-bottom:10px;color:#F4EADA}
+.dcard p{font-size:13.5px;font-weight:300;color:rgba(239,230,216,.66);line-height:1.95}
+.beanfloat{position:absolute;opacity:.1;pointer-events:none;animation:floaty 9s ease-in-out infinite;will-change:transform}
+.beanfloat.b2{animation-delay:-3s;animation-duration:11s}
+.beanfloat.b3{animation-delay:-6s;animation-duration:13s}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-26px) rotate(10deg)}}
+
+/* ============ ritual ============ */
+.ritual{padding:clamp(80px,12vw,160px) 0}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(24px,4vw,44px);margin-top:clamp(40px,6vw,70px);counter-reset:step}
+.step{
+  position:relative;padding:38px 30px 34px;border-radius:24px;
+  background:var(--milk);border:1px solid var(--line-soft);
+  box-shadow:0 2px 10px rgba(43,32,24,.05),0 18px 44px rgba(43,32,24,.08);
+  transition:transform .4s ease,box-shadow .4s ease;
+}
+.step:hover{transform:translateY(-6px);box-shadow:0 4px 14px rgba(43,32,24,.07),0 28px 60px rgba(43,32,24,.13)}
+.step::before{
+  counter-increment:step;content:"0" counter(step);
+  font-family:var(--serif);font-style:italic;font-size:15px;letter-spacing:.18em;
+  color:var(--caramel-deep);display:block;margin-bottom:16px;
+}
+.step h4{font-family:var(--serif-jp);font-size:19px;font-weight:600;letter-spacing:.06em;margin-bottom:10px}
+.step p{font-size:13.5px;font-weight:350;color:var(--roast)}
+
+/* ============ final CTA ============ */
+.finale{
+  text-align:center;padding:clamp(110px,17vw,220px) 24px clamp(130px,18vw,240px);
+  position:relative;overflow:hidden;
+  background:radial-gradient(110% 90% at 50% 110%,#E5D6BB 0%,var(--paper) 60%);
+}
+.finale .steam{
+  position:absolute;left:50%;bottom:0;width:300px;height:100%;transform:translateX(-50%);
+  pointer-events:none;opacity:.5;
+}
+.steam path{
+  fill:none;stroke:var(--caramel);stroke-width:2;stroke-linecap:round;opacity:0;
+  animation:steam 6s ease-in-out infinite;
+}
+.steam path:nth-child(2){animation-delay:2s}
+.steam path:nth-child(3){animation-delay:4s}
+@keyframes steam{
+  0%{opacity:0;transform:translateY(40px) scaleX(1)}
+  30%{opacity:.45}
+  100%{opacity:0;transform:translateY(-160px) scaleX(1.4)}
+}
+.finale h2{
+  font-family:var(--serif-jp);font-weight:600;
+  font-size:clamp(30px,5.6vw,64px);letter-spacing:.07em;line-height:1.6;margin-bottom:18px;
+}
+.finale p{font-weight:350;color:var(--roast);margin-bottom:48px;font-size:clamp(13.5px,1.7vw,16px)}
+.finale .hero-cta{font-size:18px;padding:22px 64px;opacity:1}
+.finale .free{
+  display:block;margin-top:22px;font-size:11px;letter-spacing:.3em;color:var(--roast);opacity:.65;
+}
+
+/* ============ footer ============ */
+footer{
+  border-top:1px solid var(--line);padding:38px 24px 46px;text-align:center;
+  font-size:11.5px;letter-spacing:.14em;color:var(--roast);background:var(--paper-deep);
+}
+footer .flogo{font-family:var(--serif);font-weight:700;font-size:18px;letter-spacing:.05em;margin-bottom:8px;color:var(--espresso)}
+footer .flogo i{font-style:italic;color:var(--caramel-deep)}
+
+/* ============ responsive / motion ============ */
+@media(max-width:840px){
+  .dark-grid{grid-template-columns:1fr;gap:18px}
+  .steps{grid-template-columns:1fr;gap:20px}
+  .hero-ring{opacity:.05}
+  .hero{padding-bottom:140px}
+  .hero-cta{font-size:15px;padding:17px 36px;letter-spacing:.12em}
+  .finale .hero-cta{font-size:15px;padding:18px 42px}
+  .finale h2{font-size:clamp(24px,6.4vw,64px)}
+}
+.hero-cta{white-space:nowrap}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;transition-duration:.001s!important}
+  .philo-scene{height:auto}
+  .pour-scene{height:auto}
+  .philo-big .ch{opacity:1}
+}
+</style>
+</head>
+<body>
+
+<div id="curtain" aria-hidden="true"><div class="c-logo">Drippin’</div></div>
+
+<div id="cursorDot" aria-hidden="true"></div>
+<div id="cursorRing" aria-hidden="true"></div>
+
+<!-- scroll progress cup -->
+<svg id="cupProgress" viewBox="0 0 46 54" aria-hidden="true">
+  <defs><clipPath id="cupclip"><path d="M8 10 h26 v26 a8 8 0 0 1 -8 8 h-10 a8 8 0 0 1 -8 -8 z"/></clipPath></defs>
+  <rect x="8" y="10" width="26" height="34" rx="6" fill="#FDFBF6" stroke="#2B2018" stroke-width="2"/>
+  <rect id="cupFill" x="8" y="44" width="26" height="0" fill="#8C5E36" clip-path="url(#cupclip)"/>
+  <path d="M34 16 h4 a6 6 0 0 1 0 12 h-4" fill="none" stroke="#2B2018" stroke-width="2"/>
+  <path d="M8 10 h26 v26 a8 8 0 0 1 -8 8 h-10 a8 8 0 0 1 -8 -8 z" fill="none" stroke="#2B2018" stroke-width="2"/>
+</svg>
+
+<nav id="nav">
+  <a class="nav-logo" href="#top">Drippin<i>’</i></a>
+  <a class="nav-cta" href="./index.html">アプリを開く</a>
+</nav>
+
+<!-- ================= HERO ================= -->
+<section class="hero" id="top">
+  <div class="hero-word" id="heroWord">Drippin’</div>
+  <svg class="hero-ring" viewBox="0 0 600 600" aria-hidden="true">
+    <defs><path id="circ" d="M300,300 m-240,0 a240,240 0 1,1 480,0 a240,240 0 1,1 -480,0"/></defs>
+    <text><textPath href="#circ">DRIP BY DRIP · PIN BY PIN · EVERY CUP TELLS A STORY · </textPath></text>
+  </svg>
+
+  <div class="drip-stage" aria-hidden="true">
+    <svg viewBox="0 0 120 170">
+      <!-- dripper -->
+      <path d="M24 14 L96 14 L70 60 L50 60 Z" fill="none" stroke="#8C5E36" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M38 28 L82 28" stroke="#B07D4F" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+      <!-- little map -->
+      <g>
+        <rect x="18" y="106" width="84" height="52" rx="10" fill="#EFE7D6" stroke="#D9CBAF" stroke-width="1.5"/>
+        <path d="M18 124 Q44 116 60 126 T102 122" fill="none" stroke="#FDFBF6" stroke-width="6"/>
+        <path d="M40 106 Q44 132 34 158" fill="none" stroke="#FDFBF6" stroke-width="5"/>
+        <path d="M82 106 Q78 134 88 158" fill="none" stroke="#FDFBF6" stroke-width="5"/>
+        <circle cx="32" cy="144" r="3" fill="#2B2018" opacity=".5"/>
+        <circle cx="88" cy="116" r="3" fill="#B07D4F" opacity=".7"/>
+      </g>
+      <!-- falling bean-drop (with crack, like the logo) -->
+      <g class="droplet">
+        <path d="M60 22 c0 0 -8 10 -8 16 a8 8 0 0 0 16 0 c0 -6 -8 -16 -8 -16" fill="#8C5E36"/>
+        <path d="M58 30 c3.5 3 -1.5 6 2 9.5" fill="none" stroke="#F5EFE4" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      <!-- pin pops where the drop lands -->
+      <g class="pinpop">
+        <path d="M60 112 a9 9 0 0 1 9 9 c0 7 -9 15 -9 15 s-9 -8 -9 -15 a9 9 0 0 1 9 -9" fill="#8C5E36"/>
+        <circle cx="60" cy="121" r="3.4" fill="#FDFBF6"/>
+      </g>
+      <ellipse class="ripple" cx="60" cy="136" rx="22" ry="7"/>
+    </svg>
+  </div>
+
+  <p class="hero-eyebrow">A Personal Café Journal</p>
+  <h1>
+    <span class="hline"><span>あなたの一杯を、</span></span>
+    <span class="hline"><span>物語に。</span></span>
+    <span class="en">— every cup tells a story —</span>
+  </h1>
+  <p class="lead">出会ったカフェ、味わった一杯、流れた時間。<br>Drippinは、コーヒーと過ごす日々を一冊のジャーナルのように綴じていく、あなただけの記録帳です。</p>
+  <a class="hero-cta magnetic" href="./index.html">Drippin をはじめる<span aria-hidden="true">→</span></a>
+  <div class="hero-scroll">SCROLL</div>
+</section>
+
+<!-- ================= MARQUEE ================= -->
+<div class="marquee" aria-hidden="true">
+  <div class="row"><div class="marquee-track">
+    <span>Journal</span><span class="dot">●</span><span>Map</span><span class="dot">●</span><span>Beans</span><span class="dot">●</span><span>Discovery</span><span class="dot">●</span><span>Memory</span><span class="dot">●</span><span>Journal</span><span class="dot">●</span><span>Map</span><span class="dot">●</span><span>Beans</span><span class="dot">●</span><span>Discovery</span><span class="dot">●</span><span>Memory</span><span class="dot">●</span>
+  </div></div>
+  <div class="row"><div class="marquee-track">
+    <span>Espresso</span><span class="dot">●</span><span>Pour Over</span><span class="dot">●</span><span>Latte</span><span class="dot">●</span><span>Single Origin</span><span class="dot">●</span><span>Kissaten</span><span class="dot">●</span><span>Espresso</span><span class="dot">●</span><span>Pour Over</span><span class="dot">●</span><span>Latte</span><span class="dot">●</span><span>Single Origin</span><span class="dot">●</span><span>Kissaten</span><span class="dot">●</span>
+  </div></div>
+</div>
+
+<!-- ================= PHILOSOPHY (scroll-scrub) ================= -->
+<section class="philo-scene" id="philo">
+  <div class="philo-sticky">
+    <p class="philo-big" id="philoText"><span data-plain>飲んだら、忘れてしまう。</span><br><span data-accent>記したら、人生になる。</span></p>
+    <p class="philo-sub" id="philoSub">お気に入りのカフェの名前を、3ヶ月後に思い出せますか。あの日の一杯の余韻を、写真フォルダの海から見つけ出せますか。Drippinは「美味しかった」で終わらせないための、小さな習慣です。</p>
+  </div>
+</section>
+
+<!-- ================= FEATURES (horizontal cinema) ================= -->
+<section class="hfeat-scene" id="hfeat">
+  <div class="hfeat-sticky">
+    <div class="hfeat-head">
+      <div class="sec-label">Features</div>
+    </div>
+    <div class="hfeat-track" id="hTrack">
+
+      <div class="hpanel">
+        <div>
+          <div class="feat-num">01</div>
+          <span class="en-tag">Journal</span>
+          <h3>一杯ごとに、1ページ。</h3>
+          <p>写真・日付・メモ・評価をひとつの記録に。複数の写真から表紙を選び、あとから日付も編集できる。紙のジャーナルのような手触りを、ポケットの中に。</p>
+        </div>
+        <div class="feat-visual">
+          <div class="vcard tilt">
+            <svg viewBox="0 0 480 360">
+              <rect width="480" height="360" fill="#FDFBF6"/>
+              <rect x="40" y="36" width="400" height="180" rx="16" fill="#EDE4D3"/>
+              <circle cx="240" cy="126" r="34" fill="none" stroke="#B07D4F" stroke-width="3"/>
+              <path d="M226 126 a14 14 0 0 1 28 0 a14 14 0 0 1 -28 0" fill="#B07D4F" opacity=".5"/>
+              <rect x="40" y="238" width="220" height="16" rx="8" fill="#2B2018" opacity=".85"/>
+              <rect x="40" y="266" width="300" height="10" rx="5" fill="#4A372A" opacity=".3"/>
+              <rect x="40" y="286" width="260" height="10" rx="5" fill="#4A372A" opacity=".3"/>
+              <g transform="translate(40,312)">
+                <ellipse cx="10" cy="10" rx="8" ry="10" fill="#8C5E36"/>
+                <ellipse cx="34" cy="10" rx="8" ry="10" fill="#8C5E36"/>
+                <ellipse cx="58" cy="10" rx="8" ry="10" fill="#8C5E36"/>
+                <ellipse cx="82" cy="10" rx="8" ry="10" fill="#C9B99A"/>
+                <ellipse cx="106" cy="10" rx="8" ry="10" fill="#C9B99A"/>
+              </g>
+              <text x="404" y="326" font-family="Playfair Display" font-style="italic" font-size="15" fill="#8C5E36" text-anchor="end">06.11</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="hpanel">
+        <div>
+          <div class="feat-num">02</div>
+          <span class="en-tag">Map</span>
+          <h3>街が、あなたの<br>コーヒーマップになる。</h3>
+          <p>訪れた店にピンが灯り、まだ見ぬ周辺のカフェが浮かび上がる。Google Placesと連携した発見機能で、次の一杯への散歩がはじまる。</p>
+        </div>
+        <div class="feat-visual">
+          <div class="vcard tilt">
+            <svg viewBox="0 0 480 360">
+              <rect width="480" height="360" fill="#F0E9DA"/>
+              <path d="M0 90 Q140 70 240 110 T480 96" fill="none" stroke="#FDFBF6" stroke-width="22"/>
+              <path d="M110 0 Q130 160 90 360" fill="none" stroke="#FDFBF6" stroke-width="18"/>
+              <path d="M340 0 Q330 180 390 360" fill="none" stroke="#FDFBF6" stroke-width="18"/>
+              <g>
+                <circle cx="240" cy="160" r="46" fill="#B07D4F" opacity=".14">
+                  <animate attributeName="r" values="36;56;36" dur="3.5s" repeatCount="indefinite"/>
+                  <animate attributeName="opacity" values=".2;.05;.2" dur="3.5s" repeatCount="indefinite"/>
+                </circle>
+                <path d="M240 132 a22 22 0 0 1 22 22 c0 16 -22 38 -22 38 s-22 -22 -22 -38 a22 22 0 0 1 22 -22" fill="#8C5E36"/>
+                <circle cx="240" cy="154" r="8" fill="#FDFBF6"/>
+              </g>
+              <circle cx="120" cy="250" r="9" fill="#2B2018" opacity=".75"/>
+              <circle cx="370" cy="120" r="9" fill="#2B2018" opacity=".75"/>
+              <circle cx="320" cy="280" r="9" fill="#B07D4F"/>
+              <circle cx="160" cy="80" r="9" fill="#B07D4F"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="hpanel">
+        <div>
+          <div class="feat-num">03</div>
+          <span class="en-tag">Beans</span>
+          <h3>評価は、豆で。</h3>
+          <p>星じゃない。コーヒーの記録なら、豆で語ろう。5粒の焙煎豆で、あの一杯の満足度を直感的に刻む。あなたの味覚の年輪が、少しずつ育っていく。</p>
+        </div>
+        <div class="feat-visual">
+          <div class="vcard tilt">
+            <svg viewBox="0 0 480 360">
+              <rect width="480" height="360" fill="#FDFBF6"/>
+              <g transform="translate(60,156)">
+                <g transform="rotate(-12 26 26)"><ellipse cx="26" cy="26" rx="22" ry="29" fill="#8C5E36"/><path d="M26 2 q9 24 0 48" stroke="#FDFBF6" stroke-width="3.5" fill="none"/></g>
+                <g transform="translate(77,0) rotate(8 26 26)"><ellipse cx="26" cy="26" rx="22" ry="29" fill="#8C5E36"/><path d="M26 2 q9 24 0 48" stroke="#FDFBF6" stroke-width="3.5" fill="none"/></g>
+                <g transform="translate(154,0) rotate(-6 26 26)"><ellipse cx="26" cy="26" rx="22" ry="29" fill="#8C5E36"/><path d="M26 2 q9 24 0 48" stroke="#FDFBF6" stroke-width="3.5" fill="none"/></g>
+                <g transform="translate(231,0) rotate(10 26 26)"><ellipse cx="26" cy="26" rx="22" ry="29" fill="#C9B99A"/><path d="M26 2 q9 24 0 48" stroke="#FDFBF6" stroke-width="3.5" fill="none"/></g>
+                <g transform="translate(308,0) rotate(-9 26 26)"><ellipse cx="26" cy="26" rx="22" ry="29" fill="#C9B99A"/><path d="M26 2 q9 24 0 48" stroke="#FDFBF6" stroke-width="3.5" fill="none"/></g>
+              </g>
+              <text x="240" y="100" font-family="Shippori Mincho" font-size="20" fill="#4A372A" text-anchor="middle" letter-spacing="6">今日の一杯は──</text>
+              <text x="240" y="296" font-family="Playfair Display" font-style="italic" font-size="22" fill="#B07D4F" text-anchor="middle">3 of 5 beans</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="hfeat-progress">
+      <span id="hNum">01</span>
+      <div class="hfeat-bar"><i id="hBarFill"></i></div>
+      <span>03</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= POUR (scroll fills the page with coffee) ================= -->
+<section class="pour-scene" id="pour">
+  <div class="pour-sticky">
+    <div class="pour-word" data-w="0">出会う。<span class="pw-en">discover</span></div>
+    <div class="pour-word" data-w="1">味わう。<span class="pw-en">savor</span></div>
+    <div class="pour-word" data-w="2">綴る。<span class="pw-en">journal</span></div>
+    <div class="liquid" id="liquid">
+      <div class="wave" aria-hidden="true">
+        <svg viewBox="0 0 600 60" preserveAspectRatio="none"><path d="M0 30 Q75 0 150 30 T300 30 T450 30 T600 30 V60 H0 Z" fill="#3A2A1E"/></svg>
+        <svg viewBox="0 0 600 60" preserveAspectRatio="none"><path d="M0 30 Q75 0 150 30 T300 30 T450 30 T600 30 V60 H0 Z" fill="#3A2A1E"/></svg>
+      </div>
+    </div>
+    <div class="pour-hint">KEEP SCROLLING — POURING…</div>
+  </div>
+</section>
+
+<!-- ================= DARK ================= -->
+<section class="dark">
+  <svg class="beanfloat" style="top:12%;left:6%" width="70" height="90" viewBox="0 0 60 80"><ellipse cx="30" cy="40" rx="26" ry="36" fill="#C99A6B"/><path d="M30 6 q12 34 0 68" stroke="#1C140E" stroke-width="5" fill="none"/></svg>
+  <svg class="beanfloat b2" style="top:64%;left:84%" width="54" height="70" viewBox="0 0 60 80"><ellipse cx="30" cy="40" rx="26" ry="36" fill="#C99A6B"/><path d="M30 6 q12 34 0 68" stroke="#1C140E" stroke-width="5" fill="none"/></svg>
+  <svg class="beanfloat b3" style="top:30%;left:90%" width="40" height="52" viewBox="0 0 60 80"><ellipse cx="30" cy="40" rx="26" ry="36" fill="#C99A6B"/><path d="M30 6 q12 34 0 68" stroke="#1C140E" stroke-width="5" fill="none"/></svg>
+
+  <div class="wrap">
+    <div class="sec-label rv">Crafted Details</div>
+    <h2 class="sec-title rv d1">道具にこだわる人の、<br>記録のための道具。</h2>
+    <div class="dark-grid">
+      <div class="dcard rv">
+        <svg class="ico" viewBox="0 0 44 44" fill="none" stroke-width="2"><path d="M8 36 V14 a4 4 0 0 1 4-4 h20 a4 4 0 0 1 4 4 v22"/><path d="M14 16 h16 M14 22 h16 M14 28 h10"/></svg>
+        <h4>紙のような質感</h4>
+        <p>クリーム紙のテクスチャに、明朝とセリフの組版。デジタルなのに、どこかアナログの温度がある画面設計。</p>
+      </div>
+      <div class="dcard rv d1">
+        <svg class="ico" viewBox="0 0 44 44" fill="none" stroke-width="2"><circle cx="22" cy="22" r="14"/><path d="M22 8 v-4 M22 40 v-4 M8 22 h-4 M40 22 h-4"/><circle cx="22" cy="22" r="4"/></svg>
+        <h4>オフラインでも</h4>
+        <p>記録は端末にも保存。電波の届かない山あいの喫茶店でも、書きたい瞬間を逃さない。クラウド同期は自動で。</p>
+      </div>
+      <div class="dcard rv d2">
+        <svg class="ico" viewBox="0 0 44 44" fill="none" stroke-width="2"><path d="M10 34 q12 6 24 0 V12 q-12 6 -24 0 z"/><path d="M16 18 v10 M22 20 v10 M28 18 v10"/></svg>
+        <h4>あなただけの店リスト</h4>
+        <p>訪問数・評価・最終訪問日。通った店たちが、自分だけのカフェガイドブックに育っていく。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= RITUAL ================= -->
+<section class="ritual">
+  <div class="wrap">
+    <div class="sec-label rv">The Ritual</div>
+    <h2 class="sec-title rv d1">記録は、3分の儀式。</h2>
+    <div class="steps">
+      <div class="step rv"><h4>カフェに入る</h4><p>地図を開けば、いま居る場所の周りに気になるカフェが浮かぶ。検索もGoogle精度。</p></div>
+      <div class="step rv d1"><h4>一杯を撮る</h4><p>カップが届いたら一枚。飲みながら感じたことを、ひとことメモに。</p></div>
+      <div class="step rv d2"><h4>豆で刻む</h4><p>最後に豆で評価して保存。あなたのジャーナルに、新しい1ページが綴じられる。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FINALE ================= -->
+<section class="finale">
+  <svg class="steam" viewBox="0 0 300 400" aria-hidden="true">
+    <path d="M130 380 q-16 -50 4 -90 q20 -40 0 -90"/>
+    <path d="M150 380 q16 -55 -4 -95 q-18 -38 4 -85"/>
+    <path d="M170 380 q-12 -48 8 -88 q18 -42 -2 -92"/>
+  </svg>
+  <h2 class="rv">さあ、今日の一杯から。</h2>
+  <p class="rv d1">インストール不要。ブラウザで開いて、ホーム画面に追加するだけ。</p>
+  <a class="hero-cta magnetic rv d2" href="./index.html">Drippin をはじめる<span aria-hidden="true">→</span></a>
+  <span class="free rv d3">FREE — NO ADS — NO SIGN-UP REQUIRED</span>
+</section>
+
+<footer>
+  <div class="flogo">Drippin<i>’</i></div>
+  <div>© 2026 Drippin — A Personal Café Journal</div>
+</footer>
+
+<script>
+const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const clamp01=v=>Math.min(1,Math.max(0,v));
+
+/* ---------- opening curtain ---------- */
+requestAnimationFrame(()=>document.body.classList.add('boot'));
+setTimeout(()=>document.body.classList.add('lifted'),reduced?50:1050);
+
+/* ---------- nav : hide on scroll down, show on up ---------- */
+const nav=document.getElementById('nav');
+let lastY=0;
+addEventListener('scroll',()=>{
+  const y=scrollY;
+  nav.classList.toggle('scrolled',y>40);
+  nav.classList.toggle('hidden',y>420&&y>lastY);
+  lastY=y;
+},{passive:true});
+
+/* ---------- reveal on scroll ---------- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.18});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+/* ---------- philosophy : split chars ---------- */
+const philoText=document.getElementById('philoText');
+const chs=[];
+philoText.querySelectorAll('span[data-plain],span[data-accent]').forEach(seg=>{
+  const accent=seg.hasAttribute('data-accent');
+  const txt=seg.textContent;seg.textContent='';
+  [...txt].forEach(c=>{
+    const s=document.createElement('span');
+    s.className='ch'+(accent?' accent':'');s.textContent=c;
+    seg.appendChild(s);chs.push(s);
+  });
+});
+const philoSub=document.getElementById('philoSub');
+
+/* ---------- scene rect cache ---------- */
+const philoScene=document.getElementById('philo');
+const pourScene=document.getElementById('pour');
+const hScene=document.getElementById('hfeat');
+const hTrack=document.getElementById('hTrack');
+const hBarFill=document.getElementById('hBarFill');
+const hNum=document.getElementById('hNum');
+const liquid=document.getElementById('liquid');
+const pourWords=[...document.querySelectorAll('.pour-word')];
+const pourHint=document.querySelector('.pour-hint');
+const heroWord=document.getElementById('heroWord');
+const cup=document.getElementById('cupProgress'),fill=document.getElementById('cupFill');
+
+let M={};
+function measure(){
+  const vh=innerHeight,vw=innerWidth;
+  /* size the horizontal scene: vertical travel = horizontal overflow */
+  const over=Math.max(0,hTrack.scrollWidth-vw);
+  hScene.style.height=(vh+over)+'px';
+  M={
+    vh,vw,over,
+    philoTop:philoScene.offsetTop,philoH:philoScene.offsetHeight,
+    pourTop:pourScene.offsetTop,pourH:pourScene.offsetHeight,
+    hTop:hScene.offsetTop,hH:hScene.offsetHeight,
+    docH:document.documentElement.scrollHeight,
+  };
+}
+addEventListener('resize',measure);
+addEventListener('load',measure);
+measure();
+/* re-measure once fonts settle */
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(measure);
+
+/* ---------- main rAF loop ---------- */
+let philoDone=false;
+function frame(){
+  const y=scrollY;
+
+  /* cup progress */
+  const p=clamp01(y/(M.docH-M.vh));
+  cup.classList.toggle('show',y>300);
+  const ch2=30*p;
+  fill.setAttribute('height',ch2);
+  fill.setAttribute('y',44-ch2);
+
+  /* hero giant word parallax */
+  if(y<M.vh*1.2){
+    heroWord.style.transform=`translate(-50%,-50%) translateY(${y*.32}px) scale(${1+y*.0004})`;
+  }
+
+  /* philosophy scrub */
+  if(!reduced){
+    const pp=clamp01((y-M.philoTop)/(M.philoH-M.vh));
+    const lit=Math.floor(pp*1.25*chs.length);
+    chs.forEach((c,i)=>c.classList.toggle('lit',i<lit));
+    philoSub.classList.toggle('show',pp>.75);
+    philoDone=pp>=1;
+  }
+
+  /* horizontal features scrub */
+  if(!reduced&&M.over>0){
+    const hp=clamp01((y-M.hTop)/(M.hH-M.vh));
+    hTrack.style.transform=`translateX(${-hp*M.over}px)`;
+    hBarFill.style.width=(hp*100)+'%';
+    hNum.textContent='0'+Math.min(3,1+Math.floor(hp*2.999));
+  }
+
+  /* pour scrub */
+  if(!reduced){
+    const qp=clamp01((y-M.pourTop)/(M.pourH-M.vh));
+    /* liquid rises 0 -> 112% of viewport */
+    liquid.style.height=(qp*112)+'svh';
+    /* three words crossfade across 0-0.9 */
+    pourHint.classList.toggle('off',qp>.3);
+    const liqTop=M.vh*(1-qp*1.12);      /* liquid surface y in px */
+    pourWords.forEach((w,i)=>{
+      const c=(i+.5)/3*.92;             /* word center progress */
+      const d=Math.abs(qp-c);
+      const o=clamp01(1.6-d*9);
+      const wy=M.vh/2+(qp-c)*-90;       /* word center y in px */
+      w.style.opacity=o;
+      w.style.transform=`translate(-50%,-50%) translateY(${(qp-c)*-90}px)`;
+      w.classList.toggle('lit-on-dark',wy>liqTop);
+    });
+  }
+
+  requestAnimationFrame(frame);
+}
+if(!reduced)requestAnimationFrame(frame);
+else{
+  /* static fallback */
+  chs.forEach(c=>c.classList.add('lit'));
+  philoSub.classList.add('show');
+  liquid.style.height='0';
+  pourWords.forEach(w=>w.style.opacity=1);
+}
+
+/* ---------- 3D tilt on visual cards (desktop) ---------- */
+if(matchMedia('(pointer:fine)').matches){
+  document.querySelectorAll('.tilt').forEach(card=>{
+    const wrap=card.parentElement;
+    wrap.addEventListener('mousemove',e=>{
+      const r=wrap.getBoundingClientRect();
+      const x=(e.clientX-r.left)/r.width-.5, yv=(e.clientY-r.top)/r.height-.5;
+      card.style.transform=`rotateY(${x*10}deg) rotateX(${-yv*8}deg)`;
+    });
+    wrap.addEventListener('mouseleave',()=>card.style.transform='rotateY(0) rotateX(0)');
+  });
+
+  /* ---------- custom cursor ---------- */
+  const dot=document.getElementById('cursorDot'),ring=document.getElementById('cursorRing');
+  let mx=-100,my=-100,rx=-100,ry=-100;
+  addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;dot.style.transform=`translate(${mx}px,${my}px)`});
+  (function cur(){
+    rx+=(mx-rx)*.16;ry+=(my-ry)*.16;
+    ring.style.transform=`translate(${rx}px,${ry}px)`;
+    requestAnimationFrame(cur);
+  })();
+  document.querySelectorAll('a,button').forEach(el=>{
+    el.addEventListener('mouseenter',()=>document.body.classList.add('cursor-hover'));
+    el.addEventListener('mouseleave',()=>document.body.classList.remove('cursor-hover'));
+  });
+
+  /* ---------- magnetic buttons ---------- */
+  document.querySelectorAll('.magnetic').forEach(btn=>{
+    btn.addEventListener('mousemove',e=>{
+      const r=btn.getBoundingClientRect();
+      const x=e.clientX-r.left-r.width/2, yv=e.clientY-r.top-r.height/2;
+      btn.style.transform=`translate(${x*.22}px,${yv*.28}px)`;
+    });
+    btn.addEventListener('mouseleave',()=>btn.style.transform='');
+  });
+}
+</script>
+</body>
+</html>
