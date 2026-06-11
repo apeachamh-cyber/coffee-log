@@ -814,13 +814,14 @@ async function loadNearby(){
   if(nearbyBusy)return;nearbyBusy=true;
   const c=map.getCenter();
   try{
-    const r=await fetch('https://places.googleapis.com/v1/places:searchNearby',{
+    const r=await fetch('https://places.googleapis.com/v1/places:searchText',{
       method:'POST',
       headers:{'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.id,places.displayName,places.location'},
       body:JSON.stringify({
-        includedTypes:['cafe','coffee_shop'],
+        textQuery:'カフェ',
+        languageCode:'ja',
         maxResultCount:20,
-        locationRestriction:{circle:{center:{latitude:c.lat,longitude:c.lng},radius:1500}}
+        locationBias:{circle:{center:{latitude:c.lat,longitude:c.lng},radius:1500}}
       })
     });
     if(!r.ok)throw new Error(r.status);
