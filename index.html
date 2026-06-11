@@ -806,33 +806,33 @@ function wireMapConsole(){
 }
 let _nbT=null;
 const loadNearbyDebounced=()=>{clearTimeout(_nbT);_nbT=setTimeout(loadNearby,700)};
-const discCache=new Map(); // osm id -> {lat,lng,name} 一度取れたピンは消さない
+const GMAP_KEY='AIzaSyDVD-yw84481IXbObVZX9LOIft6gWQntO8';
+const discCache=new Map();
 let nearbyBusy=false;
 async function loadNearby(){
   if(map.getZoom()<13){toast('もう少しズームすると周辺カフェが出ます');return}
   if(nearbyBusy)return;nearbyBusy=true;
-  const b=map.getBounds().pad(.3); // 画面より広めに取得して移動時のチラつきを防ぐ
-  const bb=`${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
-  const q=`[out:json][timeout:20];(node["amenity"="cafe"](${bb});way["amenity"="cafe"](${bb}););out center 120;`;
+  const c=map.getCenter();
   try{
-    let data=null;
-    for(const ep of ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']){
-      try{
-        const r=await fetch(ep,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}});
-        if(!r.ok)continue;
-        data=await r.json();break;
-      }catch(e){}
-    }
-    // 失敗時は既存ピンを保持（クリアしない）
-    if(data){
-      data.elements.forEach(el=>{
-        const lat=el.lat??el.center?.lat,lng=el.lon??el.center?.lon;
-        const name=el.tags?.name;
-        if(lat&&name)discCache.set(el.type+el.id,{lat,lng,name});
-      });
-      renderDisc();
-    }
-  }finally{nearbyBusy=false}
+    const r=await fetch('https://places.googleapis.com/v1/places:searchNearby',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.id,places.displayName,places.location'},
+      body:JSON.stringify({
+        includedTypes:['cafe','coffee_shop'],
+        maxResultCount:20,
+        locationRestriction:{circle:{center:{latitude:c.lat,longitude:c.lng},radius:1500}}
+      })
+    });
+    if(!r.ok)throw new Error(r.status);
+    const data=await r.json();
+    (data.places||[]).forEach(p=>{
+      const lat=p.location?.latitude,lng=p.location?.longitude;
+      const name=p.displayName?.text;
+      if(lat&&name)discCache.set(p.id,{lat,lng,name});
+    });
+    renderDisc();
+  }catch(e){console.error('nearby',e);toast('周辺カフェの取得に失敗しました')}
+  finally{nearbyBusy=false}
 }
 function renderDisc(){
   discLayer.clearLayers();
@@ -850,10 +850,20 @@ async function searchPlace(){
   const q=$('#mapq').value.trim();if(!q)return;
   const res=$('#mapresults');res.style.display='none';
   try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ja&q=${encodeURIComponent(q)}`);
+    const r=await fetch('https://places.googleapis.com/v1/places:searchText',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.displayName,places.location,places.formattedAddress'},
+      body:JSON.stringify({textQuery:q,languageCode:'ja',regionCode:'JP'})
+    });
+    if(!r.ok)throw new Error(r.status);
     const data=await r.json();
-    if(!data.length){toast('見つかりませんでした');return}
-    res.innerHTML=data.map(d=>`<div onclick='gotoPlace(${d.lat},${d.lon})'>${esc(d.display_name)}</div>`).join('');
+    if(!data.places?.length){toast('見つかりませんでした');return}
+    res.innerHTML=data.places.slice(0,5).map(p=>{
+      const lat=p.location?.latitude,lng=p.location?.longitude;
+      const name=p.displayName?.text||'';
+      const addr=(p.formattedAddress||'').replace('日本、','');
+      return `<div onclick='gotoPlace(${lat},${lng})'>${esc(name)}<span style="opacity:.55;font-size:11px;margin-left:6px">${esc(addr)}</span></div>`;
+    }).join('');
     res.style.display='block';
   }catch(e){toast('検索に失敗しました')}
 }
@@ -962,14 +972,18 @@ function wireSheet(){
     if(!name){toast('先に店名を入力してください');return}
     $('#findLoc').textContent='検索中…';
     try{
-      const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ja&countrycodes=jp&q=${encodeURIComponent(name)}`);
-      let data=await r.json();
-      if(!data.length){
-        const r2=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ja&countrycodes=jp&q=${encodeURIComponent(name+' カフェ')}`);
-        data=await r2.json();
-      }
-      if(!data.length){toast('見つかりませんでした。地図タップで指定してください');return}
-      $('#locresults').innerHTML=data.map(d=>`<div onclick="pickLoc(${d.lat},${d.lon},this)">📍 ${esc(d.display_name)}</div>`).join('');
+      const r=await fetch('https://places.googleapis.com/v1/places:searchText',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.displayName,places.location,places.formattedAddress'},
+        body:JSON.stringify({textQuery:name,languageCode:'ja',regionCode:'JP'})
+      });
+      const data=await r.json();
+      if(!data.places?.length){toast('見つかりませんでした。地図タップで指定してください');return}
+      $('#locresults').innerHTML=data.places.slice(0,5).map(p=>{
+        const lat=p.location?.latitude,lng=p.location?.longitude;
+        const addr=(p.formattedAddress||'').replace('日本、','');
+        return `<div onclick="pickLoc(${lat},${lng},this)">📍 ${esc(p.displayName?.text||'')} <span style="opacity:.6;font-size:11px">${esc(addr)}</span></div>`;
+      }).join('');
     }catch(e){toast('検索に失敗しました')}
     finally{$('#findLoc').textContent='🔍 店名から場所を検索'}
   };
