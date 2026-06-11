@@ -512,7 +512,7 @@ if(window.firebase){
 function updateSyncUI(){
   const b=$('#syncBtn');if(!b)return;
   b.classList.toggle('on',!!fbUser);
-  b.querySelector('.jp').textContent=fbUser?'同期中':'同期';
+  b.querySelector('.jp').textContent=fbUser?'同期ON':'同期';
 }
 window.cloudLogin=async()=>{
   if(!fbAuth){toast('オフラインです');return}
