@@ -806,7 +806,7 @@ function wireMapConsole(){
 }
 let _nbT=null;
 const loadNearbyDebounced=()=>{clearTimeout(_nbT);_nbT=setTimeout(loadNearby,700)};
-const GMAP_KEY='AIzaSyDVD-yw84481IXbObVZX9LOIft6gWQntO8';
+const GMAP_KEY='AIzaSyBWChasJHpnIneDqfvXl6_f1P0GL0ekMVk';
 const discCache=new Map();
 let nearbyBusy=false;
 async function loadNearby(){
@@ -832,7 +832,7 @@ async function loadNearby(){
       if(lat&&name)discCache.set(p.id,{lat,lng,name});
     });
     renderDisc();
-  }catch(e){console.error('nearby',e);toast('エラー: '+e.message)}
+  }catch(e){console.error('nearby',e);toast('周辺カフェの取得に失敗しました')}
   finally{nearbyBusy=false}
 }
 function renderDisc(){
