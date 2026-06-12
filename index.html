@@ -176,6 +176,18 @@ section.view.active{display:block}
 }
 .quote::after{content:"";display:block;width:36px;height:1px;background:var(--caramel);margin:26px auto 0}
 
+/* ---------- welcome (first run) ---------- */
+.welcome{max-width:520px;margin:48px auto 0;text-align:center;padding:0 8px}
+.welcome .wmark{width:72px;height:72px;margin:0 auto 22px;display:block}
+.welcome h2{font-family:var(--serif-jp);font-weight:600;font-size:clamp(26px,6vw,34px);letter-spacing:.08em;line-height:1.6}
+.welcome .wlead{font-size:13.5px;font-weight:350;color:var(--roast);opacity:.85;margin-top:16px;line-height:2}
+.wsteps{display:grid;gap:14px;margin:34px 0 8px;text-align:left}
+.wsteps div{display:flex;align-items:center;gap:16px;background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:14px 18px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--shadow-soft)}
+.wsteps b{font-family:var(--serif);font-style:italic;font-weight:500;font-size:24px;color:var(--caramel);flex:none}
+.wsteps span{font-size:13px;font-weight:350;color:var(--roast)}
+.welcome .btn{width:100%;margin-top:14px;padding:16px}
+.welcome .hintline{font-size:11px;color:var(--roast);opacity:.55;margin-top:18px}
+
 /* ---------- empty state ---------- */
 .empty{
   text-align:center;padding:90px 20px;
@@ -742,7 +754,21 @@ $$('.tab-btn[data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
 function renderHome(){
   const el=$('#view-home');
   if(!visits.length){
-    el.innerHTML=`<div class="empty"><div class="glyph">¶</div><h2>最初の一杯から始まる</h2><p>右下の「＋」から、今日のカフェを記録しましょう。</p></div>`;
+    el.innerHTML=`
+    <div class="welcome">
+      <img class="wmark reveal in" src="icon.svg" alt="">
+      <h2>あなたのカフェ雑誌を、<br>今日から。</h2>
+      <p class="wlead">飲んだら、忘れてしまう。記したら、人生になる。<br>Drippinは、訪れたカフェを一杯ずつ<br>あなただけの雑誌にしていく記録帳です。</p>
+      <div class="wsteps">
+        <div><b>01</b><span>写真を選んで、3分で1ページ完成</span></div>
+        <div><b>02</b><span>地図に、あなただけのピンが増えていく</span></div>
+        <div><b>03</b><span>美しいカードで、ストーリーに共有</span></div>
+      </div>
+      <button class="btn primary" onclick="openAdd()">☕ 最初の一杯を記録する</button>
+      <button class="btn ghost" onclick="show('map');setTimeout(()=>{if(!$('#chipNearby').classList.contains('on'))$('#chipNearby').click()},400)">周辺のカフェを見てみる</button>
+      <div class="hintline">登録不要・データはこの端末に保存されます（☁同期でバックアップも）</div>
+    </div>`;
+    observeReveals();
     return;
   }
   const[latest,...rest]=visits;
