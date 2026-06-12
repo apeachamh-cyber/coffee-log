@@ -924,7 +924,7 @@ async function loadNearby(){
   if(map.getZoom()<13){toast('もう少しズームすると周辺カフェが出ます');return}
   if(nearbyBusy)return;nearbyBusy=true;
   const c=map.getCenter();
-  const headers={'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.id,places.displayName,places.location,places.googleMapsUri,places.types'};
+  const headers={'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.id,places.displayName,places.location,places.googleMapsUri,places.types,places.primaryType'};
   const loc={latitude:c.lat,longitude:c.lng};
   try{
     const [r1,r2]=await Promise.all([
@@ -942,7 +942,9 @@ async function loadNearby(){
       (data.places||[]).forEach(p=>{
         const lat=p.location?.latitude,lng=p.location?.longitude;
         const name=p.displayName?.text;
-        if(!(p.types||[]).some(t=>CAFE_TYPES.has(t)))return; // 牛丼チェーン等を除外
+        // 主分類がカフェ系のみ通す（すき家等は types に cafe を持つが primaryType は飲食店）
+        const isCafe=p.primaryType?CAFE_TYPES.has(p.primaryType):(p.types||[]).some(t=>CAFE_TYPES.has(t));
+        if(!isCafe)return;
         if(lat&&name)discCache.set(p.id,{lat,lng,name,gurl:p.googleMapsUri||null});
       });
     }
