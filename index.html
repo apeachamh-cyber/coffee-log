@@ -1027,7 +1027,8 @@ function initMap(){
     wishLayer=L.layerGroup().addTo(map);
     discLayer=L.layerGroup().addTo(map);
     map.on('moveend',()=>{if(showNearby)loadNearbyDebounced()});
-    map.on('click',()=>closePlaceCard());
+    // iOS Safariはピンタップ直後に地図clickも発火するため、直後500msは閉じない
+    map.on('click',()=>{if(Date.now()-pinTapAt<500)return;closePlaceCard()});
     wireMapConsole();
   }
   visitedLayer.clearLayers();
@@ -1058,7 +1059,9 @@ function renderWishes(){
   });
 }
 /* ---- place card ---- */
+var pinTapAt=0;
 function showPlaceCard(o){
+  pinTapAt=Date.now();
   const safeName=esc(o.name).replace(/'/g,'&#39;');
   const sub=o.kind==='visited'?`${o.count} VISITS`:o.kind==='wish'?'気になる':(GENRES[o.genre]?.label||'未訪問');
   let acts='';
