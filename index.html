@@ -1063,16 +1063,17 @@ function renderWishes(){
 function addPin(layer,latlng,icon,handler){
   const m=L.marker(latlng,{icon}).addTo(layer);
   let handled=0;
-  const fire=()=>{if(Date.now()-handled<600)return;handled=Date.now();handler()};
-  m.on('click',fire);
+  const fire=src=>{console.log('[pin]',src);if(Date.now()-handled<600)return;handled=Date.now();handler()};
+  m.on('click',()=>fire('leaflet-click'));
   const el=m.getElement();
+  console.log('[pin] element?',!!el);
   if(el){
     let sx=0,sy=0;
     el.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
     el.addEventListener('touchend',e=>{
       const t=e.changedTouches[0];
       if(Math.abs(t.clientX-sx)>12||Math.abs(t.clientY-sy)>12)return; // ドラッグは無視
-      e.preventDefault();fire();
+      e.preventDefault();fire('touchend');
     },{passive:false});
   }
   return m;
@@ -1081,6 +1082,7 @@ function addPin(layer,latlng,icon,handler){
 var pinTapAt=0;
 function showPlaceCard(o){
   pinTapAt=Date.now();
+  console.log('[card] open:',o.name);
   const safeName=esc(o.name).replace(/'/g,'&#39;');
   const sub=o.kind==='visited'?`${o.count} VISITS`:o.kind==='wish'?'気になる':(GENRES[o.genre]?.label||'未訪問');
   let acts='';
@@ -1099,6 +1101,7 @@ function showPlaceCard(o){
     <div class="acts">${acts}</div></div>`;
   $('#placecard').classList.add('open');
   document.body.classList.add('place-open');
+  setTimeout(()=>{const r=$('#placecard').getBoundingClientRect();console.log('[card] rect:',Math.round(r.top),Math.round(r.left),Math.round(r.width),Math.round(r.height),'vh:',innerHeight)},600);
 }
 window.closePlaceCard=()=>{
   $('#placecard').classList.remove('open');
@@ -1571,7 +1574,7 @@ load().then(()=>{renderAll()});
 /* =============== PWA =============== */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 /* =============== version & debug =============== */
-const APP_VER='0.9.2';
+const APP_VER='0.9.3';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
