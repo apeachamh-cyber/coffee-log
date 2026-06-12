@@ -571,7 +571,6 @@ footer{
         <button class="genrechip on" data-genre="bakery">🥐 ベーカリー</button>
       </div>
     </div>
-    <div class="placecard" id="placecard"></div>
   </section>
   <!-- CAFES -->
   <section class="view" id="view-cafes"><div class="secthead"><span class="word">Cafés</span><span class="lbl">The Collection — あなたの店リスト</span></div><div class="cafelist" id="cafeList"></div></section>
@@ -582,6 +581,8 @@ footer{
 <footer>Drippin — drip by drip, pin by pin<span id="ver" style="opacity:.4;font-size:9px;margin-left:10px"></span></footer>
 
 <button class="fab" id="fab" title="記録する">＋</button>
+<!-- place card は body直下に置く（iOSではアニメーション持ちセクション内のfixedが画面外にズレるため） -->
+<div class="placecard" id="placecard"></div>
 <button class="locate-fab" id="locateBtn" title="現在地" aria-label="現在地">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
     <circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/>
@@ -1063,17 +1064,16 @@ function renderWishes(){
 function addPin(layer,latlng,icon,handler){
   const m=L.marker(latlng,{icon}).addTo(layer);
   let handled=0;
-  const fire=src=>{console.log('[pin]',src);if(Date.now()-handled<600)return;handled=Date.now();handler()};
-  m.on('click',()=>fire('leaflet-click'));
+  const fire=()=>{if(Date.now()-handled<600)return;handled=Date.now();handler()};
+  m.on('click',fire);
   const el=m.getElement();
-  console.log('[pin] element?',!!el);
   if(el){
     let sx=0,sy=0;
     el.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
     el.addEventListener('touchend',e=>{
       const t=e.changedTouches[0];
       if(Math.abs(t.clientX-sx)>12||Math.abs(t.clientY-sy)>12)return; // ドラッグは無視
-      e.preventDefault();fire('touchend');
+      e.preventDefault();fire();
     },{passive:false});
   }
   return m;
@@ -1082,7 +1082,6 @@ function addPin(layer,latlng,icon,handler){
 var pinTapAt=0;
 function showPlaceCard(o){
   pinTapAt=Date.now();
-  console.log('[card] open:',o.name);
   const safeName=esc(o.name).replace(/'/g,'&#39;');
   const sub=o.kind==='visited'?`${o.count} VISITS`:o.kind==='wish'?'気になる':(GENRES[o.genre]?.label||'未訪問');
   let acts='';
@@ -1101,7 +1100,6 @@ function showPlaceCard(o){
     <div class="acts">${acts}</div></div>`;
   $('#placecard').classList.add('open');
   document.body.classList.add('place-open');
-  setTimeout(()=>{const r=$('#placecard').getBoundingClientRect();console.log('[card] rect:',Math.round(r.top),Math.round(r.left),Math.round(r.width),Math.round(r.height),'vh:',innerHeight)},600);
 }
 window.closePlaceCard=()=>{
   $('#placecard').classList.remove('open');
@@ -1574,7 +1572,7 @@ load().then(()=>{renderAll()});
 /* =============== PWA =============== */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 /* =============== version & debug =============== */
-const APP_VER='0.9.3';
+const APP_VER='0.9.4';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
