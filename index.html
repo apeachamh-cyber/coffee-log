@@ -217,6 +217,19 @@ body.map-mode .mapconsole{display:flex}
 .searchresults div:last-child{border-bottom:none}
 .searchresults div:hover{background:var(--paper-deep)}
 .disc-pin .dot{background:var(--milk);border-color:var(--caramel)}
+.wish-pin .dot{background:var(--caramel);border-color:var(--milk)}
+.wish-pin .dot span{color:var(--paper);font-size:14px}
+/* locate FAB (above the + button, map mode only) */
+.locate-fab{
+  position:fixed;right:29px;bottom:calc(max(26px,env(safe-area-inset-bottom)) + 78px);z-index:1300;
+  width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;display:none;
+  align-items:center;justify-content:center;background:var(--milk);color:var(--espresso);
+  box-shadow:var(--shadow);transition:transform .25s cubic-bezier(.2,.7,.2,1);
+}
+body.map-mode .locate-fab{display:flex}
+.locate-fab:active{transform:scale(.9)}
+.locate-fab svg{width:22px;height:22px;display:block}
+.pop .row{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
 .leaflet-top.leaflet-left{top:auto;bottom:96px}
 .leaflet-top .leaflet-control{margin-top:0}
 .leaflet-control-zoom{box-shadow:var(--shadow-soft)!important;border:none!important}
@@ -440,8 +453,8 @@ footer{
       <div class="searchresults" id="mapresults"></div>
       <div class="mapchips">
         <button class="mapchip on" id="chipVisited">☕ 訪問済み</button>
+        <button class="mapchip on" id="chipWish">🔖 気になる</button>
         <button class="mapchip" id="chipNearby">周辺のカフェ</button>
-        <button class="mapchip" id="chipLocate">📍 現在地</button>
       </div>
     </div>
   </section>
@@ -454,6 +467,13 @@ footer{
 <footer>Drippin — drip by drip, pin by pin</footer>
 
 <button class="fab" id="fab" title="記録する">＋</button>
+<button class="locate-fab" id="locateBtn" title="現在地" aria-label="現在地">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/>
+    <line x1="12" y1="1.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.5"/>
+    <line x1="1.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.5" y2="12"/>
+  </svg>
+</button>
 
 <!-- ADD SHEET -->
 <div class="sheet-back" id="sheetBack"></div>
@@ -484,10 +504,11 @@ $('#issueDate').textContent=new Date().toLocaleDateString('en-US',{month:'short'
 const DB={
   _db:null,
   open(){return new Promise((res,rej)=>{
-    const r=indexedDB.open('coffeelog',1);
+    const r=indexedDB.open('coffeelog',2);
     r.onupgradeneeded=e=>{const d=e.target.result;
       if(!d.objectStoreNames.contains('cafes'))d.createObjectStore('cafes',{keyPath:'id'});
       if(!d.objectStoreNames.contains('visits'))d.createObjectStore('visits',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('wishes'))d.createObjectStore('wishes',{keyPath:'id'});
     };
     r.onsuccess=e=>{DB._db=e.target.result;res()};r.onerror=rej;
   })},
@@ -495,8 +516,8 @@ const DB={
   put(store,obj){return new Promise((res,rej)=>{const t=DB._db.transaction(store,'readwrite').objectStore(store).put(obj);t.onsuccess=res;t.onerror=rej})},
   del(store,id){return new Promise((res,rej)=>{const t=DB._db.transaction(store,'readwrite').objectStore(store).delete(id);t.onsuccess=res;t.onerror=rej})},
 };
-let cafes=[],visits=[];
-async function load(){await DB.open();cafes=await DB.all('cafes');visits=await DB.all('visits');visits.sort((a,b)=>b.date.localeCompare(a.date));}
+let cafes=[],visits=[],wishes=[];
+async function load(){await DB.open();cafes=await DB.all('cafes');visits=await DB.all('visits');wishes=await DB.all('wishes');visits.sort((a,b)=>b.date.localeCompare(a.date));}
 
 /* =============== Firebase cloud sync =============== */
 const firebaseConfig={
@@ -538,6 +559,8 @@ async function cloudSaveVisit(v){
   photos.forEach((p,i)=>writes.push(uroot().collection('photos').doc(v.id+'_'+i).set({visitId:v.id,i,data:p})));
   await Promise.all(writes);
 }
+async function cloudSaveWish(w){if(!fbUser)return;await uroot().collection('wishes').doc(w.id).set(w)}
+async function cloudDeleteWish(id){if(!fbUser)return;await uroot().collection('wishes').doc(id).delete()}
 async function cloudDeleteVisit(id,photoCount){
   if(!fbUser)return;
   const dels=[uroot().collection('visits').doc(id).delete()];
@@ -546,10 +569,11 @@ async function cloudDeleteVisit(id,photoCount){
 }
 async function cloudSync(){
   // pull cloud data
-  const [cs,vs,ps]=await Promise.all([
+  const [cs,vs,ps,ws]=await Promise.all([
     uroot().collection('cafes').get(),
     uroot().collection('visits').get(),
-    uroot().collection('photos').get()
+    uroot().collection('photos').get(),
+    uroot().collection('wishes').get()
   ]);
   const cloudCafes=cs.docs.map(d=>d.data());
   const photoMap={};
@@ -571,6 +595,12 @@ async function cloudSync(){
   const visitIds=new Set(visits.map(v=>v.id));
   for(const v of cloudVisits)if(!visitIds.has(v.id)&&v.photo){visits.push(v);await DB.put('visits',v)}
   visits.sort((a,b)=>b.date.localeCompare(a.date));
+  // wishes: two-way merge
+  const cloudWishes=ws.docs.map(d=>d.data());
+  const cloudWishIds=new Set(cloudWishes.map(w=>w.id));
+  for(const w of wishes)if(!cloudWishIds.has(w.id))await cloudSaveWish(w);
+  const wishIds=new Set(wishes.map(w=>w.id));
+  for(const w of cloudWishes)if(!wishIds.has(w.id)){wishes.push(w);await DB.put('wishes',w)}
   renderAll();
   toast('☁ 同期しました');
 }
@@ -754,13 +784,15 @@ window.openCafe=id=>{
 };
 
 /* ---- map ---- */
-let map=null,visitedLayer=null,discLayer=null,showNearby=false;
+let map=null,visitedLayer=null,discLayer=null,wishLayer=null,showNearby=false;
+const gmapsUrl=(name,gurl)=>gurl||('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(name));
 function initMap(){
   if(!map){
     map=L.map('map',{scrollWheelZoom:true,zoomControl:true}).setView([33.59,130.40],12); // 福岡
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
       attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
     visitedLayer=L.layerGroup().addTo(map);
+    wishLayer=L.layerGroup().addTo(map);
     discLayer=L.layerGroup().addTo(map);
     map.on('moveend',()=>{if(showNearby)loadNearbyDebounced()});
     wireMapConsole();
@@ -777,12 +809,43 @@ function initMap(){
       <div class="pop">${photo?`<img src="${photo}">`:''}
       <div class="pad"><h4>${esc(c.name)}</h4>
       <div class="visits">${vs.length} visits</div>
-      <a onclick="openCafe('${c.id}')">記録を見る →</a></div></div>`);
+      <div class="row"><a onclick="openCafe('${c.id}')">記録を見る →</a>
+      <a href="${gmapsUrl(c.name)}" target="_blank" rel="noopener">Googleマップ ↗</a></div></div></div>`);
     pts.push([c.lat,c.lng]);
   });
+  renderWishes();
   if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:15});
   setTimeout(()=>map.invalidateSize(),120);
 }
+function renderWishes(){
+  if(!wishLayer)return;
+  wishLayer.clearLayers();
+  const visitedNames=new Set(cafes.map(c=>c.name));
+  wishes.forEach(w=>{
+    if(visitedNames.has(w.name))return;
+    const icon=L.divIcon({className:'bean-pin wish-pin',html:'<div class="dot"><span>★</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
+    L.marker([w.lat,w.lng],{icon}).addTo(wishLayer).bindPopup(`
+      <div class="pop"><div class="pad"><h4>${esc(w.name)}</h4>
+      <div class="visits">気になる</div>
+      <div class="row"><a onclick="recordHere('${esc(w.name).replace(/'/g,'&#39;')}',${w.lat},${w.lng})">☕ ここを記録する →</a>
+      <a href="${gmapsUrl(w.name,w.gurl)}" target="_blank" rel="noopener">Googleマップ ↗</a>
+      <a onclick="removeWish('${w.id}')" style="opacity:.6">解除</a></div></div></div>`);
+  });
+}
+window.addWish=async(name,lat,lng,gurl)=>{
+  if(wishes.some(w=>w.name===name)){toast('すでに気になるに入っています');return}
+  const w={id:uid(),name,lat,lng,gurl:gurl||null,addedAt:new Date().toISOString()};
+  wishes.push(w);await DB.put('wishes',w);cloudSaveWish(w).catch(()=>{});
+  map.closePopup();renderWishes();renderDisc();
+  toast('🔖 気になるに追加しました');
+};
+window.removeWish=async id=>{
+  const w=wishes.find(x=>x.id===id);if(!w)return;
+  wishes=wishes.filter(x=>x.id!==id);
+  await DB.del('wishes',id);cloudDeleteWish(id).catch(()=>{});
+  map.closePopup();renderWishes();renderDisc();
+  toast('解除しました');
+};
 
 /* ---- map console: search / nearby / visited toggle ---- */
 function wireMapConsole(){
@@ -790,13 +853,17 @@ function wireMapConsole(){
     const on=$('#chipVisited').classList.toggle('on');
     on?map.addLayer(visitedLayer):map.removeLayer(visitedLayer);
   };
+  $('#chipWish').onclick=()=>{
+    const on=$('#chipWish').classList.toggle('on');
+    on?map.addLayer(wishLayer):map.removeLayer(wishLayer);
+  };
   $('#chipNearby').onclick=()=>{
     showNearby=$('#chipNearby').classList.toggle('on');
     if(showNearby)loadNearby();else discLayer.clearLayers();
   };
   $('#mapgo').onclick=searchPlace;
   $('#mapq').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace()});
-  $('#chipLocate').onclick=()=>{
+  $('#locateBtn').onclick=()=>{
     navigator.geolocation?.getCurrentPosition(
       p=>map.setView([p.coords.latitude,p.coords.longitude],16),
       ()=>toast('位置情報を取得できませんでした'),
@@ -813,7 +880,7 @@ async function loadNearby(){
   if(map.getZoom()<13){toast('もう少しズームすると周辺カフェが出ます');return}
   if(nearbyBusy)return;nearbyBusy=true;
   const c=map.getCenter();
-  const headers={'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.id,places.displayName,places.location'};
+  const headers={'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.id,places.displayName,places.location,places.googleMapsUri'};
   const loc={latitude:c.lat,longitude:c.lng};
   try{
     const [r1,r2]=await Promise.all([
@@ -830,7 +897,7 @@ async function loadNearby(){
       (data.places||[]).forEach(p=>{
         const lat=p.location?.latitude,lng=p.location?.longitude;
         const name=p.displayName?.text;
-        if(lat&&name)discCache.set(p.id,{lat,lng,name});
+        if(lat&&name)discCache.set(p.id,{lat,lng,name,gurl:p.googleMapsUri||null});
       });
     }
     renderDisc();
@@ -840,13 +907,17 @@ async function loadNearby(){
 function renderDisc(){
   discLayer.clearLayers();
   const visitedNames=new Set(cafes.map(c=>c.name));
+  const wishNames=new Set(wishes.map(w=>w.name));
   discCache.forEach(d=>{
-    if(visitedNames.has(d.name))return;
+    if(visitedNames.has(d.name)||wishNames.has(d.name))return;
     const icon=L.divIcon({className:'bean-pin disc-pin',html:'<div class="dot"><span>☕</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
+    const safeName=esc(d.name).replace(/'/g,'&#39;');
     L.marker([d.lat,d.lng],{icon}).addTo(discLayer).bindPopup(`
       <div class="pop"><div class="pad"><h4>${esc(d.name)}</h4>
       <div class="visits">未訪問</div>
-      <a onclick="recordHere('${esc(d.name).replace(/'/g,'&#39;')}',${d.lat},${d.lng})">☕ ここを記録する →</a></div></div>`);
+      <div class="row"><a onclick="recordHere('${safeName}',${d.lat},${d.lng})">☕ ここを記録する →</a>
+      <a onclick="addWish('${safeName}',${d.lat},${d.lng},${d.gurl?`'${d.gurl}'`:'null'})">🔖 気になる</a>
+      <a href="${gmapsUrl(d.name,d.gurl)}" target="_blank" rel="noopener">Googleマップ ↗</a></div></div></div>`);
   });
 }
 async function searchPlace(){
