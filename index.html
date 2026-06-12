@@ -573,6 +573,7 @@ footer{
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* =============== utilities =============== */
@@ -622,10 +623,11 @@ const firebaseConfig={
   messagingSenderId:"911757313680",
   appId:"1:911757313680:web:a6995261c65621eee17a15"
 };
-let fbAuth=null,fbDb=null,fbUser=null;
+let fbAuth=null,fbDb=null,fbUser=null,fbStorage=null;
 if(window.firebase){
   firebase.initializeApp(firebaseConfig);
   fbAuth=firebase.auth();fbDb=firebase.firestore();
+  try{fbStorage=firebase.storage()}catch(e){fbStorage=null}
   fbAuth.onAuthStateChanged(async u=>{
     fbUser=u;updateSyncUI();
     if(u){try{await cloudSync()}catch(e){console.error('sync',e);toast('同期に失敗しました')}}
@@ -645,10 +647,24 @@ window.cloudLogin=async()=>{
 };
 const uroot=()=>fbDb.collection('users').doc(fbUser.uid);
 async function cloudSaveCafe(c){if(!fbUser)return;await uroot().collection('cafes').doc(c.id).set(c)}
+async function uploadPhoto(visitId,i,dataUrl){
+  const ref=fbStorage.ref().child(`users/${fbUser.uid}/photos/${visitId}_${i}.jpg`);
+  await ref.putString(dataUrl,'data_url');
+  return ref.getDownloadURL();
+}
 async function cloudSaveVisit(v){
   if(!fbUser)return;
   const photos=v.photos||(v.photo?[v.photo]:[]);
   const meta={...v};delete meta.photos;delete meta.photo;meta.photoCount=photos.length;
+  // 第一候補：Storageに写真を上げてURLだけFirestoreへ（1MB制限・コスト対策）
+  if(fbStorage){
+    try{
+      meta.photoURLs=await Promise.all(photos.map((p,i)=>p.startsWith('http')?p:uploadPhoto(v.id,i,p)));
+      await uroot().collection('visits').doc(v.id).set(meta);
+      return;
+    }catch(e){console.warn('Storage未設定のためレガシー方式で保存',e)}
+  }
+  // フォールバック：従来の1枚=1ドキュメント方式
   const writes=[uroot().collection('visits').doc(v.id).set(meta)];
   photos.forEach((p,i)=>writes.push(uroot().collection('photos').doc(v.id+'_'+i).set({visitId:v.id,i,data:p})));
   await Promise.all(writes);
@@ -658,7 +674,10 @@ async function cloudDeleteWish(id){if(!fbUser)return;await uroot().collection('w
 async function cloudDeleteVisit(id,photoCount){
   if(!fbUser)return;
   const dels=[uroot().collection('visits').doc(id).delete()];
-  for(let i=0;i<(photoCount||10);i++)dels.push(uroot().collection('photos').doc(id+'_'+i).delete());
+  for(let i=0;i<(photoCount||10);i++){
+    dels.push(uroot().collection('photos').doc(id+'_'+i).delete());
+    if(fbStorage)dels.push(fbStorage.ref().child(`users/${fbUser.uid}/photos/${id}_${i}.jpg`).delete().catch(()=>{}));
+  }
   await Promise.all(dels);
 }
 async function cloudSync(){
@@ -674,7 +693,8 @@ async function cloudSync(){
   ps.docs.forEach(d=>{const p=d.data();(photoMap[p.visitId]=photoMap[p.visitId]||[])[p.i]=p.data});
   const cloudVisits=vs.docs.map(d=>{
     const v=d.data();
-    v.photos=(photoMap[v.id]||[]).filter(Boolean);
+    v.photos=(v.photoURLs&&v.photoURLs.length)?v.photoURLs:(photoMap[v.id]||[]).filter(Boolean);
+    delete v.photoURLs;
     v.photo=v.photos[0]||null;
     return v;
   });
@@ -1439,6 +1459,8 @@ document.addEventListener('pointerleave',()=>{
 /* =============== boot =============== */
 function renderAll(){renderHome();renderCafes();if(map)initMap()}
 load().then(()=>{renderAll()});
+/* =============== PWA =============== */
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
 <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
 <script>
