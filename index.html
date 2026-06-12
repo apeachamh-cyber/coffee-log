@@ -55,6 +55,32 @@ body::before{
 }
 ::selection{background:var(--caramel);color:var(--milk)}
 
+/* ---------- time of day themes ---------- */
+html[data-theme="morning"] body{background:radial-gradient(120% 90% at 50% 0%,#FDFAF1 0%,#F8F2E6 45%,#EFE5CE 100%) fixed}
+html[data-theme="evening"] body{background:radial-gradient(120% 90% at 50% 0%,#F8EDDA 0%,#F1E2C6 45%,#E3CBA2 100%) fixed}
+html[data-theme="night"]{
+  --paper:#171210;--paper-deep:#100C0A;--espresso:#F2E9DA;--roast:#CBB8A4;
+  --milk:#251D17;--line:rgba(242,233,218,.18);--line-soft:rgba(242,233,218,.09);
+  --glass:rgba(32,25,19,.55);--glass-strong:rgba(32,25,19,.82);--glass-line:rgba(255,255,255,.09);
+}
+html[data-theme="night"] body{background:radial-gradient(120% 90% at 50% 0%,#221A14 0%,#171210 50%,#0C0907 100%) fixed}
+html[data-theme="night"] #bg3d{display:none}
+html[data-theme="night"] .beans .off svg path:not(.ck),html[data-theme="night"] .beanpick svg path:not(.ck){fill:#56463A}
+html[data-theme="night"] .beanpick button.on svg path:not(.ck),html[data-theme="night"] .beans svg path[fill]:not(.ck){fill:#C89A6B}
+
+/* ---------- pager (page flip) ---------- */
+.pager{display:flex;justify-content:space-between;align-items:center;margin:20px 0 0;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--caramel-deep)}
+.pager a{cursor:pointer;padding:6px 2px}
+.pager a.dis{opacity:.25;pointer-events:none}
+.pager span{letter-spacing:.32em;font-family:var(--serif);font-style:italic}
+
+/* ---------- flavor sliders + radar ---------- */
+.flv{display:grid;gap:9px;margin-top:4px}
+.frow{display:flex;align-items:center;gap:12px;font-size:12px}
+.frow span{width:3.2em;color:var(--roast);flex:none}
+.frow b{width:1.2em;text-align:center;color:var(--caramel-deep);font-family:var(--serif);font-weight:500}
+.frow input{flex:1;accent-color:var(--caramel)}
+
 /* ---------- masthead ---------- */
 header.masthead{
   text-align:center;padding:max(20px,env(safe-area-inset-top)) 24px 0;
@@ -186,7 +212,7 @@ section.view.active{display:block}
 /* bean rating */
 .beans{display:inline-flex;gap:3px;align-items:center}
 .beans svg{width:15px;height:15px;display:block}
-.beans .off svg path{fill:#C9B99A}
+.beans .off svg path:not(.ck){fill:#C9B99A}
 .rating-row{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
 .rating-row .axis{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.18em;color:var(--roast)}
 
@@ -246,6 +272,30 @@ body.map-mode .mapconsole{display:flex}
 .searchresults div{padding:11px 20px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line-soft);font-weight:350}
 .searchresults div:last-child{border-bottom:none}
 .searchresults div:hover{background:var(--paper-deep)}
+/* genre chips (nearby ON のとき表示) */
+.genrechips{display:none;gap:8px;justify-content:center}
+body.map-mode.nearby-on .genrechips{display:flex}
+.genrechip{font-size:11px;padding:7px 14px;border-radius:99px;border:none;cursor:pointer;background:var(--milk);color:var(--roast);box-shadow:var(--shadow-soft);opacity:.5;font-weight:500;transition:all .25s}
+.genrechip.on{opacity:1;background:var(--caramel);color:var(--milk)}
+/* place card (Google Maps風・下からスライド) */
+.placecard{
+  position:fixed;left:50%;transform:translate(-50%,130%);bottom:max(18px,env(safe-area-inset-bottom));
+  width:min(92vw,440px);z-index:1250;
+  background:var(--glass-strong);border:1px solid var(--glass-line);border-radius:24px;
+  backdrop-filter:blur(26px) saturate(1.4);-webkit-backdrop-filter:blur(26px) saturate(1.4);
+  box-shadow:var(--depth);overflow:hidden;
+  transition:transform .45s cubic-bezier(.2,.8,.2,1);pointer-events:none;
+}
+.placecard.open{transform:translate(-50%,0);pointer-events:auto}
+.placecard img.cph{width:100%;height:132px;object-fit:cover;display:block}
+.placecard .pad{padding:14px 18px 16px}
+.placecard h4{font-family:var(--serif-jp);font-weight:600;font-size:16.5px;letter-spacing:.03em;padding-right:30px}
+.placecard .sub{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--caramel-deep);margin-top:2px}
+.placecard .acts{display:flex;gap:8px;margin-top:13px}
+.placecard .acts a{flex:1;text-align:center;font-size:11.5px;font-weight:500;padding:10px 8px;border-radius:99px;background:var(--espresso);color:var(--paper);cursor:pointer;text-decoration:none;white-space:nowrap}
+.placecard .acts a.ghost{background:var(--milk);color:var(--espresso);box-shadow:var(--shadow-soft)}
+.placecard .x{position:absolute;top:10px;right:12px;width:30px;height:30px;border:none;border-radius:50%;background:rgba(43,32,24,.45);color:#fff;font-size:15px;cursor:pointer;line-height:1;z-index:2}
+body.place-open .fab,body.place-open .locate-fab{opacity:0;pointer-events:none}
 .disc-pin .dot{background:var(--milk);border-color:var(--caramel)}
 .wish-pin .dot{background:var(--caramel);border-color:var(--milk)}
 .wish-pin .dot span{color:var(--paper);font-size:14px}
@@ -380,8 +430,8 @@ body.map-mode .locate-fab{display:flex}
 .beanpick{display:flex;gap:8px;margin-top:4px}
 .beanpick button{background:none;border:none;cursor:pointer;padding:2px}
 .beanpick svg{width:26px;height:26px;transition:transform .2s;opacity:1}
-.beanpick svg path{fill:#C9B99A;transition:fill .2s}
-.beanpick button.on svg path{fill:#8C5E36}
+.beanpick svg path:not(.ck){fill:#C9B99A;transition:fill .2s}
+.beanpick button.on svg path:not(.ck){fill:#8C5E36}
 .beanpick button.on svg{transform:scale(1.08)}
 @keyframes beanPop{0%{transform:scale(.6) rotate(-20deg)}55%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1.08) rotate(0)}}
 .beanpick button.pop svg{animation:beanPop .4s cubic-bezier(.2,.8,.2,1)}
@@ -486,7 +536,13 @@ footer{
         <button class="mapchip on" id="chipWish">🔖 気になる</button>
         <button class="mapchip" id="chipNearby">周辺のカフェ</button>
       </div>
+      <div class="genrechips">
+        <button class="genrechip on" data-genre="cafe">☕ カフェ</button>
+        <button class="genrechip on" data-genre="sweets">🍰 スイーツ</button>
+        <button class="genrechip on" data-genre="bakery">🥐 ベーカリー</button>
+      </div>
     </div>
+    <div class="placecard" id="placecard"></div>
   </section>
   <!-- CAFES -->
   <section class="view" id="view-cafes"><div class="secthead"><span class="word">Cafés</span><span class="lbl">The Collection — あなたの店リスト</span></div><div class="cafelist" id="cafeList"></div></section>
@@ -521,7 +577,7 @@ footer{
 <script>
 /* =============== utilities =============== */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const BEAN='<svg viewBox="0 0 24 24" fill="#8C5E36" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C7 2 3.5 6.5 3.5 12S7 22 12 22s8.5-4.5 8.5-10S17 2 12 2zm0 2c1.2 0 2.3.4 3.2 1-1.5 1.6-2.2 3.3-2.6 5-.5 2-.9 3.9-2.9 5.7-1.3 1.2-2.7 1.8-4 2A8.6 8.6 0 0 1 5.5 12C5.5 7.6 8.4 4 12 4zm0 16c-1.2 0-2.3-.4-3.2-1 1.5-1.6 2.2-3.3 2.6-5 .5-2 .9-3.9 2.9-5.7 1.3-1.2 2.7-1.8 4-2a8.6 8.6 0 0 1 .2 3.7C18.5 16.4 15.6 20 12 20z"/></svg>';
+const BEAN='<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#8C5E36" transform="rotate(-14 12 12)" d="M12 2.2A8.3 9.8 0 1 0 12.001 2.2Z"/><path class="ck" fill="none" stroke="#F5EFE4" stroke-width="1.7" stroke-linecap="round" transform="rotate(-14 12 12)" d="M12 3.4C9.7 7 14.2 9.2 12.4 12C10.6 14.8 14.6 16.8 12.1 20.6"/></svg>';
 const beanRow=(v,sz)=>{let h='<span class="beans">';for(let i=1;i<=5;i++)h+=`<span class="${i<=v?'':'off'}">${BEAN}</span>`;return h+'</span>'};
 const fmtDate=iso=>{const d=new Date(iso);return d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})};
 const fmtDateJP=iso=>{const d=new Date(iso);return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`};
@@ -650,6 +706,7 @@ function show(view){
   $('#view-'+view).classList.add('active');
   $$('.tab-btn[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
   document.body.classList.toggle('map-mode',view==='map');
+  if(view!=='map'&&typeof closePlaceCard==='function')closePlaceCard();
   if(view==='map')setTimeout(initMap,60);
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -717,11 +774,19 @@ function renderCafes(){
 }
 
 /* ---- detail: visit ---- */
+let curVisitId=null;
 window.openVisit=id=>{
   const v=visits.find(x=>x.id===id);if(!v)return;
+  curVisitId=id;
+  const idx=visits.findIndex(x=>x.id===id),total=visits.length;
   const c=cafeById(v.cafeId)||{name:'—'};
   $('#view-detail').innerHTML=`
     <button class="backlink" onclick="show('home')">← Back to Journal</button>
+    <div class="pager">
+      <a class="${idx>0?'':'dis'}" onclick="flipVisit(-1)">‹ 新しい一杯</a>
+      <span>${idx+1} / ${total}</span>
+      <a class="${idx<total-1?'':'dis'}" onclick="flipVisit(1)">古い一杯 ›</a>
+    </div>
     <article class="visit-article">
       <img class="main" src="${v.photo}" alt="">
       <div class="body">
@@ -734,6 +799,7 @@ window.openVisit=id=>{
           <span class="axis">再訪 ${beanRow(v.again)}</span>
         </div>
         ${v.memo?`<p style="font-size:13.5px;font-weight:350;margin-top:12px;border-top:1px solid var(--line-soft);padding-top:12px">${esc(v.memo)}</p>`:''}
+        ${radarSVG(v)}
         ${(v.photos&&v.photos.length>1)?`<div class="gallery">${v.photos.slice(1).map(p=>`<img src="${p}" loading="lazy" onclick="event.stopPropagation();this.closest('article').querySelector('img.main').src=this.src">`).join('')}</div>`:''}
         <div class="toolbar">
           <button class="minibtn" onclick="editVisit('${v.id}')">Edit ✎</button>
@@ -744,6 +810,50 @@ window.openVisit=id=>{
     </article>`;
   show('detail');
 };
+/* ---- page flip (swipe between visits) ---- */
+window.flipVisit=dir=>{ // +1=古い記録へ, -1=新しい記録へ
+  const idx=visits.findIndex(v=>v.id===curVisitId);if(idx<0)return;
+  const ni=idx+dir;if(ni<0||ni>=visits.length)return;
+  const art=$('#view-detail .visit-article');
+  const go=()=>{
+    openVisit(visits[ni].id);
+    const na=$('#view-detail .visit-article');
+    na&&na.animate([{opacity:0,transform:`translateX(${dir*52}px)`},{opacity:1,transform:'none'}],{duration:380,easing:'cubic-bezier(.2,.7,.2,1)'});
+  };
+  if(art){const a=art.animate([{opacity:1,transform:'none'},{opacity:0,transform:`translateX(${-dir*52}px)`}],{duration:220,easing:'ease-in'});a.onfinish=go}
+  else go();
+};
+(function(){
+  let sx=0,sy=0;const vd=$('#view-detail');
+  vd.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+  vd.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>70&&Math.abs(dy)<60)flipVisit(dx<0?1:-1);
+  },{passive:true});
+})();
+
+/* ---- flavor radar ---- */
+function radarSVG(v){
+  const vals=[v.acid||0,v.bitter||0,v.sweet||0,v.body||0];
+  if(!vals.some(x=>x>0))return '';
+  const cx=70,cy=70,R=50,labels=['酸味','苦味','甘み','コク'];
+  const pt=(i,r)=>{const a=-Math.PI/2+i*Math.PI/2;return [cx+r*Math.cos(a),cy+r*Math.sin(a)]};
+  const grid=[1,2,3,4,5].map(g=>`<polygon points="${[0,1,2,3].map(i=>pt(i,R*g/5).join(',')).join(' ')}" fill="none" stroke="var(--line-soft)"/>`).join('');
+  const axes=[0,1,2,3].map(i=>{const[x,y]=pt(i,R);return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line)"/>`}).join('');
+  const poly=vals.map((x,i)=>pt(i,R*x/5).join(',')).join(' ');
+  const lbl=[0,1,2,3].map(i=>{const[x,y]=pt(i,R+14);return `<text x="${x}" y="${y}" font-size="9.5" text-anchor="middle" dominant-baseline="middle" fill="var(--caramel-deep)" letter-spacing="2">${labels[i]}</text>`}).join('');
+  return `<div style="margin-top:14px;border-top:1px solid var(--line-soft);padding-top:6px">
+    <div style="font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--caramel-deep);text-align:center;margin-top:8px">Flavor</div>
+    <svg viewBox="0 0 140 140" style="width:178px;display:block;margin:6px auto 0;overflow:visible">${grid}${axes}<polygon points="${poly}" fill="rgba(176,125,79,.3)" stroke="var(--caramel)" stroke-width="1.5"/>${lbl}</svg></div>`;
+}
+
+/* ---- time of day theme ---- */
+function applyTimeTheme(){
+  const h=new Date().getHours();
+  document.documentElement.dataset.theme=h>=5&&h<10?'morning':h>=10&&h<16?'day':h>=16&&h<19?'evening':'night';
+}
+applyTimeTheme();setInterval(applyTimeTheme,10*60*1000);
+
 window.delVisit=async id=>{
   if(!confirm('この記録を削除しますか？'))return;
   const target=visits.find(v=>v.id===id);
@@ -757,7 +867,9 @@ window.editVisit=id=>{
   const v=visits.find(x=>x.id===id);if(!v)return;
   const c=cafeById(v.cafeId)||{};
   draft={photos:[...(v.photos||(v.photo?[v.photo]:[])).filter(Boolean)],
-    taste:v.taste||3,space:v.space||3,again:v.again||3,tags:c.tags||[],lat:c.lat||null,lng:c.lng||null};
+    taste:v.taste||3,space:v.space||3,again:v.again||3,
+    acid:v.acid||0,bitter:v.bitter||0,sweet:v.sweet||0,body:v.body||0,
+    tags:c.tags||[],lat:c.lat||null,lng:c.lng||null};
   const dateStr=v.date?new Date(v.date).toISOString().slice(0,10):new Date().toISOString().slice(0,10);
   const thumbs=draft.photos.map((p,i)=>`<img src="${p}" class="${i===0?'cover':''}" data-idx="${i}" title="タップで表紙にする">`).join('');
   openSheet(`
@@ -772,9 +884,11 @@ window.editVisit=id=>{
     <div class="field"><label>味 — Taste</label><div class="beanpick" data-key="taste">${[1,2,3,4,5].map(i=>`<button data-v="${i}" class="${i<=draft.taste?'on':''}">${BEAN}</button>`).join('')}</div></div>
     <div class="field"><label>空間 — Atmosphere</label><div class="beanpick" data-key="space">${[1,2,3,4,5].map(i=>`<button data-v="${i}" class="${i<=draft.space?'on':''}">${BEAN}</button>`).join('')}</div></div>
     <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}" class="${i<=draft.again?'on':''}">${BEAN}</button>`).join('')}</div></div>
+    ${flavorBlock()}
     <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo">${esc(v.memo||'')}</textarea></div>
     <div class="btnrow"><button class="btn ghost" onclick="closeSheet()">閉じる</button><button class="btn primary" id="saveBtn">保存する</button></div>
   `);
+  wireFlavor();
   // photo upload
   $('#pfile').onchange=async e=>{
     const files=[...e.target.files];if(!files.length)return;
@@ -801,6 +915,7 @@ window.editVisit=id=>{
     target.photo=draft.photos[0];target.photos=draft.photos;
     target.drink=$('#fdrink').value.trim();
     target.taste=draft.taste;target.space=draft.space;target.again=draft.again;
+    target.acid=draft.acid||0;target.bitter=draft.bitter||0;target.sweet=draft.sweet||0;target.body=draft.body||0;
     target.memo=$('#fmemo').value.trim();
     target.date=new Date(dateVal+'T12:00:00').toISOString();
     await DB.put('visits',target);
@@ -829,16 +944,27 @@ window.openCafe=id=>{
 
 /* ---- map ---- */
 let map=null,visitedLayer=null,discLayer=null,wishLayer=null,showNearby=false;
+const GENRES={cafe:{label:'カフェ',emoji:'☕'},sweets:{label:'スイーツ',emoji:'🍰'},bakery:{label:'ベーカリー',emoji:'🥐'}};
+const genreFilter={cafe:true,sweets:true,bakery:true};
+const SWEET_TYPES=new Set(['cake_shop','dessert_shop','dessert_restaurant','chocolate_shop','ice_cream_shop','confectionery']);
+function genreOf(primaryType,types){
+  const m=t=>t==='bakery'?'bakery':SWEET_TYPES.has(t)?'sweets':null;
+  if(primaryType){const g=m(primaryType);if(g)return g}
+  for(const t of types||[]){const g=m(t);if(g)return g}
+  return 'cafe';
+}
 const gmapsUrl=(name,gurl)=>gurl||('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(name));
 function initMap(){
   if(!map){
     map=L.map('map',{scrollWheelZoom:true,zoomControl:true}).setView([33.59,130.40],12); // 福岡
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+    const tileStyle=document.documentElement.dataset.theme==='night'?'dark_matter':'rastertiles/voyager';
+    L.tileLayer(`https://{s}.basemaps.cartocdn.com/${tileStyle}/{z}/{x}/{y}{r}.png`,{
       attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
     visitedLayer=L.layerGroup().addTo(map);
     wishLayer=L.layerGroup().addTo(map);
     discLayer=L.layerGroup().addTo(map);
     map.on('moveend',()=>{if(showNearby)loadNearbyDebounced()});
+    map.on('click',()=>closePlaceCard());
     wireMapConsole();
   }
   visitedLayer.clearLayers();
@@ -849,12 +975,8 @@ function initMap(){
     const icon=photo
       ?L.divIcon({className:'photo-pin',html:`<div class="frame"><img src="${photo}"></div>`,iconSize:[52,52],iconAnchor:[26,59]})
       :L.divIcon({className:'bean-pin',html:'<div class="dot"><span>☕</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
-    L.marker([c.lat,c.lng],{icon}).addTo(visitedLayer).bindPopup(`
-      <div class="pop">${photo?`<img src="${photo}">`:''}
-      <div class="pad"><h4>${esc(c.name)}</h4>
-      <div class="visits">${vs.length} visits</div>
-      <div class="row"><a onclick="openCafe('${c.id}')">記録を見る →</a>
-      <a href="${gmapsUrl(c.name)}" target="_blank" rel="noopener">Googleマップ ↗</a></div></div></div>`);
+    L.marker([c.lat,c.lng],{icon}).addTo(visitedLayer)
+      .on('click',()=>showPlaceCard({kind:'visited',name:c.name,photo,count:vs.length,cafeId:c.id}));
     pts.push([c.lat,c.lng]);
   });
   renderWishes();
@@ -868,26 +990,47 @@ function renderWishes(){
   wishes.forEach(w=>{
     if(visitedNames.has(w.name))return;
     const icon=L.divIcon({className:'bean-pin wish-pin',html:'<div class="dot"><span>★</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
-    L.marker([w.lat,w.lng],{icon}).addTo(wishLayer).bindPopup(`
-      <div class="pop"><div class="pad"><h4>${esc(w.name)}</h4>
-      <div class="visits">気になる</div>
-      <div class="row"><a onclick="recordHere('${esc(w.name).replace(/'/g,'&#39;')}',${w.lat},${w.lng})">☕ ここを記録する →</a>
-      <a href="${gmapsUrl(w.name,w.gurl)}" target="_blank" rel="noopener">Googleマップ ↗</a>
-      <a onclick="removeWish('${w.id}')" style="opacity:.6">解除</a></div></div></div>`);
+    L.marker([w.lat,w.lng],{icon}).addTo(wishLayer)
+      .on('click',()=>showPlaceCard({kind:'wish',name:w.name,lat:w.lat,lng:w.lng,gurl:w.gurl,wishId:w.id}));
   });
 }
+/* ---- place card ---- */
+function showPlaceCard(o){
+  const safeName=esc(o.name).replace(/'/g,'&#39;');
+  const sub=o.kind==='visited'?`${o.count} VISITS`:o.kind==='wish'?'気になる':(GENRES[o.genre]?.label||'未訪問');
+  let acts='';
+  if(o.kind==='visited')acts=`<a onclick="openCafe('${o.cafeId}')">記録を見る</a>
+    <a class="ghost" href="${gmapsUrl(o.name)}" target="_blank" rel="noopener">Googleマップ</a>`;
+  else if(o.kind==='wish')acts=`<a onclick="recordHere('${safeName}',${o.lat},${o.lng})">☕ 記録する</a>
+    <a class="ghost" href="${gmapsUrl(o.name,o.gurl)}" target="_blank" rel="noopener">Googleマップ</a>
+    <a class="ghost" onclick="removeWish('${o.wishId}')">解除</a>`;
+  else acts=`<a onclick="recordHere('${safeName}',${o.lat},${o.lng})">☕ 記録する</a>
+    <a class="ghost" onclick="addWish('${safeName}',${o.lat},${o.lng},${o.gurl?`'${o.gurl}'`:'null'})">🔖 気になる</a>
+    <a class="ghost" href="${gmapsUrl(o.name,o.gurl)}" target="_blank" rel="noopener">マップ</a>`;
+  $('#placecard').innerHTML=`
+    <button class="x" onclick="closePlaceCard()">✕</button>
+    ${o.photo?`<img class="cph" src="${o.photo}">`:''}
+    <div class="pad"><h4>${esc(o.name)}</h4><div class="sub">${sub}</div>
+    <div class="acts">${acts}</div></div>`;
+  $('#placecard').classList.add('open');
+  document.body.classList.add('place-open');
+}
+window.closePlaceCard=()=>{
+  $('#placecard').classList.remove('open');
+  document.body.classList.remove('place-open');
+};
 window.addWish=async(name,lat,lng,gurl)=>{
   if(wishes.some(w=>w.name===name)){toast('すでに気になるに入っています');return}
   const w={id:uid(),name,lat,lng,gurl:gurl||null,addedAt:new Date().toISOString()};
   wishes.push(w);await DB.put('wishes',w);cloudSaveWish(w).catch(()=>{});
-  map.closePopup();renderWishes();renderDisc();
+  closePlaceCard();renderWishes();renderDisc();
   toast('🔖 気になるに追加しました');
 };
 window.removeWish=async id=>{
   const w=wishes.find(x=>x.id===id);if(!w)return;
   wishes=wishes.filter(x=>x.id!==id);
   await DB.del('wishes',id);cloudDeleteWish(id).catch(()=>{});
-  map.closePopup();renderWishes();renderDisc();
+  closePlaceCard();renderWishes();renderDisc();
   toast('解除しました');
 };
 
@@ -903,8 +1046,13 @@ function wireMapConsole(){
   };
   $('#chipNearby').onclick=()=>{
     showNearby=$('#chipNearby').classList.toggle('on');
+    document.body.classList.toggle('nearby-on',showNearby);
     if(showNearby)loadNearby();else discLayer.clearLayers();
   };
+  $$('.genrechip').forEach(b=>b.onclick=()=>{
+    genreFilter[b.dataset.genre]=b.classList.toggle('on');
+    renderDisc();
+  });
   $('#mapgo').onclick=searchPlace;
   $('#mapq').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace()});
   $('#locateBtn').onclick=()=>{
@@ -945,7 +1093,7 @@ async function loadNearby(){
         // 主分類がカフェ系のみ通す（すき家等は types に cafe を持つが primaryType は飲食店）
         const isCafe=p.primaryType?CAFE_TYPES.has(p.primaryType):(p.types||[]).some(t=>CAFE_TYPES.has(t));
         if(!isCafe)return;
-        if(lat&&name)discCache.set(p.id,{lat,lng,name,gurl:p.googleMapsUri||null});
+        if(lat&&name)discCache.set(p.id,{lat,lng,name,gurl:p.googleMapsUri||null,genre:genreOf(p.primaryType,p.types)});
       });
     }
     renderDisc();
@@ -958,14 +1106,11 @@ function renderDisc(){
   const wishNames=new Set(wishes.map(w=>w.name));
   discCache.forEach(d=>{
     if(visitedNames.has(d.name)||wishNames.has(d.name))return;
-    const icon=L.divIcon({className:'bean-pin disc-pin',html:'<div class="dot"><span>☕</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
-    const safeName=esc(d.name).replace(/'/g,'&#39;');
-    L.marker([d.lat,d.lng],{icon}).addTo(discLayer).bindPopup(`
-      <div class="pop"><div class="pad"><h4>${esc(d.name)}</h4>
-      <div class="visits">未訪問</div>
-      <div class="row"><a onclick="recordHere('${safeName}',${d.lat},${d.lng})">☕ ここを記録する →</a>
-      <a onclick="addWish('${safeName}',${d.lat},${d.lng},${d.gurl?`'${d.gurl}'`:'null'})">🔖 気になる</a>
-      <a href="${gmapsUrl(d.name,d.gurl)}" target="_blank" rel="noopener">Googleマップ ↗</a></div></div></div>`);
+    if(!genreFilter[d.genre||'cafe'])return;
+    const emoji=GENRES[d.genre]?.emoji||'☕';
+    const icon=L.divIcon({className:'bean-pin disc-pin',html:`<div class="dot"><span>${emoji}</span></div>`,iconSize:[30,30],iconAnchor:[15,28]});
+    L.marker([d.lat,d.lng],{icon}).addTo(discLayer)
+      .on('click',()=>showPlaceCard({kind:'disc',name:d.name,lat:d.lat,lng:d.lng,gurl:d.gurl,genre:d.genre}));
   });
 }
 async function searchPlace(){
@@ -995,7 +1140,7 @@ window.gotoPlace=(lat,lng)=>{
   if(showNearby)loadNearby();
 };
 window.recordHere=(name,lat,lng)=>{
-  map.closePopup();
+  closePlaceCard();
   openAdd({name,lat,lng});
 };
 
@@ -1007,8 +1152,10 @@ function closeSheet(){$('#sheet').classList.remove('open');$('#sheetBack').class
 $('#sheetBack').onclick=closeSheet;
 
 $('#fab').onclick=()=>openAdd();
+const flavorBlock=()=>`<div class="field"><label>Flavor — 味覚チャート（任意）</label><div class="flv">${[['acid','酸味'],['bitter','苦味'],['sweet','甘み'],['body','コク']].map(([k,l])=>`<div class="frow"><span>${l}</span><input type="range" min="0" max="5" step="1" value="${draft[k]||0}" data-fk="${k}"><b data-fv="${k}">${draft[k]||0}</b></div>`).join('')}</div></div>`;
+const wireFlavor=()=>$$('input[data-fk]').forEach(r=>r.oninput=()=>{draft[r.dataset.fk]=+r.value;$('[data-fv="'+r.dataset.fk+'"]').textContent=r.value});
 function openAdd(prefill){
-  draft={photos:[],taste:0,space:0,again:0,tags:[],lat:prefill?.lat??null,lng:prefill?.lng??null};
+  draft={photos:[],taste:0,space:0,again:0,acid:0,bitter:0,sweet:0,body:0,tags:[],lat:prefill?.lat??null,lng:prefill?.lng??null};
   openSheet(`
     <h2>New Entry<small>今日の一杯を記録</small></h2>
     <div class="field"><label>Photographs — 写真（複数OK）</label>
@@ -1033,10 +1180,11 @@ function openAdd(prefill){
     <div class="field"><label>味 — Taste</label><div class="beanpick" data-key="taste">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
     <div class="field"><label>空間 — Atmosphere</label><div class="beanpick" data-key="space">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
     <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
+    ${flavorBlock()}
     <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo" placeholder="窓際の席。浅煎りが華やかだった。"></textarea></div>
     <div class="btnrow"><button class="btn ghost" onclick="closeSheet()">閉じる</button><button class="btn primary" id="saveBtn">記録する</button></div>
   `);
-  wireSheet();
+  wireSheet();wireFlavor();
   if(!cafes.length)$('#fcafe').value='__new';
   if(prefill){
     $('#fcafe').value='__new';
@@ -1168,6 +1316,7 @@ async function saveEntry(){
   const dateVal=$('#fdate').value||new Date().toISOString().slice(0,10);
   const v={id:uid(),cafeId,photo:draft.photos[0],photos:draft.photos,drink:$('#fdrink').value.trim(),
     taste:draft.taste||3,space:draft.space||3,again:draft.again||3,
+    acid:draft.acid||0,bitter:draft.bitter||0,sweet:draft.sweet||0,body:draft.body||0,
     memo:$('#fmemo').value.trim(),date:new Date(dateVal+'T12:00:00').toISOString()};
   await DB.put('visits',v);visits.unshift(v);
   cloudSaveVisit(v).catch(e=>console.error(e));
