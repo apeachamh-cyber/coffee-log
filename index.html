@@ -65,6 +65,8 @@ html[data-theme="night"]{
 }
 html[data-theme="night"] body{background:radial-gradient(120% 90% at 50% 0%,#221A14 0%,#171210 50%,#0C0907 100%) fixed}
 html[data-theme="night"] #bg3d{display:none}
+/* 夜の地図：タイルは明るいまま・温かみフィルタのみ（暗いタイルは視認性が悪いため不使用） */
+html[data-theme="night"] #map{filter:sepia(.3) brightness(.9) saturate(.8)}
 html[data-theme="night"] .beans .off svg path:not(.ck),html[data-theme="night"] .beanpick svg path:not(.ck){fill:#56463A}
 html[data-theme="night"] .beanpick button.on svg path:not(.ck),html[data-theme="night"] .beans svg path[fill]:not(.ck){fill:#C89A6B}
 
@@ -398,6 +400,8 @@ body.map-mode .locate-fab{display:flex}
   .sheet.open{transform:translate(-50%,0)}
 }
 .sheet .grab{width:42px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 18px}
+/* グラブバーのタッチ領域を広げる（4pxでは掴めない） */
+.sheet .grabzone{padding:14px 0 4px;margin:-20px 0 0;cursor:grab;touch-action:none}
 .sheet h2{font-family:var(--serif);font-weight:600;font-size:24px;letter-spacing:.03em}
 .sheet h2 small{font-family:var(--sans);display:block;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--caramel-deep);margin-top:4px;font-weight:500}
 .field{margin-top:20px}
@@ -422,6 +426,8 @@ body.map-mode .locate-fab{display:flex}
 .photothumbs img{width:58px;height:58px;object-fit:cover;border-radius:12px;cursor:pointer;opacity:.75;border:2px solid transparent;box-shadow:var(--shadow-soft)}
 .photothumbs img.cover{opacity:1;border-color:var(--caramel)}
 .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.gallery img{cursor:pointer;border:2px solid transparent;transition:border-color .25s,opacity .25s;opacity:.85}
+.gallery img.cur{border-color:var(--caramel);opacity:1}
 .gallery img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;box-shadow:var(--shadow-soft);cursor:pointer}
 #locresults{margin-top:8px}
 #locresults div{padding:9px 14px;font-size:12.5px;background:var(--glass);border:1px solid var(--glass-line);border-radius:14px;margin-bottom:6px;cursor:pointer;font-weight:350}
@@ -564,7 +570,7 @@ footer{
 <!-- ADD SHEET -->
 <div class="sheet-back" id="sheetBack"></div>
 <div class="sheet" id="sheet">
-  <div class="grab"></div>
+  <div class="grabzone" id="grabzone"><div class="grab"></div></div>
   <div id="sheetBody"></div>
 </div>
 
@@ -820,7 +826,7 @@ window.openVisit=id=>{
         </div>
         ${v.memo?`<p style="font-size:13.5px;font-weight:350;margin-top:12px;border-top:1px solid var(--line-soft);padding-top:12px">${esc(v.memo)}</p>`:''}
         ${radarSVG(v)}
-        ${(v.photos&&v.photos.length>1)?`<div class="gallery">${v.photos.slice(1).map(p=>`<img src="${p}" loading="lazy" onclick="event.stopPropagation();this.closest('article').querySelector('img.main').src=this.src">`).join('')}</div>`:''}
+        ${(v.photos&&v.photos.length>1)?`<div class="gallery">${v.photos.map((p,i)=>`<img src="${p}" loading="lazy" class="${i===0?'cur':''}" onclick="event.stopPropagation();this.closest('article').querySelector('img.main').src=this.src;this.parentElement.querySelectorAll('img').forEach(x=>x.classList.remove('cur'));this.classList.add('cur')">`).join('')}</div>`:''}
         <div class="toolbar">
           <button class="minibtn" onclick="editVisit('${v.id}')">Edit ✎</button>
           <button class="minibtn" onclick="shareVisit('${v.id}')">Share ↗</button>
@@ -966,10 +972,8 @@ window.openCafe=id=>{
 /* ---- map ---- */
 let map=null,visitedLayer=null,discLayer=null,wishLayer=null,showNearby=false;
 var baseTiles=null; // varで巻き上げ：applyTimeTheme(先行実行)から参照されるため
-// CARTOの正式スタイル名：dark_all / rastertiles/voyager（dark_matterは404になる）
-const mapTileURL=()=>document.documentElement.dataset.theme==='night'
-  ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-  :'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+// 夜もタイルは明るいvoyagerのまま（視認性優先）。夜の雰囲気はCSSフィルタで薄く付ける
+const mapTileURL=()=>'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 const GENRES={cafe:{label:'カフェ',emoji:'☕'},sweets:{label:'スイーツ',emoji:'🍰'},bakery:{label:'ベーカリー',emoji:'🥐'}};
 const genreFilter={cafe:true,sweets:true,bakery:true};
 const SWEET_TYPES=new Set(['cake_shop','dessert_shop','dessert_restaurant','chocolate_shop','ice_cream_shop','confectionery']);
@@ -1175,6 +1179,23 @@ let draft={};
 function openSheet(html){$('#sheetBody').innerHTML=html;$('#sheet').classList.add('open');$('#sheetBack').classList.add('open')}
 function closeSheet(){$('#sheet').classList.remove('open');$('#sheetBack').classList.remove('open')}
 $('#sheetBack').onclick=closeSheet;
+/* グラブバー：ドラッグで閉じる＋タップでも閉じる */
+(function(){
+  const sheet=$('#sheet'),gz=$('#grabzone');
+  let sy=0,dy=0,dragging=false;
+  gz.addEventListener('touchstart',e=>{dragging=true;sy=e.touches[0].clientY;dy=0;sheet.style.transition='none'},{passive:true});
+  gz.addEventListener('touchmove',e=>{
+    if(!dragging)return;
+    dy=Math.max(0,e.touches[0].clientY-sy);
+    sheet.style.transform=`translateY(${dy}px)`;
+  },{passive:true});
+  gz.addEventListener('touchend',()=>{
+    sheet.style.transition='';sheet.style.transform='';
+    if(dy>100)closeSheet();
+    dragging=false;dy=0;
+  });
+  gz.addEventListener('click',()=>{if(dy<8)closeSheet()});
+})();
 
 $('#fab').onclick=()=>openAdd();
 const flavorBlock=()=>`<div class="field"><label>Flavor — 味覚チャート（任意）</label><div class="flv">${[['acid','酸味'],['bitter','苦味'],['sweet','甘み'],['body','コク']].map(([k,l])=>`<div class="frow"><span>${l}</span><input type="range" min="0" max="5" step="1" value="${draft[k]||0}" data-fk="${k}"><b data-fv="${k}">${draft[k]||0}</b></div>`).join('')}</div></div>`;
