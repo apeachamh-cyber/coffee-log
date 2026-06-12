@@ -1399,45 +1399,70 @@ window.shareVisit=id=>{
     },'image/jpeg',.92);
   };
 };
+const APP_URL='apeachamh-cyber.github.io/coffee-log'; // 独自ドメイン決定時にここを書き換える
 function drawShare(cv,v,c,tpl){
   const ctx=cv.getContext('2d');const W=1080,H=1920;
   const img=new Image();
   img.onload=()=>{
     ctx.fillStyle='#F5EFE4';ctx.fillRect(0,0,W,H);
     if(tpl==='full'){
-      // photo fills top 72%
-      coverDraw(ctx,img,0,0,W,H*0.72);
-      // cream band
-      ctx.fillStyle='#F5EFE4';ctx.fillRect(0,H*0.72,W,H*0.28);
-      ctx.fillStyle='#2B2018';
-      ctx.font='italic 500 44px "Playfair Display"';ctx.fillStyle='#8C5E36';
+      // ===== Magazine Cover =====
+      coverDraw(ctx,img,0,0,W,H*0.66);
+      // 写真→クリームへのグラデーション
+      const gr=ctx.createLinearGradient(0,H*0.52,0,H*0.66);
+      gr.addColorStop(0,'rgba(245,239,228,0)');gr.addColorStop(1,'#F5EFE4');
+      ctx.fillStyle=gr;ctx.fillRect(0,H*0.5,W,H*0.17);
+      ctx.fillStyle='#F5EFE4';ctx.fillRect(0,H*0.66,W,H*0.34);
+      // マストヘッド（写真上）
       ctx.textAlign='center';
-      ctx.fillText(fmtDate(v.date).toUpperCase(),W/2,H*0.72+96);
-      ctx.fillStyle='#2B2018';ctx.font='600 84px "Shippori Mincho"';
-      ctx.fillText(fitText(ctx,c.name,W-160),W/2,H*0.72+200);
-      ctx.font='italic 500 48px "Playfair Display"';ctx.fillStyle='#4A372A';
-      if(v.drink)ctx.fillText(fitText(ctx,v.drink,W-200),W/2,H*0.72+272);
-      drawBeans(ctx,W/2,H*0.72+352,v.again);
-      ctx.font='500 30px "Playfair Display"';ctx.fillStyle='#B07D4F';
-      ctx.fillText('D R I P P I N',W/2,H-70);
+      ctx.shadowColor='rgba(43,32,24,.55)';ctx.shadowBlur=28;ctx.shadowOffsetY=4;
+      ctx.fillStyle='#FDFBF6';ctx.font="italic 600 88px 'Playfair Display'";
+      ctx.fillText("Drippin'",W/2,150);
+      ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+      ctx.font="400 26px 'Playfair Display'";ctx.fillStyle='rgba(253,251,246,.92)';
+      ctx.fillText('A  P E R S O N A L  C A F É  J O U R N A L',W/2,200);
+      // 本文
+      let y=H*0.66+92;
+      ctx.font="500 32px 'Playfair Display'";ctx.fillStyle='#B07D4F';
+      ctx.fillText(fmtDate(v.date).toUpperCase().split('').join(' '),W/2,y);y+=98;
+      ctx.fillStyle='#2B2018';ctx.font="600 94px 'Shippori Mincho'";
+      ctx.fillText(fitText(ctx,c.name,W-140),W/2,y);y+=78;
+      if(v.drink){ctx.font="italic 500 46px 'Playfair Display'";ctx.fillStyle='#4A372A';
+        ctx.fillText(fitText(ctx,v.drink,W-220),W/2,y);}
+      y+=90;drawBeans(ctx,W/2,y,v.again);y+=92;
+      if(v.memo){ctx.font="italic 400 38px 'Shippori Mincho'";ctx.fillStyle='#6B5849';
+        ctx.fillText('“ '+fitText(ctx,v.memo,W-260)+' ”',W/2,y);}
+      // フッター（ブランド＋URL＝バイラル導線）
+      ctx.strokeStyle='rgba(43,32,24,.18)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(W/2-110,H-168);ctx.lineTo(W/2+110,H-168);ctx.stroke();
+      ctx.font="italic 600 44px 'Playfair Display'";ctx.fillStyle='#8C5E36';
+      ctx.fillText("Drippin'",W/2,H-104);
+      ctx.font="400 26px 'Playfair Display'";ctx.fillStyle='rgba(140,94,54,.75)';
+      ctx.fillText(APP_URL,W/2,H-58);
     }else{
-      // polaroid
+      // ===== Polaroid =====
       ctx.fillStyle='#E8DEC9';ctx.fillRect(0,0,W,H);
       grain(ctx,W,H);
-      const pw=W-200,ph=pw, px=100, py=(H-ph-260)/2;
+      ctx.textAlign='center';
+      ctx.font="italic 600 64px 'Playfair Display'";ctx.fillStyle='#2B2018';
+      ctx.fillText("Drippin'",W/2,160);
+      ctx.font="400 24px 'Playfair Display'";ctx.fillStyle='#8C5E36';
+      ctx.fillText('A  P E R S O N A L  C A F É  J O U R N A L',W/2,206);
+      const pw=W-200,ph=pw, px=100, py=(H-ph-260)/2+30;
       ctx.save();ctx.translate(W/2,py+ph/2+90);ctx.rotate(-0.02);ctx.translate(-W/2,-(py+ph/2+90));
       ctx.shadowColor='rgba(43,32,24,.35)';ctx.shadowBlur=60;ctx.shadowOffsetY=24;
       ctx.fillStyle='#FDFBF6';ctx.fillRect(px-36,py-36+90,pw+72,ph+260);
       ctx.shadowColor='transparent';
       coverDraw(ctx,img,px,py+90,pw,ph);
-      ctx.fillStyle='#2B2018';ctx.textAlign='center';
-      ctx.font='600 64px "Shippori Mincho"';
+      ctx.fillStyle='#2B2018';
+      ctx.font="600 64px 'Shippori Mincho'";
       ctx.fillText(fitText(ctx,c.name,pw-60),W/2,py+ph+90+110);
-      ctx.font='italic 400 38px "Playfair Display"';ctx.fillStyle='#8C5E36';
+      ctx.font="italic 400 38px 'Playfair Display'";ctx.fillStyle='#8C5E36';
       ctx.fillText(fmtDate(v.date),W/2,py+ph+90+168);
       ctx.restore();
-      ctx.textAlign='center';ctx.font='500 30px "Playfair Display"';ctx.fillStyle='#8C5E36';
-      ctx.fillText('D R I P P I N',W/2,H-80);
+      drawBeans(ctx,W/2,H-220,v.again);
+      ctx.font="400 26px 'Playfair Display'";ctx.fillStyle='rgba(140,94,54,.8)';
+      ctx.fillText(APP_URL,W/2,H-70);
     }
   };
   img.src=v.photo;
@@ -1451,10 +1476,18 @@ function coverDraw(ctx,img,x,y,w,h){
 function fitText(ctx,text,maxW){
   let t=text||'';while(ctx.measureText(t).width>maxW&&t.length>2)t=t.slice(0,-2)+'…';return t;
 }
+function beanShape(ctx,x,y,r,fill){
+  ctx.save();ctx.translate(x,y);ctx.rotate(-0.24);
+  ctx.fillStyle=fill;
+  ctx.beginPath();ctx.ellipse(0,0,r*0.78,r,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#F5EFE4';ctx.lineWidth=Math.max(3,r*0.16);ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(0,-r*0.8);
+  ctx.bezierCurveTo(-r*0.55,-r*0.25,r*0.55,r*0.25,0,r*0.8);ctx.stroke();
+  ctx.restore();
+}
 function drawBeans(ctx,cx,cy,n){
-  ctx.save();ctx.textAlign='center';ctx.font='44px serif';
-  let s='';for(let i=1;i<=5;i++)s+=(i<=n?'●':'○')+'  ';
-  ctx.fillStyle='#8C5E36';ctx.fillText(s.trim(),cx,cy);ctx.restore();
+  const r=28,gap=84,x0=cx-gap*2;
+  for(let i=0;i<5;i++)beanShape(ctx,x0+gap*i,cy,r,i<n?'#8C5E36':'#D9CBB2');
 }
 function grain(ctx,W,H){
   for(let i=0;i<2200;i++){
