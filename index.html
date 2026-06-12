@@ -75,8 +75,11 @@ html[data-theme="night"] body{background:radial-gradient(120% 90% at 50% 0%,#221
 html[data-theme="night"] #bg3d{display:none}
 /* 夜の地図：タイルは明るいまま・温かみフィルタのみ（暗いタイルは視認性が悪いため不使用） */
 html[data-theme="night"] #map{filter:sepia(.3) brightness(.9) saturate(.8)}
-html[data-theme="night"] .beans .off svg path:not(.ck),html[data-theme="night"] .beanpick svg path:not(.ck){fill:#56463A}
-html[data-theme="night"] .beanpick button.on svg path:not(.ck),html[data-theme="night"] .beans svg path[fill]:not(.ck){fill:#C89A6B}
+/* 夜の豆：ON=明るい茶 / OFF=暗い茶（.offを必ず後に書いて優先させる） */
+html[data-theme="night"] .beans svg path:not(.ck){fill:#C89A6B}
+html[data-theme="night"] .beans .off svg path:not(.ck){fill:#5A4938}
+html[data-theme="night"] .beanpick svg path:not(.ck){fill:#5A4938}
+html[data-theme="night"] .beanpick button.on svg path:not(.ck){fill:#C89A6B}
 
 /* ---------- pager (page flip) ---------- */
 .pager{display:flex;justify-content:space-between;align-items:center;margin:20px 0 0;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--caramel-deep)}
@@ -576,7 +579,7 @@ footer{
   <section class="view" id="view-detail"></section>
 </main>
 
-<footer>Drippin — drip by drip, pin by pin</footer>
+<footer>Drippin — drip by drip, pin by pin<span id="ver" style="opacity:.4;font-size:9px;margin-left:10px"></span></footer>
 
 <button class="fab" id="fab" title="記録する">＋</button>
 <button class="locate-fab" id="locateBtn" title="現在地" aria-label="現在地">
@@ -1039,8 +1042,7 @@ function initMap(){
     const icon=photo
       ?L.divIcon({className:'photo-pin',html:`<div class="frame"><img src="${photo}"></div>`,iconSize:[52,52],iconAnchor:[26,59]})
       :L.divIcon({className:'bean-pin',html:'<div class="dot"><span>☕</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
-    L.marker([c.lat,c.lng],{icon}).addTo(visitedLayer)
-      .on('click',()=>showPlaceCard({kind:'visited',name:c.name,photo,count:vs.length,cafeId:c.id}));
+    addPin(visitedLayer,[c.lat,c.lng],icon,()=>showPlaceCard({kind:'visited',name:c.name,photo,count:vs.length,cafeId:c.id}));
     pts.push([c.lat,c.lng]);
   });
   renderWishes();
@@ -1054,9 +1056,26 @@ function renderWishes(){
   wishes.forEach(w=>{
     if(visitedNames.has(w.name))return;
     const icon=L.divIcon({className:'bean-pin wish-pin',html:'<div class="dot"><span>★</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
-    L.marker([w.lat,w.lng],{icon}).addTo(wishLayer)
-      .on('click',()=>showPlaceCard({kind:'wish',name:w.name,lat:w.lat,lng:w.lng,gurl:w.gurl,wishId:w.id}));
+    addPin(wishLayer,[w.lat,w.lng],icon,()=>showPlaceCard({kind:'wish',name:w.name,lat:w.lat,lng:w.lng,gurl:w.gurl,wishId:w.id}));
   });
+}
+/* ピン生成：click＋touchendの二重保険（iOSでclickが落ちるケース対策） */
+function addPin(layer,latlng,icon,handler){
+  const m=L.marker(latlng,{icon}).addTo(layer);
+  let handled=0;
+  const fire=()=>{if(Date.now()-handled<600)return;handled=Date.now();handler()};
+  m.on('click',fire);
+  const el=m.getElement();
+  if(el){
+    let sx=0,sy=0;
+    el.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+    el.addEventListener('touchend',e=>{
+      const t=e.changedTouches[0];
+      if(Math.abs(t.clientX-sx)>12||Math.abs(t.clientY-sy)>12)return; // ドラッグは無視
+      e.preventDefault();fire();
+    },{passive:false});
+  }
+  return m;
 }
 /* ---- place card ---- */
 var pinTapAt=0;
@@ -1175,8 +1194,7 @@ function renderDisc(){
     if(!genreFilter[d.genre||'cafe'])return;
     const emoji=GENRES[d.genre]?.emoji||'☕';
     const icon=L.divIcon({className:'bean-pin disc-pin',html:`<div class="dot"><span>${emoji}</span></div>`,iconSize:[30,30],iconAnchor:[15,28]});
-    L.marker([d.lat,d.lng],{icon}).addTo(discLayer)
-      .on('click',()=>showPlaceCard({kind:'disc',name:d.name,lat:d.lat,lng:d.lng,gurl:d.gurl,genre:d.genre}));
+    addPin(discLayer,[d.lat,d.lng],icon,()=>showPlaceCard({kind:'disc',name:d.name,lat:d.lat,lng:d.lng,gurl:d.gurl,genre:d.genre}));
   });
 }
 async function searchPlace(){
@@ -1552,6 +1570,13 @@ function renderAll(){renderHome();renderCafes();if(map)initMap()}
 load().then(()=>{renderAll()});
 /* =============== PWA =============== */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+/* =============== version & debug =============== */
+const APP_VER='0.9.2';
+document.getElementById('ver').textContent='v'+APP_VER;
+if(location.search.includes('debug')){
+  const s=document.createElement('script');s.src='https://unpkg.com/eruda';
+  s.onload=()=>eruda.init();document.head.appendChild(s);
+}
 </script>
 <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
 <script>
