@@ -851,6 +851,7 @@ function radarSVG(v){
 function applyTimeTheme(){
   const h=new Date().getHours();
   document.documentElement.dataset.theme=h>=5&&h<10?'morning':h>=10&&h<16?'day':h>=16&&h<19?'evening':'night';
+  if(baseTiles)baseTiles.setUrl(mapTileURL()); // baseTilesはvar（map初期化前はundefinedでスキップ）
 }
 applyTimeTheme();setInterval(applyTimeTheme,10*60*1000);
 
@@ -944,6 +945,11 @@ window.openCafe=id=>{
 
 /* ---- map ---- */
 let map=null,visitedLayer=null,discLayer=null,wishLayer=null,showNearby=false;
+var baseTiles=null; // varで巻き上げ：applyTimeTheme(先行実行)から参照されるため
+// CARTOの正式スタイル名：dark_all / rastertiles/voyager（dark_matterは404になる）
+const mapTileURL=()=>document.documentElement.dataset.theme==='night'
+  ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+  :'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 const GENRES={cafe:{label:'カフェ',emoji:'☕'},sweets:{label:'スイーツ',emoji:'🍰'},bakery:{label:'ベーカリー',emoji:'🥐'}};
 const genreFilter={cafe:true,sweets:true,bakery:true};
 const SWEET_TYPES=new Set(['cake_shop','dessert_shop','dessert_restaurant','chocolate_shop','ice_cream_shop','confectionery']);
@@ -957,8 +963,7 @@ const gmapsUrl=(name,gurl)=>gurl||('https://www.google.com/maps/search/?api=1&qu
 function initMap(){
   if(!map){
     map=L.map('map',{scrollWheelZoom:true,zoomControl:true}).setView([33.59,130.40],12); // 福岡
-    const tileStyle=document.documentElement.dataset.theme==='night'?'dark_matter':'rastertiles/voyager';
-    L.tileLayer(`https://{s}.basemaps.cartocdn.com/${tileStyle}/{z}/{x}/{y}{r}.png`,{
+    baseTiles=L.tileLayer(mapTileURL(),{
       attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
     visitedLayer=L.layerGroup().addTo(map);
     wishLayer=L.layerGroup().addTo(map);
