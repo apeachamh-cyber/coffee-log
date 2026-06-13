@@ -1,0 +1,19 @@
+{
+  "name": "drippin-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Drippin Lab — AI pseudo-user simulation: synthetic data + Playwright UX audit + Haiku review",
+  "scripts": {
+    "gen": "node generate-data.js",
+    "audit": "node audit.js",
+    "review": "node review.js",
+    "run": "node run.js",
+    "theater": "node theater.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "dotenv": "^16.4.5",
+    "playwright": "^1.49.0"
+  }
+}

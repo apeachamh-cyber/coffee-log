@@ -2318,6 +2318,7 @@ if(location.search.includes('debug')){
 <script>
 /* =============== Liquid Coffee — WebGL background =============== */
 (function(){
+  if(location.search.includes('lab'))return; // Labモード：WebGL無効（自動監査の安定化）
   if(!window.THREE)return;
   const cv=document.getElementById('bg3d');
   const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
