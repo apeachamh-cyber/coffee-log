@@ -744,6 +744,60 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
 .pullind .pi{font-size:15px;transition:transform .3s}
 .pullind.ready{color:var(--espresso)}
 .pullind.ready .pi{transform:rotate(180deg)}
+
+/* ============================================================
+   RETENTION — On This Day memory / revisit reminder
+   ============================================================ */
+.memory{position:relative;display:block;border-radius:22px;overflow:hidden;cursor:pointer;box-shadow:var(--depth);margin-top:8px}
+.memory img{width:100%;height:264px;object-fit:cover;display:block;transition:transform .7s cubic-bezier(.2,.7,.2,1);filter:saturate(.9)}
+.memory:hover img{transform:scale(1.04)}
+.memory .mem-cap{position:absolute;inset:auto 0 0 0;padding:46px 22px 20px;background:linear-gradient(to top,rgba(24,17,11,.85),rgba(24,17,11,.1) 70%,transparent);color:var(--milk)}
+.mem-l{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:#E0BC85}
+.memory h3{font-family:var(--serif-jp);font-weight:600;font-size:22px;letter-spacing:.04em;margin-top:5px;color:#FDFBF6}
+.mem-dr{font-family:var(--serif);font-style:italic;font-size:13px;opacity:.86;margin-top:2px}
+.mem-go{font-size:11px;letter-spacing:.12em;color:#E0BC85;margin-top:10px}
+.revisit{display:flex;align-items:center;gap:13px;margin-top:24px;cursor:pointer;
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:14px 16px;
+  box-shadow:var(--shadow-soft);transition:transform .3s;
+  backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);}
+.revisit:active{transform:scale(.99)}
+.rv-ic{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:19px;
+  background:radial-gradient(circle at 32% 28%,#F0D49A,#B07D4F);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 4px 12px rgba(140,94,54,.3)}
+.revisit b{display:block;font-size:13px;color:var(--espresso);font-weight:600;line-height:1.45}
+.revisit>div>span{font-size:11px;color:var(--roast)}
+.revisit i{margin-left:auto;font-style:normal;font-size:20px;color:var(--caramel);flex:none}
+
+/* ============================================================
+   WISHLIST activation
+   ============================================================ */
+.wishrow{display:flex;gap:13px;overflow-x:auto;padding:6px 2px 14px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.wishrow::-webkit-scrollbar{display:none}
+.wishcard{
+  flex:none;width:174px;scroll-snap-align:start;display:flex;flex-direction:column;gap:10px;
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:14px 15px 13px;
+  box-shadow:var(--shadow-soft);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+}
+.wc-top{display:flex;align-items:center;justify-content:space-between}
+.wc-pin{font-size:15px}
+.wc-x{border:none;background:none;color:var(--roast);opacity:.4;font-size:13px;cursor:pointer;padding:2px 4px;line-height:1}
+.wc-x:hover{opacity:1}
+.wishcard h4{font-family:var(--serif-jp);font-weight:600;font-size:14.5px;letter-spacing:.03em;line-height:1.45;min-height:2.7em}
+.wc-acts{display:flex;gap:7px;margin-top:auto}
+.wc-acts a{flex:1;text-align:center;font-size:11px;font-weight:500;padding:8px 4px;border-radius:99px;background:var(--espresso);color:var(--paper);cursor:pointer;text-decoration:none}
+.wc-acts a.ghost{background:var(--milk);color:var(--espresso);box-shadow:var(--shadow-soft)}
+
+/* in-app confirm dialog (replaces native confirm) */
+.confirm-back{position:fixed;inset:0;background:rgba(28,20,14,.5);backdrop-filter:blur(4px);z-index:2800;opacity:0;pointer-events:none;transition:opacity .3s;display:flex;align-items:center;justify-content:center;padding:28px}
+.confirm-back.open{opacity:1;pointer-events:auto}
+.confirm-card{width:min(340px,100%);background:var(--glass-strong);border:1px solid var(--glass-line);border-radius:24px;backdrop-filter:blur(26px) saturate(1.4);-webkit-backdrop-filter:blur(26px) saturate(1.4);box-shadow:var(--depth);padding:26px 24px 20px;text-align:center;transform:scale(.94);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.confirm-back.open .confirm-card{transform:none}
+.confirm-card h3{font-family:var(--serif-jp);font-weight:600;font-size:18px;letter-spacing:.04em;color:var(--espresso)}
+.confirm-card p{font-size:12.5px;color:var(--roast);margin-top:8px;line-height:1.7}
+.confirm-row{display:flex;gap:11px;margin-top:22px}
+.confirm-row button{flex:1;border:none;cursor:pointer;border-radius:99px;padding:13px;font-family:var(--sans);font-size:12.5px;font-weight:700;letter-spacing:.12em}
+.confirm-row .c-cancel{background:var(--milk);color:var(--roast);box-shadow:var(--shadow-soft)}
+.confirm-row .c-ok{background:#8c3b2e;color:var(--milk)}
+.confirm-row .c-ok.warn{background:linear-gradient(145deg,#c08a58,#9a6437)}
 </style>
 </head>
 <body>
@@ -850,6 +904,18 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
   </div>
 </div>
 
+<!-- IN-APP CONFIRM — body直下 -->
+<div class="confirm-back" id="confirmBack">
+  <div class="confirm-card">
+    <h3 id="cfTitle">確認</h3>
+    <p id="cfMsg"></p>
+    <div class="confirm-row">
+      <button class="c-cancel" id="cfCancel">やめる</button>
+      <button class="c-ok" id="cfOk">OK</button>
+    </div>
+  </div>
+</div>
+
 <!-- PULL TO RECORD — 引いて記録 -->
 <div class="pullind" id="pullInd"><span class="pi">↓</span><span id="pullTxt">引いて記録する</span></div>
 
@@ -887,6 +953,20 @@ const fmtDateJP=iso=>{const d=new Date(iso);return `${d.getFullYear()}.${String(
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400)}
+/* アプリ内confirm（native confirmの置き換え）。Promise<boolean>を返す */
+function uiConfirm({title='確認',msg='',ok='OK',cancel='やめる',danger=true}={}){
+  return new Promise(res=>{
+    const back=$('#confirmBack'),okb=$('#cfOk'),cb=$('#cfCancel');
+    $('#cfTitle').textContent=title;$('#cfMsg').innerHTML=msg;
+    okb.textContent=ok;cb.textContent=cancel;okb.className='c-ok'+(danger?'':' warn');
+    const close=v=>{back.classList.remove('open');okb.onclick=cb.onclick=back.onclick=null;setTimeout(()=>res(v),130)};
+    okb.onclick=()=>close(true);cb.onclick=()=>close(false);back.onclick=e=>{if(e.target===back)close(false)};
+    back.classList.add('open');
+  });
+}
+/* UX状態：二重送信防止・下書き保護 */
+var saving=false,addSheetOpen=false;
+function draftDirty(){return !!(typeof draft!=='undefined'&&draft&&draft.photos&&draft.photos.length)||!!($('#fdrink')&&$('#fdrink').value)||!!($('#fmemo')&&$('#fmemo').value)||!!($('#fcname')&&$('#fcname').value)}
 /* LP echoes: scroll reveal + magnet FAB */
 const _obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');_obs.unobserve(e.target)}}),{threshold:.12,rootMargin:'0px 0px -4% 0px'});
 function observeReveals(){$$('.reveal:not(.in)').forEach(el=>_obs.observe(el))}
@@ -1187,8 +1267,11 @@ function renderHome(){
     </div>
     </div>
   </article>
+  ${revisitHTML()}
   <div class="mq"><span class="in">${MQ}</span></div>
   <div class="quote reveal">飲んだら、忘れてしまう。<br>記したら、人生になる。</div>
+  ${memoryHTML()}
+  ${wishlistHTML()}
   ${monthlyIssueHTML()}
   ${rest.length?`<div class="secthead reveal"><span class="word">Archive</span><span class="lbl">これまでの一杯 — ${rest.length} Entries</span></div>
   <div class="maggrid">${rest.map(v=>{const c=cafeById(v.cafeId)||{name:'—'};return`
@@ -1310,7 +1393,7 @@ function applyTimeTheme(){
 applyTimeTheme();setInterval(applyTimeTheme,10*60*1000);
 
 window.delVisit=async id=>{
-  if(!confirm('この記録を削除しますか？'))return;
+  if(!await uiConfirm({title:'この記録を削除しますか？',msg:'一杯の記録と写真が消えます。<br>元に戻せません。',ok:'削除する',cancel:'やめる',danger:true}))return;
   const target=visits.find(v=>v.id===id);
   await DB.del('visits',id);visits=visits.filter(v=>v.id!==id);
   cloudDeleteVisit(id,target?.photos?.length||1).catch(e=>console.error(e));
@@ -1341,9 +1424,9 @@ window.editVisit=id=>{
     <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}" class="${i<=draft.again?'on':''}">${BEAN}</button>`).join('')}</div></div>
     ${flavorBlock()}
     <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo">${esc(v.memo||'')}</textarea></div>
-    <div class="btnrow"><button class="btn ghost" onclick="closeSheet()">閉じる</button><button class="btn primary" id="saveBtn">保存する</button></div>
+    <div class="btnrow"><button class="btn ghost" onclick="tryCloseSheet()">閉じる</button><button class="btn primary" id="saveBtn">保存する</button></div>
   `);
-  wireFlavor();
+  wireFlavor();addSheetOpen=true;
   // photo upload
   $('#pfile').onchange=async e=>{
     const files=[...e.target.files];if(!files.length)return;
@@ -1365,7 +1448,10 @@ window.editVisit=id=>{
     });
   });
   $('#saveBtn').onclick=async()=>{
+    if(saving)return;
+    if(!draft.photos.length){toast('写真を選んでください');return}
     const target=visits.find(x=>x.id===id);if(!target)return;
+    saving=true;const sb=$('#saveBtn');sb.disabled=true;sb.textContent='保存中…';
     const dateVal=$('#fdate').value||new Date().toISOString().slice(0,10);
     target.photo=draft.photos[0];target.photos=draft.photos;
     target.drink=$('#fdrink').value.trim();
@@ -1373,8 +1459,9 @@ window.editVisit=id=>{
     target.acid=draft.acid||0;target.bitter=draft.bitter||0;target.sweet=draft.sweet||0;target.body=draft.body||0;
     target.memo=$('#fmemo').value.trim();
     target.date=new Date(dateVal+'T12:00:00').toISOString();
-    await DB.put('visits',target);
-    cloudSaveVisit(target).catch(e=>console.error(e));
+    try{await DB.put('visits',target);cloudSaveVisit(target).catch(e=>console.error(e));}
+    catch(e){console.error('edit save',e);toast('保存に失敗しました');sb.disabled=false;sb.textContent='保存する';saving=false;return}
+    saving=false;addSheetOpen=false;
     visits.sort((a,b)=>b.date.localeCompare(a.date));
     closeSheet();renderAll();openVisit(id);toast('更新しました ☕');
   };
@@ -1522,14 +1609,14 @@ window.addWish=async(name,lat,lng,gurl)=>{
   if(wishes.some(w=>w.name===name)){toast('すでに気になるに入っています');return}
   const w={id:uid(),name,lat,lng,gurl:gurl||null,addedAt:new Date().toISOString()};
   wishes.push(w);await DB.put('wishes',w);cloudSaveWish(w).catch(()=>{});
-  closePlaceCard();renderWishes();renderDisc();
+  closePlaceCard();renderWishes();renderDisc();renderHome();
   toast('🔖 気になるに追加しました');
 };
 window.removeWish=async id=>{
   const w=wishes.find(x=>x.id===id);if(!w)return;
   wishes=wishes.filter(x=>x.id!==id);
   await DB.del('wishes',id);cloudDeleteWish(id).catch(()=>{});
-  closePlaceCard();renderWishes();renderDisc();
+  closePlaceCard();renderWishes();renderDisc();renderHome();
   toast('解除しました');
 };
 
@@ -1601,6 +1688,7 @@ async function loadNearby(){
   finally{nearbyBusy=false;chip.classList.remove('loading');chip.textContent=_lbl}
 }
 function renderDisc(){
+  if(!discLayer)return; // 地図未初期化（ホームから呼ばれた等）
   discLayer.clearLayers();
   const visitedNames=new Set(cafes.map(c=>c.name));
   const wishNames=new Set(wishes.map(w=>w.name));
@@ -1619,26 +1707,31 @@ async function searchPlace(){
   try{
     const r=await fetch('https://places.googleapis.com/v1/places:searchText',{
       method:'POST',
-      headers:{'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.displayName,places.location,places.formattedAddress'},
+      headers:{'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.displayName,places.location,places.formattedAddress,places.googleMapsUri'},
       body:JSON.stringify({textQuery:q,languageCode:'ja',regionCode:'JP'})
     });
     if(!r.ok)throw new Error(r.status);
     const data=await r.json();
     if(!data.places?.length){res.style.display='none';toast('見つかりませんでした');return}
-    res.innerHTML=data.places.slice(0,5).map(p=>{
-      const lat=p.location?.latitude,lng=p.location?.longitude;
-      const name=p.displayName?.text||'';
-      const addr=(p.formattedAddress||'').replace('日本、','');
-      return `<div onclick='gotoPlace(${lat},${lng})'>${esc(name)}<span style="opacity:.55;font-size:11px;margin-left:6px">${esc(addr)}</span></div>`;
-    }).join('');
+    searchResults=data.places.slice(0,5).map(p=>({
+      lat:p.location?.latitude,lng:p.location?.longitude,
+      name:p.displayName?.text||'',gurl:p.googleMapsUri||null,
+      addr:(p.formattedAddress||'').replace('日本、','')
+    }));
+    res.innerHTML=searchResults.map((s,i)=>`<div onclick='gotoSearched(${i})'>${esc(s.name)}<span style="opacity:.55;font-size:11px;margin-left:6px">${esc(s.addr)}</span></div>`).join('');
     res.style.display='block';
   }catch(e){res.style.display='none';toast('検索に失敗しました')}
 }
-window.gotoPlace=(lat,lng)=>{
-  $('#mapresults').style.display='none';
-  map.setView([lat,lng],16);
+var searchResults=[];
+window.gotoSearched=i=>{
+  const s=searchResults[i];if(!s)return;
+  $('#mapresults').style.display='none';$('#mapq').blur();
+  map.setView([s.lat,s.lng],16);
+  // 検索した店のカードを出す → 🔖気になる / 記録 / マップ が選べる
+  showPlaceCard({kind:'disc',name:s.name,lat:s.lat,lng:s.lng,gurl:s.gurl});
   if(showNearby)loadNearby();
 };
+window.gotoPlace=(lat,lng)=>{$('#mapresults').style.display='none';map.setView([lat,lng],16);if(showNearby)loadNearby();};
 window.recordHere=(name,lat,lng)=>{
   closePlaceCard();
   openAdd({name,lat,lng});
@@ -1647,10 +1740,19 @@ window.recordHere=(name,lat,lng)=>{
 /* =============== add sheet =============== */
 const TAGS=['自家焙煎','ハンドドリップ','電源あり','Wi-Fi','テラス','スイーツ','深夜営業','古民家','ロースター併設'];
 let draft={};
-function openSheet(html){$('#sheetBody').innerHTML=html;$('#sheet').classList.add('open');$('#sheetBack').classList.add('open');if(_topTag()!=='sheet')pushBack('sheet',_doCloseSheet)}
-function _doCloseSheet(){$('#sheet').classList.remove('open');$('#sheetBack').classList.remove('open')}
+function openSheet(html){addSheetOpen=false;$('#sheetBody').innerHTML=html;$('#sheet').classList.add('open');$('#sheetBack').classList.add('open');if(_topTag()!=='sheet')pushBack('sheet',_doCloseSheet)}
+function _doCloseSheet(){$('#sheet').classList.remove('open');$('#sheetBack').classList.remove('open');addSheetOpen=false}
 function closeSheet(){if(_topTag()==='sheet')history.back();else _doCloseSheet()}
-$('#sheetBack').onclick=closeSheet;
+/* 記録シートで入力途中なら確認してから閉じる（誤クローズ保護） */
+async function tryCloseSheet(){
+  if(addSheetOpen&&draftDirty()){
+    const ok=await uiConfirm({title:'記録をやめますか？',msg:'入力中の内容は保存されません。',ok:'やめる',cancel:'続ける',danger:false});
+    if(!ok)return;
+    addSheetOpen=false;
+  }
+  closeSheet();
+}
+$('#sheetBack').onclick=tryCloseSheet;
 /* グラブバー：ドラッグで閉じる＋タップでも閉じる */
 (function(){
   const sheet=$('#sheet'),gz=$('#grabzone');
@@ -1663,10 +1765,10 @@ $('#sheetBack').onclick=closeSheet;
   },{passive:true});
   gz.addEventListener('touchend',()=>{
     sheet.style.transition='';sheet.style.transform='';
-    if(dy>100)closeSheet();
+    if(dy>100)tryCloseSheet();
     dragging=false;dy=0;
   });
-  gz.addEventListener('click',()=>{if(dy<8)closeSheet()});
+  gz.addEventListener('click',()=>{if(dy<8)tryCloseSheet()});
 })();
 
 $('#fab').onclick=()=>openAdd();
@@ -1701,9 +1803,9 @@ function openAdd(prefill){
     <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo" placeholder="窓際の席。浅煎りが華やかだった。"></textarea></div>
     <button type="button" class="advtoggle" onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden;this.classList.toggle('open')">味覚チャートを追加する <span class="ar">▾</span></button>
     <div class="advbox" hidden>${flavorBlock()}</div>
-    <div class="btnrow sticky"><button class="btn ghost" onclick="closeSheet()">閉じる</button><button class="btn primary" id="saveBtn">記録する</button></div>
+    <div class="btnrow sticky"><button class="btn ghost" onclick="tryCloseSheet()">閉じる</button><button class="btn primary" id="saveBtn">記録する</button></div>
   `);
-  wireSheet();wireFlavor();
+  wireSheet();wireFlavor();addSheetOpen=true;
   if(!cafes.length)$('#fcafe').value='__new';
   if(prefill){
     $('#fcafe').value='__new';
@@ -1823,23 +1925,28 @@ window.setCover=i=>{
   $('#pthumbs').innerHTML=draft.photos.map((p,j)=>`<img src="${p}" class="${j===0?'cover':''}" data-idx="${j}" title="タップで表紙にする">`).join('');
 };
 async function saveEntry(){
+  if(saving)return; // 二重送信防止
   if(!draft.photos.length){toast('写真を選んでください');return}
+  if($('#fcafe').value==='__new'&&!$('#fcname').value.trim()){toast('カフェ名を入力してください');return}
   const earnedBefore=new Set(earnedBadgeIds());
+  saving=true;const sb=$('#saveBtn');if(sb){sb.disabled=true;sb.textContent='保存中…'}
   let cafeId=$('#fcafe').value;
-  if(cafeId==='__new'){
-    const name=$('#fcname').value.trim();
-    if(!name){toast('カフェ名を入力してください');return}
-    const c={id:uid(),name,tags:draft.tags,lat:draft.lat,lng:draft.lng};
-    await DB.put('cafes',c);cafes.push(c);cafeId=c.id;
-    cloudSaveCafe(c).catch(e=>console.error(e));
-  }
-  const dateVal=$('#fdate').value||new Date().toISOString().slice(0,10);
-  const v={id:uid(),cafeId,photo:draft.photos[0],photos:draft.photos,drink:$('#fdrink').value.trim(),
-    taste:draft.taste||3,space:draft.space||3,again:draft.again||3,
-    acid:draft.acid||0,bitter:draft.bitter||0,sweet:draft.sweet||0,body:draft.body||0,
-    memo:$('#fmemo').value.trim(),date:new Date(dateVal+'T12:00:00').toISOString()};
-  await DB.put('visits',v);visits.unshift(v);
-  cloudSaveVisit(v).catch(e=>console.error(e));
+  try{
+    if(cafeId==='__new'){
+      const name=$('#fcname').value.trim();
+      const c={id:uid(),name,tags:draft.tags,lat:draft.lat,lng:draft.lng};
+      await DB.put('cafes',c);cafes.push(c);cafeId=c.id;
+      cloudSaveCafe(c).catch(e=>console.error(e));
+    }
+    const dateVal=$('#fdate').value||new Date().toISOString().slice(0,10);
+    var v={id:uid(),cafeId,photo:draft.photos[0],photos:draft.photos,drink:$('#fdrink').value.trim(),
+      taste:draft.taste||3,space:draft.space||3,again:draft.again||3,
+      acid:draft.acid||0,bitter:draft.bitter||0,sweet:draft.sweet||0,body:draft.body||0,
+      memo:$('#fmemo').value.trim(),date:new Date(dateVal+'T12:00:00').toISOString()};
+    await DB.put('visits',v);visits.unshift(v);
+    cloudSaveVisit(v).catch(e=>console.error(e));
+  }catch(e){console.error('save',e);toast('保存に失敗しました');if(sb){sb.disabled=false;sb.textContent='記録する'}saving=false;return}
+  saving=false;addSheetOpen=false;
   closeSheet();renderAll();
   const rc=cafeById(cafeId)||{name:''};
   await playRitual(v,rc);
@@ -1890,6 +1997,58 @@ function badgeStats(){
     fives:visits.filter(v=>v.again>=5).length,
     thisMonth:visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).length,
   };
+}
+/* On This Day — 思い出の一杯（日替わりで過去の記録を1つ） */
+function memoryHTML(){
+  if(visits.length<2)return '';
+  const now=new Date(),today=now.getDate(),tmonth=now.getMonth();
+  const old=visits.filter(v=>(now-new Date(v.date))/864e5>=25); // 25日以上前
+  if(!old.length)return '';
+  let pick=null,label='';
+  pick=old.find(v=>{const d=new Date(v.date);return d.getDate()===today&&d.getMonth()===tmonth});
+  if(pick){const y=now.getFullYear()-new Date(pick.date).getFullYear();label=y>=1?`${y}年前の今日`:'去年の今日'}
+  if(!pick){pick=old.find(v=>new Date(v.date).getDate()===today);if(pick)label='思い出の一杯'}
+  if(!pick){const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/864e5);pick=old[doy%old.length];label='思い出の一杯'}
+  const c=cafeById(pick.cafeId)||{name:'—'};
+  return `<div class="secthead reveal"><span class="word">Memory</span><span class="lbl">${label} — ${fmtDateJP(pick.date)}</span></div>
+    <article class="memory reveal" onclick="openVisit('${pick.id}')">
+      <img src="${pick.photo}" loading="lazy" alt="">
+      <div class="mem-cap"><div class="mem-l">On This Day</div><h3>${esc(c.name)}</h3>${pick.drink?`<div class="mem-dr">${esc(pick.drink)}</div>`:''}<div class="mem-go">あの日をひらく →</div></div>
+    </article>`;
+}
+/* 再訪リマインド — お気に入りでしばらく行ってない店 */
+function revisitHTML(){
+  if(cafes.length<2||visits.length<3)return '';
+  const now=new Date();let best=null;
+  cafes.forEach(c=>{
+    const vs=visits.filter(v=>v.cafeId===c.id);if(!vs.length)return;
+    const last=vs.reduce((m,v)=>v.date>m?v.date:m,vs[0].date);
+    const days=(now-new Date(last))/864e5;
+    const score=Math.max(...vs.map(v=>v.again||0));
+    if(days>=45&&score>=4&&(!best||days>best.days))best={c,days};
+  });
+  if(!best)return '';
+  return `<div class="revisit reveal" onclick="openCafe('${best.c.id}')">
+    <div class="rv-ic">☕</div>
+    <div><b>そろそろ、また「${esc(best.c.name)}」へ</b><span>最後の訪問から${Math.floor(best.days)}日。お気に入りの一軒です。</span></div>
+    <i>›</i></div>`;
+}
+/* Wishlist — 行ってみたい（気になる）をホームに surfaced */
+function wishlistHTML(){
+  if(!wishes.length)return '';
+  const visitedNames=new Set(cafes.map(c=>c.name));
+  const live=wishes.filter(w=>!visitedNames.has(w.name)); // 既に訪問済みは除外
+  if(!live.length)return '';
+  return `<div class="secthead reveal"><span class="word">Wishlist</span><span class="lbl">行ってみたい — ${live.length}軒</span></div>
+    <div class="wishrow">${live.map(w=>{const nm=esc(w.name).replace(/'/g,'&#39;');return`
+      <div class="wishcard reveal">
+        <div class="wc-top"><span class="wc-pin">🔖</span><button class="wc-x" title="解除" onclick="removeWish('${w.id}')">✕</button></div>
+        <h4>${esc(w.name)}</h4>
+        <div class="wc-acts">
+          <a onclick="recordHere('${nm}',${w.lat},${w.lng})">記録</a>
+          <a class="ghost" href="${gmapsUrl(w.name,w.gurl)}" target="_blank" rel="noopener">地図</a>
+        </div>
+      </div>`}).join('')}</div>`;
 }
 function monthlyIssueHTML(){
   const now=new Date();
@@ -2148,7 +2307,7 @@ load().then(()=>{renderAll()});
 /* =============== PWA =============== */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 /* =============== version & debug =============== */
-const APP_VER='0.9.10';
+const APP_VER='0.9.12';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
