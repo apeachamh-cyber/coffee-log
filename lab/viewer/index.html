@@ -26,6 +26,15 @@ body{font-family:var(--sans);color:var(--espresso);background:
 .pdca{display:flex;gap:6px;margin-left:6px}
 .pdca .st{font-size:11px;letter-spacing:.12em;color:rgba(245,239,228,.4);padding:6px 12px;border-radius:99px;border:1px solid rgba(224,188,133,.16);transition:all .3s}
 .pdca .st.on{background:var(--gold);color:#2a1f16;border-color:var(--gold);font-weight:700}
+
+/* cycle selector */
+.cycles{display:flex;align-items:center;gap:5px;margin-left:10px}
+.cycles-label{font-size:10px;letter-spacing:.12em;color:rgba(224,188,133,.5);white-space:nowrap;text-transform:uppercase}
+.cyc{font-size:11px;padding:5px 10px;border-radius:99px;border:1px solid rgba(224,188,133,.18);color:rgba(245,239,228,.5);cursor:pointer;transition:all .22s;white-space:nowrap}
+.cyc:hover{border-color:rgba(224,188,133,.4);color:rgba(245,239,228,.8)}
+.cyc.on{background:rgba(224,188,133,.18);border-color:var(--caramel);color:var(--gold);font-weight:700}
+.cyc.latest::after{content:'●';font-size:7px;color:#8fbf6f;vertical-align:super;margin-left:2px}
+
 .tabs{display:flex;gap:8px;margin-left:auto}
 .ptab{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.05);border:1px solid rgba(224,188,133,.18);color:rgba(245,239,228,.7);
   border-radius:99px;padding:6px 13px 6px 8px;font-size:12px;cursor:pointer;transition:all .25s}
@@ -108,7 +117,7 @@ body{font-family:var(--sans);color:var(--espresso);background:
 .drawer h3{font-family:var(--serif);font-size:22px;color:var(--espresso)}
 .drawer pre{white-space:pre-wrap;font-family:var(--sans);font-size:13px;line-height:1.9;color:var(--roast);margin-top:14px}
 .drawer .x{position:absolute;top:16px;right:18px;border:none;background:none;font-size:20px;cursor:pointer;color:var(--roast)}
-@media(max-width:880px){.stage{flex-direction:column;gap:18px;padding:14px}.phone{width:200px}.crew{max-width:none}}
+@media(max-width:880px){.stage{flex-direction:column;gap:18px;padding:14px}.phone{width:200px}.crew{max-width:none}.cycles{display:none}}
 </style>
 </head>
 <body>
@@ -120,6 +129,10 @@ body{font-family:var(--sans);color:var(--espresso);background:
       <span class="st" data-p="do">Do 疑似利用</span>
       <span class="st" data-p="check">Check 検証</span>
       <span class="st" data-p="act">Act 改善</span>
+    </div>
+    <div class="cycles" id="cycleBar">
+      <span class="cycles-label">CYCLE</span>
+      <div id="cycleChips"></div>
     </div>
     <div class="tabs" id="tabs"></div>
   </div>
@@ -158,28 +171,93 @@ body{font-family:var(--sans);color:var(--espresso);background:
 <script>
 const CHARS={strategy:{emoji:'📋',name:'戦略長'},reviewer:{emoji:'🔍',name:'レビ子'},tester:{emoji:'☕',name:'テスター'}};
 let session=null,timeline=[],idx=0,speed=1,playing=true,loop=true,typing=null,sceneTimer=null;
+let knownLastUpdated=null, currentCycleIdx=null; // null = 最新
 const $=s=>document.getElementById(s);
 
-fetch('./session.json').then(r=>r.json()).then(s=>{session=s;init()}).catch(e=>{$('loading').textContent='session.json が読み込めません。先に node theater.js を実行してください。'});
+// ── session.json 読み込み（新旧フォーマット両対応）──
+function extractCycles(raw) {
+  // 新フォーマット: { cycles:[...], lastUpdated }
+  if (raw.cycles && Array.isArray(raw.cycles)) return { cycles: raw.cycles, lastUpdated: raw.lastUpdated || null };
+  // 旧フォーマット: { personas, meeting, generatedAt }
+  return { cycles: [{ cycleNum: 1, generatedAt: raw.generatedAt, app: raw.app, personas: raw.personas, meeting: raw.meeting }], lastUpdated: raw.generatedAt || null };
+}
 
+function loadSession() {
+  return fetch('./session.json?t=' + Date.now())
+    .then(r => r.json())
+    .then(raw => {
+      const { cycles, lastUpdated } = extractCycles(raw);
+      return { cycles, lastUpdated };
+    });
+}
+
+// ── 初回読み込み ──
+loadSession().then(({ cycles, lastUpdated }) => {
+  knownLastUpdated = lastUpdated;
+  initWithCycles(cycles, cycles.length - 1); // 最新サイクル
+}).catch(() => {
+  $('loading').textContent = 'session.json が読み込めません。先に node theater.js を実行してください。';
+});
+
+// ── サイクル選択タブを描画 ──
+function renderCycleChips(cycles, selectedIdx) {
+  const chips = $('cycleChips');
+  chips.innerHTML = cycles.map((c, i) => {
+    const isLatest = i === cycles.length - 1;
+    const num = c.cycleNum || (i + 1);
+    return `<span class="cyc${isLatest ? ' latest' : ''}${i === selectedIdx ? ' on' : ''}" data-ci="${i}">#${num}</span>`;
+  }).join('');
+  chips.querySelectorAll('.cyc').forEach(el => el.onclick = () => switchCycle(+el.dataset.ci));
+}
+
+function switchCycle(ci) {
+  loadSession().then(({ cycles }) => {
+    currentCycleIdx = ci;
+    initWithCycles(cycles, ci);
+  });
+}
+
+// ── サイクルを選んでシアターを（再）初期化 ──
+function initWithCycles(cycles, selectedIdx) {
+  const cycle = cycles[selectedIdx];
+  session = { personas: cycle.personas, meeting: cycle.meeting, app: cycle.app };
+  currentCycleIdx = selectedIdx;
+  renderCycleChips(cycles, selectedIdx);
+  init();
+}
+
+// ── 60秒ポーリング：lastUpdated が変わったら最新サイクルを取得 ──
+setInterval(() => {
+  loadSession().then(({ cycles, lastUpdated }) => {
+    if (lastUpdated && lastUpdated !== knownLastUpdated) {
+      knownLastUpdated = lastUpdated;
+      const num = cycles[cycles.length - 1].cycleNum || cycles.length;
+      toast(`🔄 サイクル #${num} 到着！クリックで最新へ`, true);
+      renderCycleChips(cycles, currentCycleIdx);
+      // 最新サイクルを見ているときは自動更新
+      if (currentCycleIdx === null || currentCycleIdx === cycles.length - 2) {
+        initWithCycles(cycles, cycles.length - 1);
+      }
+    }
+  }).catch(() => {});
+}, 60000);
+
+// ─────────────────────────────────────────
 function buildTimeline(){
   timeline=[];
   session.personas.forEach((p,pi)=>{
     p.scenes.forEach(sc=>timeline.push({kind:'scene',pi,p,sc}));
   });
-  // 全体ミーティング
   session.meeting.forEach((m,i)=>timeline.push({kind:'meeting',m,first:i===0}));
 }
 function init(){
   $('loading').style.display='none';
+  idx=0;playing=true;
   buildTimeline();
-  // persona tabs
   $('tabs').innerHTML=session.personas.map((p,i)=>`<div class="ptab" data-pi="${i}"><span class="e">${p.emoji||'🤖'}</span>${p.name||p.key}</div>`).join('');
   $('tabs').querySelectorAll('.ptab').forEach(t=>t.onclick=()=>jumpToPersona(+t.dataset.pi));
-  // roster
   $('roster').innerHTML=['strategy','tester','reviewer'].map(k=>`<div class="char" data-role="${k}"><div class="av" data-emoji="${k}"><span class="eye l"></span><span class="eye r"></span><span class="face"></span></div><div class="nm">${CHARS[k].name}</div></div>`).join('');
-  // controls
-  $('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ 一時停止':'▶ 再生';if(playing)next()};
+  $('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ 一時停止':'▶ 再生';if(playing)render()};
   $('loop').onclick=()=>{loop=!loop;$('loop').textContent='🔁 ループ: '+(loop?'ON':'OFF')};
   document.querySelectorAll('.spd b').forEach(b=>b.onclick=()=>{speed=+b.dataset.s;document.querySelectorAll('.spd b').forEach(x=>x.classList.toggle('on',x===b))});
   $('reportBtn').onclick=openReport;$('drawerX').onclick=()=>$('drawer').classList.remove('open');
@@ -199,7 +277,6 @@ function render(){
 function setActive(role){
   $('crew').classList.toggle('meeting',false);
   document.querySelectorAll('.char').forEach(c=>c.classList.toggle('on',c.dataset.role===role));
-  // テスターのアバター絵文字を現在ペルソナに
   const tEmoji=(timeline[idx]&&timeline[idx].p&&timeline[idx].p.emoji)||'☕';
   const av=document.querySelector('.char[data-role="tester"] .face');
   if(av){av.textContent=role==='tester'?tEmoji:'';}
@@ -208,30 +285,24 @@ function setActive(role){
 
 function playScene(t){
   const sc=t.sc;_lastPi=t.pi;
-  // tabs
   document.querySelectorAll('.ptab').forEach(x=>x.classList.toggle('on',+x.dataset.pi===t.pi));
-  // pdca
   document.querySelectorAll('.pdca .st').forEach(s=>s.classList.toggle('on',s.dataset.p===sc.phase));
-  // character
   setActive(sc.actor);
   $('who').innerHTML = sc.actor==='tester'
     ? `${(sc.avatar&&sc.avatar.emoji)||t.p.emoji} ${(sc.avatar&&sc.avatar.name)||t.p.name}（疑似ユーザー）`
     : `${CHARS[sc.actor].emoji} ${CHARS[sc.actor].name}`;
   $('bubble').className='bubble'+(sc.tone==='bug'?' bug':sc.tone==='ok'?' ok':'');
-  // phone screenshot
   if(sc.shotIdx>=0 && t.p.shots[sc.shotIdx]){
     showShot(t.p, sc.shotIdx);
     $('nowscreen').textContent=t.p.shots[sc.shotIdx].label;
     touchPhone();
-  } else if(_lastShot){ /* keep last screen for plan/check/act */ $('nowscreen').textContent='AIが考え中…'; }
-  // findings toast
+  } else if(_lastShot){ $('nowscreen').textContent='AIが考え中…'; }
   if(sc.badge){toast((sc.badge==='high'?'🔴':'🟠')+' 発見: '+sc.say.replace(/^【.*?】/,''))}
   typeText(sc.say);
 }
 
 function showShot(p,i){
   const sc=$('screen');
-  // remove old imgs except controls
   [...sc.querySelectorAll('img')].forEach(im=>im.remove());
   const img=document.createElement('img');
   img.src='data:image/png;base64,'+p.shots[i].b64;
@@ -241,7 +312,7 @@ function showShot(p,i){
 }
 function touchPhone(){
   const f=$('finger'),r=$('ripple');
-  const x=40+Math.random()*60, y=45+Math.random()*30; // %
+  const x=40+Math.random()*60, y=45+Math.random()*30;
   r.style.left=x+'%';r.style.top=y+'%';f.style.left=x+'%';f.style.top=y+'%';
   f.classList.add('show');r.classList.remove('go');void r.offsetWidth;r.classList.add('go');
   setTimeout(()=>f.classList.remove('show'),700);
@@ -275,7 +346,17 @@ function typeText(text){
 function next(){if(!playing)return;idx++;if(idx>=timeline.length){if(loop){idx=0}else{playing=false;$('play').textContent='▶ 再生';return}}render()}
 function jumpToPersona(pi){const i=timeline.findIndex(t=>t.kind==='scene'&&t.pi===pi);if(i>=0){idx=i;playing=true;$('play').textContent='⏸ 一時停止';render()}}
 
-function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200)}
+function toast(msg, clickable=false){
+  const t=$('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('show'),clickable?6000:3200);
+  if(clickable){
+    t.style.cursor='pointer';
+    t.onclick=()=>{t.classList.remove('show');loadSession().then(({cycles})=>initWithCycles(cycles,cycles.length-1))};
+  } else {
+    t.style.cursor='default';t.onclick=null;
+  }
+}
 function openReport(){
   const p=session.personas[_lastPi];if(!p)return;
   $('drawerT').textContent=`${p.emoji} ${p.name} のレポート`;
@@ -289,7 +370,6 @@ function findStat(){
   const h=f.filter(x=>x.sev==='high').length,m=f.filter(x=>x.sev==='med').length;
   $('findStat').innerHTML=`<span class="dot ${h?'h':'ok'}"></span>高 ${h}　<span class="dot ${m?'m':'ok'}"></span>中 ${m}`;
 }
-const _origInit=init;
 </script>
 </body>
 </html>

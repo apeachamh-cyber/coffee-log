@@ -1,10 +1,8 @@
-// review.js — AIユーザー目線レビュー（[3]・Haiku中心）
-// auditの成果物（スクショ＋検出問題）を読み、Drippinを初めて使うユーザーの気持ちでレポートを書く
+// review.js — AIユーザー目線レビュー（Haiku中心）
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from 'dotenv';
 import { existsSync } from 'node:fs';
 
-// APIキーは x-company の .env から拝借（コードには書かない）
 const ENV_PATH = 'C:\\Users\\百々廣久\\Desktop\\x-company\\config\\.env';
 if (existsSync(ENV_PATH)) config({ path: ENV_PATH, override: true });
 
