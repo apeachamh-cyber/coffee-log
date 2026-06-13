@@ -525,6 +525,117 @@ footer{
   opacity:0;pointer-events:none;transition:all .4s cubic-bezier(.2,.7,.2,1);box-shadow:var(--shadow);
 }
 .toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ============================================================
+   THE RITUAL — 記録完了の儀式（体験の核）
+   ============================================================ */
+.ritual{
+  position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(120% 90% at 50% 18%,#3a2b1e 0%,#241a12 48%,#0c0907 100%);
+  opacity:0;pointer-events:none;transition:opacity .55s ease;
+}
+.ritual.show{opacity:1;pointer-events:auto}
+.r-stage{text-align:center;transform:translateY(8px) scale(.98);transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.ritual.show .r-stage{transform:none}
+.r-pour{width:118px;height:auto;display:block;margin:0 auto;overflow:visible}
+.r-dripper{fill:none;stroke:url(#rgold);stroke-width:5.5;stroke-linejoin:round}
+.r-bar{stroke:#D9C5A6;stroke-width:3;stroke-linecap:round}
+.r-cupbody{fill:none;stroke:rgba(217,197,166,.7);stroke-width:3}
+.r-fill{fill:url(#rcoffee);transform:translateY(46px)}
+.ritual.show .r-fill{animation:rrise 1.4s .45s cubic-bezier(.3,.7,.2,1) forwards}
+@keyframes rrise{to{transform:translateY(0)}}
+.r-drop{fill:#9a6437;opacity:0}
+.ritual.show .r-drop{animation:rdrop 1.05s linear .35s 3}
+.ritual.show .r-drop.d2{animation-delay:.85s}
+@keyframes rdrop{0%{opacity:0;transform:translateY(0)}12%{opacity:1}80%{opacity:1;transform:translateY(34px)}81%{opacity:0;transform:translateY(34px)}100%{opacity:0;transform:translateY(34px)}}
+.r-steam{stroke:rgba(217,197,166,.5);stroke-width:2.4;stroke-linecap:round;fill:none;opacity:0}
+.ritual.show .r-steam{animation:rsteam 2.4s ease-in-out 1.6s infinite}
+@keyframes rsteam{0%{opacity:0;transform:translateY(4px)}40%{opacity:.7}100%{opacity:0;transform:translateY(-14px)}}
+.r-meta{margin-top:26px;opacity:0;transform:translateY(14px)}
+.ritual.show .r-meta{animation:rmeta .8s 1.9s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes rmeta{to{opacity:1;transform:none}}
+.r-pageno{font-family:var(--serif);font-style:italic;font-size:13px;letter-spacing:.42em;color:#C49A6A;text-transform:uppercase}
+.r-pageno b{font-style:normal;font-weight:600;font-size:15px}
+.r-cafe{font-family:var(--serif-jp);font-weight:600;font-size:clamp(24px,6vw,32px);color:#FDFBF6;letter-spacing:.06em;margin:10px 0 4px;line-height:1.4;padding:0 24px}
+.r-beans svg path:not(.ck){fill:#C49A6A}
+.r-beans .off svg path:not(.ck){fill:#5a4632}
+.r-tag{font-family:var(--serif-jp);font-size:13px;color:rgba(217,197,166,.85);letter-spacing:.16em;margin-top:18px;line-height:2}
+.r-tag::before{content:"";display:block;width:30px;height:1px;background:rgba(196,154,106,.6);margin:0 auto 18px}
+@media(prefers-reduced-motion:reduce){
+  .ritual.show .r-fill,.ritual.show .r-drop,.ritual.show .r-steam{animation:none}
+  .ritual.show .r-meta{animation:rmeta .4s 0s forwards}
+  .r-fill{transform:none}
+}
+
+/* ============================================================
+   STAT BAND — 雑誌が育つ実感
+   ============================================================ */
+.statband{
+  display:flex;justify-content:center;gap:0;margin:26px auto 0;max-width:460px;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.statband .st{flex:1;text-align:center;padding:16px 4px;position:relative}
+.statband .st+.st::before{content:"";position:absolute;left:0;top:22%;height:56%;width:1px;background:var(--line-soft)}
+.statband .st b{display:block;font-family:var(--serif);font-weight:500;font-size:clamp(26px,6vw,34px);color:var(--caramel-deep);line-height:1}
+.statband .st span{display:block;font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--roast);opacity:.65;margin-top:6px}
+
+/* journey passport overlay (map) */
+.passport{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:max(22px,env(safe-area-inset-bottom));
+  z-index:940;display:none;align-items:center;gap:14px;
+  background:var(--glass-strong);border:1px solid var(--glass-line);border-radius:99px;
+  backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);
+  box-shadow:var(--depth);padding:9px 20px;
+}
+body.map-mode .passport{display:flex}
+body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;pointer-events:none;transition:opacity .3s}
+.passport .pp{text-align:center}
+.passport .pp b{font-family:var(--serif);font-weight:500;font-size:17px;color:var(--caramel-deep);line-height:1}
+.passport .pp span{display:block;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--roast);opacity:.65;margin-top:2px}
+.passport .pp+.pp{border-left:1px solid var(--line-soft);padding-left:14px}
+
+/* ============================================================
+   WAVE 2 — hero develop / monthly issue / badges
+   ============================================================ */
+/* hero develops like a polaroid when you just recorded */
+@keyframes develop{
+  0%{filter:sepia(.55) contrast(.92) brightness(1.12) blur(9px);opacity:.25;transform:scale(1.015)}
+  100%{filter:none;opacity:1;transform:none}
+}
+.hero.develop .photo{animation:develop 1.5s cubic-bezier(.2,.7,.2,1) both}
+.hero.develop .caption{animation:riseIn 1s .5s cubic-bezier(.2,.7,.2,1) both}
+
+/* This Month's Issue */
+.issue-cover{
+  display:flex;align-items:stretch;gap:0;margin-top:8px;border-radius:22px;overflow:hidden;
+  background:var(--glass);border:1px solid var(--glass-line);box-shadow:var(--shadow-soft);
+  backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);
+}
+.ic-strip{display:flex;flex:1;min-width:0}
+.ic-strip img{flex:1;min-width:0;height:108px;object-fit:cover;display:block;border-right:1px solid var(--milk)}
+.ic-meta{flex:none;width:108px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--espresso);color:var(--paper)}
+.ic-n{font-family:var(--serif);font-weight:500;font-size:42px;line-height:1;color:#E0BC85}
+.ic-l{font-size:9px;letter-spacing:.22em;text-transform:uppercase;opacity:.7;margin-top:6px;text-align:center;padding:0 8px}
+
+/* Badges — 記章 */
+.badges{display:flex;gap:14px;overflow-x:auto;padding:6px 2px 14px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.badges::-webkit-scrollbar{display:none}
+.badge{
+  flex:none;width:104px;scroll-snap-align:start;text-align:center;
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:16px 10px 14px;
+  box-shadow:var(--shadow-soft);opacity:.42;filter:grayscale(.7);transition:transform .4s cubic-bezier(.2,.7,.2,1),opacity .4s,filter .4s;
+}
+.badge.on{opacity:1;filter:none}
+.badge.on:hover{transform:translateY(-4px)}
+.bg-ic{
+  width:50px;height:50px;margin:0 auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;
+  background:radial-gradient(circle at 32% 28%,#fff7ea,#e9d6b6);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 4px 12px rgba(140,94,54,.25);
+}
+.badge.on .bg-ic{background:radial-gradient(circle at 32% 28%,#F0D49A,#B07D4F);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 6px 16px rgba(140,94,54,.45)}
+.bg-n{font-family:var(--serif);font-style:italic;font-weight:500;font-size:14px;color:var(--espresso);line-height:1.2}
+.bg-jp{font-size:10px;color:var(--roast);opacity:.7;margin-top:3px;letter-spacing:.08em}
+@keyframes badgePop{0%{transform:scale(.4) rotate(-12deg);opacity:0}60%{transform:scale(1.15) rotate(6deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+.badge.justEarned .bg-ic{animation:badgePop .7s cubic-bezier(.2,.8,.2,1) both}
 </style>
 </head>
 <body>
@@ -599,6 +710,40 @@ footer{
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- THE RITUAL — body直下（fixedオーバーレイの原則） -->
+<div class="ritual" id="ritual" aria-hidden="true">
+  <div class="r-stage">
+    <svg class="r-pour" viewBox="0 0 120 165" aria-hidden="true">
+      <defs>
+        <linearGradient id="rgold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E0BC85"/><stop offset="1" stop-color="#9a6437"/></linearGradient>
+        <linearGradient id="rcoffee" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6e4527"/><stop offset="1" stop-color="#2e1d10"/></linearGradient>
+      </defs>
+      <path class="r-dripper" d="M28 24 L92 24 L66 66 L54 66 Z"/>
+      <line class="r-bar" x1="40" y1="33" x2="80" y2="33"/>
+      <circle class="r-drop d1" cx="60" cy="72" r="3.1"/>
+      <circle class="r-drop d2" cx="60" cy="72" r="3.1"/>
+      <path class="r-cupbody" d="M37 104 H83 L78.5 143 a6 6 0 0 1 -6 5.4 H49.5 a6 6 0 0 1 -6 -5.4 Z"/>
+      <clipPath id="rcup"><path d="M37 104 H83 L78.5 143 a6 6 0 0 1 -6 5.4 H49.5 a6 6 0 0 1 -6 -5.4 Z"/></clipPath>
+      <rect class="r-fill" clip-path="url(#rcup)" x="37" y="116" width="46" height="34"/>
+      <path class="r-steam" d="M54 100 C50 94 58 90 54 84"/>
+      <path class="r-steam" d="M66 100 C62 94 70 90 66 84" style="animation-delay:2.1s"/>
+    </svg>
+    <div class="r-meta">
+      <div class="r-pageno">Page <b>1</b></div>
+      <div class="r-cafe">—</div>
+      <div class="r-beans"></div>
+      <div class="r-tag">あなたの雑誌に、新しい1ページ。</div>
+    </div>
+  </div>
+</div>
+
+<!-- JOURNEY PASSPORT — 旅の地図のステータス -->
+<div class="passport" id="passport">
+  <div class="pp"><b id="ppCafes">0</b><span>Cafés</span></div>
+  <div class="pp"><b id="ppCups">0</b><span>Cups</span></div>
+  <div class="pp"><b id="ppSince">—</b><span>Since</span></div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -786,9 +931,15 @@ function renderHome(){
   const[latest,...rest]=visits;
   const lc=cafeById(latest.cafeId)||{name:'—'};
   const MQ='Drip by drip, pin by pin — A Personal Café Journal — '.repeat(4);
+  const now=new Date(),thisMonth=visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).length;
   el.innerHTML=`
+  <div class="statband">
+    <div class="st"><b data-count="${visits.length}">0</b><span>Cups</span></div>
+    <div class="st"><b data-count="${cafes.length}">0</b><span>Cafés</span></div>
+    <div class="st"><b data-count="${thisMonth}">0</b><span>This Month</span></div>
+  </div>
   <div class="kicker">Latest Entry</div>
-  <article class="hero" onclick="openVisit('${latest.id}')">
+  <article class="hero${justRecorded?' develop':''}" onclick="openVisit('${latest.id}')">
     <div class="tilt">
     <img class="photo" src="${latest.photo}" alt="">
     <div class="caption">
@@ -806,6 +957,7 @@ function renderHome(){
   </article>
   <div class="mq"><span class="in">${MQ}</span></div>
   <div class="quote reveal">飲んだら、忘れてしまう。<br>記したら、人生になる。</div>
+  ${monthlyIssueHTML()}
   ${rest.length?`<div class="secthead reveal"><span class="word">Archive</span><span class="lbl">これまでの一杯 — ${rest.length} Entries</span></div>
   <div class="maggrid">${rest.map(v=>{const c=cafeById(v.cafeId)||{name:'—'};return`
     <article class="entry reveal" onclick="openVisit('${v.id}')">
@@ -815,8 +967,11 @@ function renderHome(){
         <h3>${esc(c.name)}</h3>
         <div class="dr">${esc(v.drink)||''}</div>
       </div>
-    </article>`}).join('')}</div>`:''}`;
+    </article>`}).join('')}</div>`:''}
+  ${badgesHTML()}`;
   observeReveals();
+  countUp(el);
+  if(justRecorded)justRecorded=false;
 }
 
 /* ---- cafés ---- */
@@ -1037,8 +1192,18 @@ function initMap(){
   }
   visitedLayer.clearLayers();
   const pts=[];
-  cafes.filter(c=>c.lat).forEach(c=>{
+  // 訪問順（時系列）に並べて「旅の軌跡」を描く
+  const journey=cafes.filter(c=>c.lat).map(c=>{
     const vs=visits.filter(v=>v.cafeId===c.id);
+    const first=vs.length?vs.reduce((m,v)=>v.date<m?v.date:m,vs[0].date):c.id;
+    return{c,vs,first};
+  }).sort((a,b)=>String(a.first).localeCompare(String(b.first)));
+  if(journey.length>1){
+    L.polyline(journey.map(j=>[j.c.lat,j.c.lng]),
+      {color:'#9a6437',weight:2.4,opacity:.6,dashArray:'2 9',lineCap:'round',interactive:false}
+    ).addTo(visitedLayer);
+  }
+  journey.forEach(({c,vs})=>{
     const photo=vs[0]?.photo;
     const icon=photo
       ?L.divIcon({className:'photo-pin',html:`<div class="frame"><img src="${photo}"></div>`,iconSize:[52,52],iconAnchor:[26,59]})
@@ -1047,8 +1212,19 @@ function initMap(){
     pts.push([c.lat,c.lng]);
   });
   renderWishes();
+  updatePassport();
   if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:15});
   setTimeout(()=>map.invalidateSize(),120);
+}
+/* 旅のパスポート（地図下部のステータス） */
+function updatePassport(){
+  const pc=cafes.filter(c=>c.lat).length;
+  $('#ppCafes').textContent=pc;
+  $('#ppCups').textContent=visits.length;
+  if(visits.length){
+    const earliest=visits.reduce((m,v)=>v.date<m?v.date:m,visits[0].date);
+    $('#ppSince').textContent=new Date(earliest).toLocaleDateString('en-US',{month:'short',year:'numeric'});
+  }else $('#ppSince').textContent='—';
 }
 function renderWishes(){
   if(!wishLayer)return;
@@ -1422,7 +1598,84 @@ async function saveEntry(){
     memo:$('#fmemo').value.trim(),date:new Date(dateVal+'T12:00:00').toISOString()};
   await DB.put('visits',v);visits.unshift(v);
   cloudSaveVisit(v).catch(e=>console.error(e));
-  closeSheet();renderAll();show('home');toast('記録しました ☕');
+  closeSheet();renderAll();
+  const rc=cafeById(cafeId)||{name:''};
+  await playRitual(v,rc);
+  justRecorded=true;
+  renderHome();
+  show('home');
+}
+
+/* =============== THE RITUAL — 記録の儀式 =============== */
+var justRecorded=false; // 記録直後のホーム復帰でheroを現像させるフラグ
+const MILESTONES={1:'はじめの一杯。',3:'3杯目。習慣のはじまり。',5:'5杯。旅がはじまった。',10:'10杯。立派な一冊に。',25:'25杯目。コレクター。',50:'50杯。これはもう作品。',100:'100杯。伝説の一冊。'};
+function playRitual(v,c){
+  return new Promise(res=>{
+    const r=$('#ritual');if(!r){res();return}
+    const total=visits.length;
+    r.querySelector('.r-pageno b').textContent=total;
+    r.querySelector('.r-cafe').textContent=c.name||'新しい一杯';
+    r.querySelector('.r-beans').innerHTML=beanRow(v.again||3);
+    r.querySelector('.r-tag').textContent=MILESTONES[total]||'あなたの雑誌に、新しい1ページ。';
+    r.classList.add('show');
+    if(navigator.vibrate)navigator.vibrate([12,50,16]);
+    const done=()=>{r.classList.remove('show');setTimeout(res,560)};
+    r._t&&clearTimeout(r._t);
+    r._t=setTimeout(done,2900);
+    // タップでスキップ
+    r.onclick=()=>{clearTimeout(r._t);done()};
+  });
+}
+
+/* =============== badges / monthly issue =============== */
+const BADGES=[
+  {id:'first',n:'First Drip',jp:'はじめの一杯',icon:'☕',test:s=>s.cups>=1},
+  {id:'three',n:'Habit',jp:'習慣',icon:'🌱',test:s=>s.cups>=3},
+  {id:'five',n:'Regular',jp:'常連',icon:'🎟',test:s=>s.cups>=5},
+  {id:'ten',n:'Collector',jp:'蒐集家',icon:'📚',test:s=>s.cups>=10},
+  {id:'explorer',n:'Explorer',jp:'開拓者',icon:'🧭',test:s=>s.cafes>=5},
+  {id:'carto',n:'Cartographer',jp:'地図職人',icon:'🗺',test:s=>s.cafes>=10},
+  {id:'taster',n:'Connoisseur',jp:'目利き',icon:'🏅',test:s=>s.fives>=3},
+  {id:'devoted',n:'Devoted',jp:'皆勤',icon:'🔥',test:s=>s.thisMonth>=4},
+];
+function badgeStats(){
+  const now=new Date();
+  return{
+    cups:visits.length,
+    cafes:cafes.length,
+    fives:visits.filter(v=>v.again>=5).length,
+    thisMonth:visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).length,
+  };
+}
+function monthlyIssueHTML(){
+  const now=new Date();
+  const mv=visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()});
+  if(!mv.length)return '';
+  const monthName=now.toLocaleDateString('en-US',{month:'long'});
+  const thumbs=mv.slice(0,5).map(v=>`<img src="${v.photo}" loading="lazy" alt="">`).join('');
+  return `<div class="secthead reveal"><span class="word">Issue</span><span class="lbl">今月の一冊 — ${monthName} ${now.getFullYear()}</span></div>
+    <div class="issue-cover reveal" onclick="show('home')"><div class="ic-strip">${thumbs}</div>
+      <div class="ic-meta"><div class="ic-n">${mv.length}</div><div class="ic-l">この月の<br>一杯</div></div></div>`;
+}
+function badgesHTML(){
+  const s=badgeStats();const earned=BADGES.filter(b=>b.test(s)).length;
+  return `<div class="secthead reveal"><span class="word">Badges</span><span class="lbl">あなたの記章 — ${earned} / ${BADGES.length}</span></div>
+    <div class="badges reveal">${BADGES.map(b=>{const on=b.test(s);
+      return `<div class="badge ${on?'on':''}"><div class="bg-ic">${on?b.icon:'🔒'}</div><div class="bg-n">${b.n}</div><div class="bg-jp">${on?b.jp:'未獲得'}</div></div>`;
+    }).join('')}</div>`;
+}
+
+/* =============== count-up（数字が育つ） =============== */
+function countUp(scope){
+  (scope||document).querySelectorAll('[data-count]').forEach(el=>{
+    const target=+el.dataset.count||0;
+    if(target<=0){el.textContent='0';return}
+    const dur=1000,t0=performance.now();
+    (function step(t){const p=Math.min(1,(t-t0)/dur);
+      el.textContent=Math.round(target*(1-Math.pow(1-p,3)));
+      if(p<1)requestAnimationFrame(step);
+    })(t0);
+  });
 }
 
 /* =============== instagram story share =============== */
@@ -1572,7 +1825,7 @@ load().then(()=>{renderAll()});
 /* =============== PWA =============== */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 /* =============== version & debug =============== */
-const APP_VER='0.9.4';
+const APP_VER='0.9.6';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
