@@ -680,6 +680,70 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
 @keyframes spin{to{transform:rotate(360deg)}}
 .mapchip.loading{opacity:.7;pointer-events:none}
 .photo,.entry .ph,.visit-article img.main,.gallery img,.hero .photo{cursor:zoom-in}
+
+/* ============================================================
+   CHURN DEFENSE + WAVE 5
+   ============================================================ */
+/* backup warning banner */
+.backup-banner{
+  display:flex;align-items:center;gap:13px;margin:18px 0 0;cursor:pointer;
+  background:linear-gradient(135deg,rgba(176,125,79,.14),rgba(140,94,54,.08));
+  border:1px solid rgba(176,125,79,.32);border-radius:18px;padding:13px 16px;
+  transition:transform .3s;
+}
+.backup-banner:active{transform:scale(.99)}
+.backup-banner>span{font-size:20px;flex:none}
+.backup-banner b{display:block;font-size:12.5px;color:var(--espresso);font-weight:500;line-height:1.4}
+.backup-banner>div>span{font-size:11px;color:var(--caramel-deep)}
+.backup-banner i{margin-left:auto;font-style:normal;font-size:20px;color:var(--caramel);flex:none}
+
+/* bean mileage */
+.beanmile{
+  text-align:center;margin:14px 0 0;font-size:11.5px;letter-spacing:.06em;color:var(--roast);font-weight:350;
+}
+.beanmile b{font-family:var(--serif);font-style:italic;font-weight:500;font-size:16px;color:var(--caramel-deep);margin:0 3px}
+
+/* account / data sheet */
+.acct{display:flex;align-items:center;gap:14px;margin-top:18px;padding:16px;border-radius:16px}
+.acct.ok{background:rgba(120,160,110,.12);border:1px solid rgba(120,160,110,.3)}
+.acct.warn{background:rgba(200,120,60,.12);border:1px solid rgba(200,120,60,.32)}
+.acct-ic{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--milk)}
+.acct.ok .acct-ic{background:#7a9a6b}.acct.warn .acct-ic{background:#c8783c}
+.acct b{display:block;font-size:14px;color:var(--espresso);font-weight:600}
+.acct>div>span{font-size:11.5px;color:var(--roast);word-break:break-all}
+.acct-row{display:flex;gap:12px;margin-top:14px}
+.acct-row .btn{font-size:12px;padding:13px 10px;letter-spacing:.1em}
+
+/* collapsible advanced fields */
+.advtoggle{
+  width:100%;margin-top:22px;background:none;border:1px dashed var(--line);border-radius:14px;
+  padding:13px;color:var(--caramel-deep);font-family:var(--sans);font-size:12px;font-weight:500;
+  letter-spacing:.12em;cursor:pointer;transition:all .25s;
+}
+.advtoggle:hover{border-color:var(--caramel);background:var(--paper-deep)}
+.advtoggle.open{border-style:solid;color:var(--roast)}
+.advtoggle .ar{display:inline-block;transition:transform .3s}
+.advtoggle.open .ar{transform:rotate(180deg)}
+.advbox[hidden]{display:none}
+
+/* sticky save bar inside sheet */
+.btnrow.sticky{
+  position:sticky;bottom:0;z-index:5;margin:26px -24px -34px;padding:16px 24px max(22px,env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--glass-strong) 62%,rgba(253,251,246,0));
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+
+/* pull-to-record indicator */
+.pullind{
+  position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:1150;
+  display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:0 0 16px 16px;
+  background:var(--glass-strong);border:1px solid var(--glass-line);border-top:none;
+  box-shadow:var(--shadow-soft);font-size:11px;letter-spacing:.1em;color:var(--caramel-deep);
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.pullind .pi{font-size:15px;transition:transform .3s}
+.pullind.ready{color:var(--espresso)}
+.pullind.ready .pi{transform:rotate(180deg)}
 </style>
 </head>
 <body>
@@ -708,7 +772,7 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
   <button class="tab-btn active" data-view="home">Journal<span class="jp">記録</span></button>
   <button class="tab-btn" data-view="map">Map<span class="jp">地図</span></button>
   <button class="tab-btn" data-view="cafes">Cafés<span class="jp">店</span></button>
-  <button class="tab-btn" id="syncBtn" onclick="cloudLogin()">☁<span class="jp">同期</span></button>
+  <button class="tab-btn" id="syncBtn" onclick="openAccount()">☁<span class="jp">同期</span></button>
 </div></nav>
 
 <main>
@@ -785,6 +849,9 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
     </div>
   </div>
 </div>
+
+<!-- PULL TO RECORD — 引いて記録 -->
+<div class="pullind" id="pullInd"><span class="pi">↓</span><span id="pullTxt">引いて記録する</span></div>
 
 <!-- BADGE WIN — 記章獲得の瞬間 -->
 <div class="badgewin" id="badgewin"><div class="m"></div><div class="t"><span>New Badge — 記章獲得</span><b></b></div></div>
@@ -940,6 +1007,48 @@ window.cloudLogin=async()=>{
   try{await fbAuth.signInWithPopup(prov)}
   catch(e){try{await fbAuth.signInWithRedirect(prov)}catch(e2){toast('ログインできませんでした')}}
 };
+/* ---- data safety: account / export / import ---- */
+window.openAccount=()=>{
+  const synced=!!fbUser;const count=visits.length;
+  openSheet(`
+    <h2>Your Data<small>データとバックアップ</small></h2>
+    <div class="acct ${synced?'ok':'warn'}">
+      <div class="acct-ic">${synced?'✓':'!'}</div>
+      <div><b>${synced?'クラウドにバックアップ中':'まだバックアップされていません'}</b>
+      <span>${synced?esc(fbUser.email||'ログイン済み'):'記録はこの端末の中だけに保存されています。'}</span></div>
+    </div>
+    ${synced?'':'<button class="btn primary" style="width:100%;margin-top:14px" onclick="cloudLogin()">☁ Googleで無料バックアップを始める</button>'}
+    <div class="acct-row">
+      <button class="btn ghost" onclick="exportData()">↓ 書き出す</button>
+      <button class="btn ghost" onclick="$('#importFile').click()">↑ 読み込む</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json" hidden>
+    <p class="hint">現在 ${count} 件の記録。iPhoneのSafariは長く使わないと端末内のデータを消すことがあります。大切な記録はクラウド同期かファイル書き出しで守れます。</p>
+  `);
+  $('#importFile').onchange=e=>{if(e.target.files[0])importData(e.target.files[0])};
+};
+window.exportData=()=>{
+  const data={app:'drippin',v:1,exportedAt:new Date().toISOString(),cafes,visits,wishes};
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`drippin-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('バックアップを書き出しました ✓');
+};
+async function importData(file){
+  try{
+    const d=JSON.parse(await file.text());
+    if(!d.visits){toast('対応していないファイルです');return}
+    const cafeIds=new Set(cafes.map(c=>c.id));
+    for(const c of (d.cafes||[]))if(!cafeIds.has(c.id)){cafes.push(c);await DB.put('cafes',c);cloudSaveCafe(c).catch(()=>{})}
+    const visitIds=new Set(visits.map(v=>v.id));
+    for(const v of (d.visits||[]))if(!visitIds.has(v.id)){visits.push(v);await DB.put('visits',v);cloudSaveVisit(v).catch(()=>{})}
+    const wishIds=new Set(wishes.map(w=>w.id));
+    for(const w of (d.wishes||[]))if(!wishIds.has(w.id)){wishes.push(w);await DB.put('wishes',w);cloudSaveWish(w).catch(()=>{})}
+    visits.sort((a,b)=>b.date.localeCompare(a.date));
+    renderAll();closeSheet();toast('読み込みました ☕');
+  }catch(e){console.error('import',e);toast('読み込みに失敗しました')}
+}
 const uroot=()=>fbDb.collection('users').doc(fbUser.uid);
 async function cloudSaveCafe(c){if(!fbUser)return;await uroot().collection('cafes').doc(c.id).set(c)}
 async function uploadPhoto(visitId,i,dataUrl){
@@ -1052,12 +1161,15 @@ function renderHome(){
   const lc=cafeById(latest.cafeId)||{name:'—'};
   const MQ='Drip by drip, pin by pin — A Personal Café Journal — '.repeat(4);
   const now=new Date(),thisMonth=visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).length;
+  const beanMiles=visits.reduce((s,v)=>s+(v.taste||0)+(v.space||0)+(v.again||0),0);
   el.innerHTML=`
+  ${(!fbUser&&visits.length>=2)?`<div class="backup-banner" onclick="openAccount()"><span>☁</span><div><b>記録はこの端末だけに保存されています</b><span>タップして無料でバックアップ →</span></div><i>›</i></div>`:''}
   <div class="statband">
     <div class="st"><b data-count="${visits.length}">0</b><span>Cups</span></div>
     <div class="st"><b data-count="${cafes.length}">0</b><span>Cafés</span></div>
     <div class="st"><b data-count="${thisMonth}">0</b><span>This Month</span></div>
   </div>
+  <div class="beanmile">🫘 これまで集めた豆 <b data-count="${beanMiles}">0</b> 粒</div>
   <div class="kicker">Latest Entry</div>
   <article class="hero${justRecorded?' develop':''}" onclick="openVisit('${latest.id}')">
     <div class="tilt">
@@ -1586,9 +1698,10 @@ function openAdd(prefill){
     <div class="field"><label>味 — Taste</label><div class="beanpick" data-key="taste">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
     <div class="field"><label>空間 — Atmosphere</label><div class="beanpick" data-key="space">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
     <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
-    ${flavorBlock()}
     <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo" placeholder="窓際の席。浅煎りが華やかだった。"></textarea></div>
-    <div class="btnrow"><button class="btn ghost" onclick="closeSheet()">閉じる</button><button class="btn primary" id="saveBtn">記録する</button></div>
+    <button type="button" class="advtoggle" onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden;this.classList.toggle('open')">味覚チャートを追加する <span class="ar">▾</span></button>
+    <div class="advbox" hidden>${flavorBlock()}</div>
+    <div class="btnrow sticky"><button class="btn ghost" onclick="closeSheet()">閉じる</button><button class="btn primary" id="saveBtn">記録する</button></div>
   `);
   wireSheet();wireFlavor();
   if(!cafes.length)$('#fcafe').value='__new';
@@ -2005,13 +2118,37 @@ document.addEventListener('pointerleave',()=>{
   if(hero)hero.style.transform='';
 });
 
+/* =============== pull-to-record（ホームで下に引いて記録） =============== */
+(function(){
+  const ind=$('#pullInd');let sy=0,pulling=false,dist=0;
+  window.addEventListener('touchstart',e=>{
+    pulling=(_curView()==='home'&&window.scrollY<=0&&!$('#sheet').classList.contains('open'));
+    if(pulling){sy=e.touches[0].clientY;dist=0}
+  },{passive:true});
+  window.addEventListener('touchmove',e=>{
+    if(!pulling)return;
+    dist=e.touches[0].clientY-sy;
+    if(dist>0&&window.scrollY<=0){
+      ind.style.opacity=Math.min(1,dist/90);
+      ind.style.transform=`translateX(-50%) translateY(${Math.min(dist*.45,52)}px)`;
+      ind.classList.toggle('ready',dist>90);
+      $('#pullTxt').textContent=dist>90?'はなして記録':'引いて記録する';
+    }else if(dist<0){pulling=false;ind.style.opacity='0'}
+  },{passive:true});
+  window.addEventListener('touchend',()=>{
+    if(pulling&&dist>90){if(navigator.vibrate)navigator.vibrate(12);openAdd()}
+    if(ind){ind.style.opacity='0';ind.style.transform='translateX(-50%)';ind.classList.remove('ready')}
+    pulling=false;dist=0;
+  },{passive:true});
+})();
+
 /* =============== boot =============== */
 function renderAll(){renderHome();renderCafes();if(map)initMap()}
 load().then(()=>{renderAll()});
 /* =============== PWA =============== */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 /* =============== version & debug =============== */
-const APP_VER='0.9.9';
+const APP_VER='0.9.10';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
