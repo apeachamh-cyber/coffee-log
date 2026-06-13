@@ -636,6 +636,51 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
 .bg-jp{font-size:10px;color:var(--roast);opacity:.7;margin-top:3px;letter-spacing:.08em}
 @keyframes badgePop{0%{transform:scale(.4) rotate(-12deg);opacity:0}60%{transform:scale(1.15) rotate(6deg)}100%{transform:scale(1) rotate(0);opacity:1}}
 .badge.justEarned .bg-ic{animation:badgePop .7s cubic-bezier(.2,.8,.2,1) both}
+
+/* ============================================================
+   WAVE 3 — badge win / lightbox / loading
+   ============================================================ */
+/* badge earned celebration */
+.badgewin{
+  position:fixed;left:50%;top:max(80px,calc(env(safe-area-inset-top) + 70px));transform:translate(-50%,-18px);
+  z-index:2600;display:flex;align-items:center;gap:13px;
+  background:var(--glass-strong);border:1px solid var(--glass-line);border-radius:99px;
+  backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);
+  box-shadow:var(--depth);padding:9px 22px 9px 11px;opacity:0;pointer-events:none;
+  transition:opacity .5s cubic-bezier(.2,.8,.2,1),transform .5s cubic-bezier(.2,.8,.2,1);
+}
+.badgewin.show{opacity:1;transform:translate(-50%,0)}
+.badgewin .m{
+  width:44px;height:44px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:21px;
+  background:radial-gradient(circle at 32% 28%,#F0D49A,#B07D4F);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 5px 14px rgba(140,94,54,.45);
+}
+.badgewin.show .m{animation:badgePop .7s cubic-bezier(.2,.8,.2,1) both}
+.badgewin .t span{display:block;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--caramel-deep)}
+.badgewin .t b{font-family:var(--serif);font-style:italic;font-weight:500;font-size:15px;color:var(--espresso)}
+
+/* lightbox — 全画面写真ビューア */
+.lightbox{
+  position:fixed;inset:0;z-index:2700;background:rgba(16,11,8,.94);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .35s ease;touch-action:pan-y;
+}
+.lightbox.open{opacity:1;pointer-events:auto}
+.lightbox img{max-width:96vw;max-height:84vh;object-fit:contain;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+.lb-x{position:fixed;top:max(16px,env(safe-area-inset-top));right:18px;width:42px;height:42px;border:none;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:18px;cursor:pointer;z-index:2;backdrop-filter:blur(8px)}
+.lb-dots{position:fixed;bottom:max(28px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;gap:8px}
+.lb-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .25s,transform .25s}
+.lb-dots i.on{background:#E0BC85;transform:scale(1.25)}
+.lb-nav{position:fixed;top:50%;transform:translateY(-50%);width:44px;height:44px;border:none;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:20px;cursor:pointer;z-index:2;backdrop-filter:blur(8px);display:none}
+@media(pointer:fine){.lb-nav{display:block}}
+.lb-prev{left:14px}.lb-next{right:14px}
+.lightbox .taphint{position:fixed;bottom:max(54px,calc(env(safe-area-inset-bottom) + 26px));left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.2em;color:rgba(255,255,255,.4);text-transform:uppercase}
+
+/* loading indicator */
+.loadingrow{padding:14px 20px!important;display:flex;align-items:center;gap:10px;color:var(--roast);font-size:13px;font-weight:350}
+.spin{width:15px;height:15px;border:2px solid var(--line);border-top-color:var(--caramel);border-radius:50%;animation:spin .7s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mapchip.loading{opacity:.7;pointer-events:none}
+.photo,.entry .ph,.visit-article img.main,.gallery img,.hero .photo{cursor:zoom-in}
 </style>
 </head>
 <body>
@@ -738,6 +783,18 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
   </div>
 </div>
 
+<!-- BADGE WIN — 記章獲得の瞬間 -->
+<div class="badgewin" id="badgewin"><div class="m"></div><div class="t"><span>New Badge — 記章獲得</span><b></b></div></div>
+
+<!-- LIGHTBOX — 全画面写真ビューア -->
+<div class="lightbox" id="lightbox">
+  <button class="lb-x" onclick="closeLightbox()" aria-label="閉じる">✕</button>
+  <button class="lb-nav lb-prev" onclick="lbStep(-1)" aria-label="前">‹</button>
+  <img id="lbImg" alt="">
+  <button class="lb-nav lb-next" onclick="lbStep(1)" aria-label="次">›</button>
+  <div class="lb-dots" id="lbDots"></div>
+</div>
+
 <!-- JOURNEY PASSPORT — 旅の地図のステータス -->
 <div class="passport" id="passport">
   <div class="pp"><b id="ppCafes">0</b><span>Cafés</span></div>
@@ -768,6 +825,67 @@ if(matchMedia('(pointer:fine)').matches){
   const f=$('#fab');
   f.addEventListener('mousemove',e=>{const r=f.getBoundingClientRect();f.style.transform=`translate(${(e.clientX-r.x-r.width/2)*.3}px,${(e.clientY-r.y-r.height/2)*.3}px) scale(1.06)`});
   f.addEventListener('mouseleave',()=>f.style.transform='');
+}
+
+/* =============== hardware/browser BACK button manager =============== */
+// オーバーレイ（シート・ライトボックス・詳細）を開くときに履歴を1つ積む。
+// 端末の戻るでアプリを抜けず、開いている層を閉じる。
+var _backStack=[]; // {tag, fn}
+const _topTag=()=>_backStack.length?_backStack[_backStack.length-1].tag:null;
+function pushBack(tag,fn){_backStack.push({tag,fn});history.pushState({b:_backStack.length},'')}
+window.addEventListener('popstate',()=>{
+  const e=_backStack.pop();
+  if(e&&e.fn){try{e.fn()}catch(err){console.error('back',err)}}
+});
+const _curView=()=>{const a=document.querySelector('.view.active');return a?a.id.replace('view-',''):'home'};
+
+/* =============== lightbox =============== */
+var lbPhotos=[],lbIdx=0;
+window.openLightbox=(photos,i)=>{
+  if(!photos||!photos.length)return;
+  lbPhotos=photos;lbIdx=i||0;
+  lbRender();
+  $('#lightbox').classList.add('open');
+  pushBack('lb',_doCloseLightbox);
+};
+function lbRender(){
+  $('#lbImg').src=lbPhotos[lbIdx];
+  $('#lbDots').innerHTML=lbPhotos.length>1?lbPhotos.map((_,i)=>`<i class="${i===lbIdx?'on':''}"></i>`).join(''):'';
+  $('.lb-prev').style.visibility=$('.lb-next').style.visibility=lbPhotos.length>1?'visible':'hidden';
+}
+window.lbStep=d=>{if(lbPhotos.length<2)return;lbIdx=(lbIdx+d+lbPhotos.length)%lbPhotos.length;
+  const img=$('#lbImg');img.style.transform=`translateX(${d*30}px)`;img.style.opacity='.4';
+  setTimeout(()=>{lbRender();img.style.transform='';img.style.opacity='1'},120);
+};
+function _doCloseLightbox(){$('#lightbox').classList.remove('open')}
+window.closeLightbox=()=>{if(_topTag()==='lb')history.back();else _doCloseLightbox()};
+(function(){
+  const lb=$('#lightbox');let sx=0,sy=0;
+  lb.addEventListener('click',e=>{if(e.target===lb)closeLightbox()});
+  lb.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+  lb.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dy)>90&&Math.abs(dx)<60){closeLightbox();return}
+    if(Math.abs(dx)>60&&Math.abs(dy)<60)lbStep(dx<0?1:-1);
+  },{passive:true});
+})();
+
+/* =============== badge celebration =============== */
+function earnedBadgeIds(){const s=badgeStats();return BADGES.filter(b=>b.test(s)).map(b=>b.id)}
+function celebrateBadges(ids){
+  if(!ids.length)return;
+  const w=$('#badgewin');
+  let i=0;
+  const showOne=()=>{
+    if(i>=ids.length){w.classList.remove('show');return}
+    const b=BADGES.find(x=>x.id===ids[i]);i++;
+    w.querySelector('.m').textContent=b.icon;
+    w.querySelector('.t b').textContent=`${b.n} — ${b.jp}`;
+    w.classList.remove('show');void w.offsetWidth;w.classList.add('show');
+    if(navigator.vibrate)navigator.vibrate([10,30,10,40,18]);
+    setTimeout(showOne,2600);
+  };
+  showOne();
 }
 
 /* =============== data layer (IndexedDB now / Firebase later) =============== */
@@ -996,6 +1114,7 @@ function renderCafes(){
 let curVisitId=null;
 window.openVisit=id=>{
   const v=visits.find(x=>x.id===id);if(!v)return;
+  const prevView=_curView();
   curVisitId=id;
   const idx=visits.findIndex(x=>x.id===id),total=visits.length;
   const c=cafeById(v.cafeId)||{name:'—'};
@@ -1007,7 +1126,7 @@ window.openVisit=id=>{
       <a class="${idx<total-1?'':'dis'}" onclick="flipVisit(1)">古い一杯 ›</a>
     </div>
     <article class="visit-article">
-      <img class="main" src="${v.photo}" alt="">
+      <img class="main" src="${v.photo}" alt="" onclick="openVisitPhotos('${v.id}',0)">
       <div class="body">
         <div class="date" style="font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--caramel-deep)">${fmtDate(v.date)}</div>
         <h2 style="font-family:var(--serif-jp);font-weight:600;font-size:26px;letter-spacing:.04em;margin:4px 0">${esc(c.name)}</h2>
@@ -1019,7 +1138,7 @@ window.openVisit=id=>{
         </div>
         ${v.memo?`<p style="font-size:13.5px;font-weight:350;margin-top:12px;border-top:1px solid var(--line-soft);padding-top:12px">${esc(v.memo)}</p>`:''}
         ${radarSVG(v)}
-        ${(v.photos&&v.photos.length>1)?`<div class="gallery">${v.photos.map((p,i)=>`<img src="${p}" loading="lazy" class="${i===0?'cur':''}" onclick="event.stopPropagation();this.closest('article').querySelector('img.main').src=this.src;this.parentElement.querySelectorAll('img').forEach(x=>x.classList.remove('cur'));this.classList.add('cur')">`).join('')}</div>`:''}
+        ${(v.photos&&v.photos.length>1)?`<div class="gallery">${v.photos.map((p,i)=>`<img src="${p}" loading="lazy" onclick="openVisitPhotos('${v.id}',${i})">`).join('')}</div>`:''}
         <div class="toolbar">
           <button class="minibtn" onclick="editVisit('${v.id}')">Edit ✎</button>
           <button class="minibtn" onclick="shareVisit('${v.id}')">Share ↗</button>
@@ -1028,7 +1147,9 @@ window.openVisit=id=>{
       </div>
     </article>`;
   show('detail');
+  if(prevView!=='detail')pushBack('detail',()=>show(prevView));
 };
+window.openVisitPhotos=(id,i)=>{const v=visits.find(x=>x.id===id);if(!v)return;openLightbox(v.photos&&v.photos.length?v.photos:[v.photo],i)};
 /* ---- page flip (swipe between visits) ---- */
 window.flipVisit=dir=>{ // +1=古い記録へ, -1=新しい記録へ
   const idx=visits.findIndex(v=>v.id===curVisitId);if(idx<0)return;
@@ -1148,6 +1269,7 @@ window.editVisit=id=>{
 /* ---- detail: cafe ---- */
 window.openCafe=id=>{
   const c=cafeById(id);if(!c)return;
+  const prevView=_curView();
   const vs=visits.filter(v=>v.cafeId===id);
   $('#view-detail').innerHTML=`
     <button class="backlink" onclick="show('cafes')">← Back to Cafés</button>
@@ -1160,6 +1282,7 @@ window.openCafe=id=>{
         <div class="meta"><div class="d">${fmtDateJP(v.date)}</div><div class="dr">${esc(v.drink)||''}</div></div>
       </article>`).join('')||'<p class="hint">まだ記録がありません。</p>'}</div>`;
   show('detail');
+  if(prevView!=='detail')pushBack('detail',()=>show(prevView));
 };
 
 /* ---- map ---- */
@@ -1333,6 +1456,7 @@ let nearbyBusy=false;
 async function loadNearby(){
   if(map.getZoom()<13){toast('もう少しズームすると周辺カフェが出ます');return}
   if(nearbyBusy)return;nearbyBusy=true;
+  const chip=$('#chipNearby');const _lbl=chip.textContent;chip.classList.add('loading');chip.textContent='探索中…';
   const c=map.getCenter();
   const headers={'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.id,places.displayName,places.location,places.googleMapsUri,places.types,places.primaryType'};
   const loc={latitude:c.lat,longitude:c.lng};
@@ -1360,7 +1484,7 @@ async function loadNearby(){
     }
     renderDisc();
   }catch(e){console.error('nearby',e);toast('周辺カフェの取得に失敗しました')}
-  finally{nearbyBusy=false}
+  finally{nearbyBusy=false;chip.classList.remove('loading');chip.textContent=_lbl}
 }
 function renderDisc(){
   discLayer.clearLayers();
@@ -1376,7 +1500,8 @@ function renderDisc(){
 }
 async function searchPlace(){
   const q=$('#mapq').value.trim();if(!q)return;
-  const res=$('#mapresults');res.style.display='none';
+  const res=$('#mapresults');
+  res.innerHTML='<div class="loadingrow"><span class="spin"></span>検索中…</div>';res.style.display='block';
   try{
     const r=await fetch('https://places.googleapis.com/v1/places:searchText',{
       method:'POST',
@@ -1385,7 +1510,7 @@ async function searchPlace(){
     });
     if(!r.ok)throw new Error(r.status);
     const data=await r.json();
-    if(!data.places?.length){toast('見つかりませんでした');return}
+    if(!data.places?.length){res.style.display='none';toast('見つかりませんでした');return}
     res.innerHTML=data.places.slice(0,5).map(p=>{
       const lat=p.location?.latitude,lng=p.location?.longitude;
       const name=p.displayName?.text||'';
@@ -1393,7 +1518,7 @@ async function searchPlace(){
       return `<div onclick='gotoPlace(${lat},${lng})'>${esc(name)}<span style="opacity:.55;font-size:11px;margin-left:6px">${esc(addr)}</span></div>`;
     }).join('');
     res.style.display='block';
-  }catch(e){toast('検索に失敗しました')}
+  }catch(e){res.style.display='none';toast('検索に失敗しました')}
 }
 window.gotoPlace=(lat,lng)=>{
   $('#mapresults').style.display='none';
@@ -1408,8 +1533,9 @@ window.recordHere=(name,lat,lng)=>{
 /* =============== add sheet =============== */
 const TAGS=['自家焙煎','ハンドドリップ','電源あり','Wi-Fi','テラス','スイーツ','深夜営業','古民家','ロースター併設'];
 let draft={};
-function openSheet(html){$('#sheetBody').innerHTML=html;$('#sheet').classList.add('open');$('#sheetBack').classList.add('open')}
-function closeSheet(){$('#sheet').classList.remove('open');$('#sheetBack').classList.remove('open')}
+function openSheet(html){$('#sheetBody').innerHTML=html;$('#sheet').classList.add('open');$('#sheetBack').classList.add('open');if(_topTag()!=='sheet')pushBack('sheet',_doCloseSheet)}
+function _doCloseSheet(){$('#sheet').classList.remove('open');$('#sheetBack').classList.remove('open')}
+function closeSheet(){if(_topTag()==='sheet')history.back();else _doCloseSheet()}
 $('#sheetBack').onclick=closeSheet;
 /* グラブバー：ドラッグで閉じる＋タップでも閉じる */
 (function(){
@@ -1583,6 +1709,7 @@ window.setCover=i=>{
 };
 async function saveEntry(){
   if(!draft.photos.length){toast('写真を選んでください');return}
+  const earnedBefore=new Set(earnedBadgeIds());
   let cafeId=$('#fcafe').value;
   if(cafeId==='__new'){
     const name=$('#fcname').value.trim();
@@ -1604,6 +1731,8 @@ async function saveEntry(){
   justRecorded=true;
   renderHome();
   show('home');
+  const fresh=earnedBadgeIds().filter(id=>!earnedBefore.has(id));
+  if(fresh.length)setTimeout(()=>celebrateBadges(fresh),600);
 }
 
 /* =============== THE RITUAL — 記録の儀式 =============== */
@@ -1825,7 +1954,7 @@ load().then(()=>{renderAll()});
 /* =============== PWA =============== */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 /* =============== version & debug =============== */
-const APP_VER='0.9.6';
+const APP_VER='0.9.7';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
