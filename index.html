@@ -273,6 +273,7 @@ section.view.active{display:block}
   filter:sepia(.18) saturate(.85);
 }
 body.map-mode header.masthead,body.map-mode footer{display:none}
+body.map-mode #view-map{transform:none!important;animation:none!important}
 /* floating console (Google Maps style) */
 body.map-mode nav.tabs{
   position:fixed;top:0;left:0;right:0;background:transparent;border:none;
@@ -2368,7 +2369,7 @@ load().then(()=>{renderAll()});
 /* =============== PWA =============== */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 /* =============== version & debug =============== */
-const APP_VER='0.9.14';
+const APP_VER='0.9.15';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
