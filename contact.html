@@ -74,6 +74,19 @@ button.send:disabled{opacity:.5;cursor:default;transform:none}
 .formnote{font-size:11.5px;font-weight:350;color:var(--caramel-deep);line-height:1.7;margin-top:2px}
 .formnote a{color:var(--caramel-deep);text-decoration:underline;text-underline-offset:2px}
 
+/* 確認画面 */
+.confirm{display:none}
+.confirm.show{display:block;animation:rise .4s cubic-bezier(.2,.7,.2,1)}
+.confirm-title{font-family:var(--serif-jp);font-weight:600;font-size:20px;letter-spacing:.04em;margin-bottom:20px}
+.confirm-fields{display:flex;flex-direction:column;gap:16px;margin-bottom:28px;background:var(--milk);border:1px solid var(--line-soft);border-radius:16px;padding:20px}
+.confirm-row{display:flex;flex-direction:column;gap:4px}
+.confirm-label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--caramel);font-weight:500}
+.confirm-value{font-size:14px;color:var(--espresso);line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.confirm-value.empty{color:rgba(43,32,24,.32);font-style:italic}
+.confirm-actions{display:flex;flex-direction:column;gap:10px}
+button.back-btn{font-family:var(--sans);font-size:14px;font-weight:400;letter-spacing:.04em;background:transparent;color:var(--caramel-deep);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;transition:background .2s}
+button.back-btn:hover{background:var(--paper-deep)}
+
 /* 結果表示 */
 .result{display:none;text-align:center;padding:40px 10px}
 .result.show{display:block;animation:rise .5s cubic-bezier(.2,.7,.2,1)}
@@ -123,6 +136,15 @@ footer{text-align:center;padding:46px 0 0;font-size:11px;letter-spacing:.14em;te
     <p class="formnote">送信は <a href="https://web3forms.com" target="_blank" rel="noopener">Web3Forms</a> を経由します。お預かりした情報の取り扱いは<a href="./privacy.html">プライバシーポリシー</a>をご覧ください。</p>
   </form>
 
+  <div class="confirm" id="confirm">
+    <p class="confirm-title">送信内容の確認</p>
+    <div class="confirm-fields" id="confirmFields"></div>
+    <div class="confirm-actions">
+      <button type="button" class="send" id="confirmBtn">この内容で送信する</button>
+      <button type="button" class="back-btn" id="backBtn">修正する</button>
+    </div>
+  </div>
+
   <div class="result" id="result">
     <div class="ic">☕</div>
     <h2 id="rTitle">送信しました</h2>
@@ -137,56 +159,88 @@ footer{text-align:center;padding:46px 0 0;font-size:11px;letter-spacing:.14em;te
 (function(){
   var form=document.getElementById('cform');
   var btn=document.getElementById('sendBtn');
+  var confirmEl=document.getElementById('confirm');
+  var confirmFields=document.getElementById('confirmFields');
+  var confirmBtn=document.getElementById('confirmBtn');
   var result=document.getElementById('result');
   var rTitle=document.getElementById('rTitle');
   var rMsg=document.getElementById('rMsg');
   var KEY=form.access_key.value;
+  var savedData=null;
 
-  // access_key 未設定なら準備中バナーを出して送信を止める
-  if(!KEY || KEY==='WEB3FORMS_ACCESS_KEY'){
+  if(!KEY||KEY==='WEB3FORMS_ACCESS_KEY'){
     document.getElementById('cfgwarn').style.display='block';
   }
 
-  form.addEventListener('submit', async function(e){
+  /* フォーム送信 → 確認画面へ */
+  form.addEventListener('submit',function(e){
     e.preventDefault();
-    if(!KEY || KEY==='WEB3FORMS_ACCESS_KEY'){
+    if(!KEY||KEY==='WEB3FORMS_ACCESS_KEY'){
       document.getElementById('cfgwarn').style.display='block';
       window.scrollTo({top:0,behavior:'smooth'});
       return;
     }
-    btn.disabled=true; btn.textContent='送信中…';
-    var data=Object.fromEntries(new FormData(form).entries());
+    savedData=Object.fromEntries(new FormData(form).entries());
+    var rows=[
+      {label:'お名前',value:savedData.name},
+      {label:'返信先メール',value:savedData.email},
+      {label:'お問い合わせ内容',value:savedData.message}
+    ];
+    confirmFields.innerHTML=rows.map(function(r){
+      return '<div class="confirm-row">'
+        +'<span class="confirm-label">'+r.label+'</span>'
+        +'<span class="confirm-value'+(r.value?'':' empty')+'">'+(r.value||'入力なし')+'</span>'
+        +'</div>';
+    }).join('');
+    form.style.display='none';
+    confirmEl.classList.add('show');
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+
+  /* 確認画面「送信する」 */
+  confirmBtn.addEventListener('click',async function(){
+    if(!savedData)return;
+    confirmBtn.disabled=true;confirmBtn.textContent='送信中…';
     try{
       var res=await fetch('https://api.web3forms.com/submit',{
         method:'POST',
         headers:{'Content-Type':'application/json',Accept:'application/json'},
-        body:JSON.stringify(data)
+        body:JSON.stringify(savedData)
       });
       var j=await res.json();
       if(j.success){
-        form.style.display='none';
+        confirmEl.classList.remove('show');
         result.classList.add('show');
         window.scrollTo({top:0,behavior:'smooth'});
       }else{
         throw new Error(j.message||'送信に失敗しました');
       }
     }catch(err){
-      form.style.display='none';
+      confirmEl.classList.remove('show');
       rTitle.textContent='送信できませんでした';
       rMsg.innerHTML='お手数ですが、時間をおいて再度お試しください。<br><small style="color:var(--caramel-deep)">'+(err.message||'')+'</small>';
       result.querySelector('.ic').textContent='⚠';
       result.classList.add('show');
     }finally{
-      btn.disabled=false; btn.textContent='送信する';
+      confirmBtn.disabled=false;confirmBtn.textContent='この内容で送信する';
     }
   });
 
+  /* 確認画面「修正する」 */
+  document.getElementById('backBtn').addEventListener('click',function(){
+    confirmEl.classList.remove('show');
+    form.style.display='flex';
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+
+  /* 結果画面「もう一度送る」 */
   document.getElementById('againBtn').addEventListener('click',function(){
     result.classList.remove('show');
     result.querySelector('.ic').textContent='☕';
     rTitle.textContent='送信しました';
     rMsg.innerHTML='お問い合わせありがとうございます。<br>内容を確認のうえ、必要に応じてご返信いたします。';
     form.reset();
+    savedData=null;
     form.style.display='flex';
   });
 })();
