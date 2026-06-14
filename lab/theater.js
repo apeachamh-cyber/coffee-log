@@ -199,6 +199,9 @@ async function main() {
   const riIdx = args.indexOf('--review-interval');
   const reviewInterval = riIdx >= 0 ? (parseInt(args[riIdx + 1]) || 5) : 5;
 
+  const mcIdx = args.indexOf('--max-cycles');
+  const maxCycles = mcIdx >= 0 ? (parseInt(args[mcIdx + 1]) || 0) : 0;
+
   let keys = args.filter(a => !a.startsWith('--') && isNaN(Number(a)));
   if (keys.includes('all')) keys = Object.keys(PERSONAS);
   if (!keys.length) keys = ['newbie', 'light', 'heavy', 'explorer'];
@@ -234,6 +237,10 @@ async function main() {
         }
       }
 
+      if (maxCycles > 0 && allCyclesEver.length >= maxCycles) {
+        console.log(`\n🏁 ${maxCycles}サイクル完了。自動停止します。`);
+        process.exit(0);
+      }
       if (watchMin > 0) {
         console.log(`\n⏱  次のサイクルまで ${watchMin}分待機... (Ctrl+C で停止)`);
       }
