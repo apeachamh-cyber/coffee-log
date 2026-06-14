@@ -595,6 +595,8 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
 .passport .pp b{font-family:var(--serif);font-weight:500;font-size:17px;color:var(--caramel-deep);line-height:1}
 .passport .pp span{display:block;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--roast);opacity:.65;margin-top:2px}
 .passport .pp+.pp{border-left:1px solid var(--line-soft);padding-left:14px}
+.pp-line-toggle{border:none;background:none;cursor:pointer;font-size:14px;color:var(--caramel);opacity:.45;padding:2px 0 2px 14px;border-left:1px solid var(--line-soft);line-height:1;transition:opacity .2s}
+.pp-line-toggle.on{opacity:1}
 
 /* ============================================================
    WAVE 2 — hero develop / monthly issue / badges
@@ -956,6 +958,7 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
   <div class="pp"><b id="ppCafes">0</b><span>Cafés</span></div>
   <div class="pp"><b id="ppCups">0</b><span>Cups</span></div>
   <div class="pp"><b id="ppSince">—</b><span>Since</span></div>
+  <button class="pp-line-toggle on" id="ppLineToggle" title="Journey Line" onclick="toggleJourneyLine()">〜</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1547,7 +1550,8 @@ window.openCafe=id=>{
 };
 
 /* ---- map ---- */
-let map=null,visitedLayer=null,discLayer=null,wishLayer=null,showNearby=false;
+let map=null,visitedLayer=null,discLayer=null,wishLayer=null,journeyLayer=null,showNearby=false;
+let _journeyLineOn=localStorage.getItem('drippin_journey')!=='0';
 var baseTiles=null; // varで巻き上げ：applyTimeTheme(先行実行)から参照されるため
 // 夜もタイルは明るいvoyagerのまま（視認性優先）。夜の雰囲気はCSSフィルタで薄く付ける
 const mapTileURL=()=>'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
@@ -1568,6 +1572,8 @@ function initMap(){
       attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
     visitedLayer=L.markerClusterGroup({maxClusterRadius:60,showCoverageOnHover:false,iconCreateFunction:cluster=>{const n=cluster.getChildCount();return L.divIcon({className:'cluster-pin',html:`<div class="cl-dot"><b>${n}</b></div>`,iconSize:[40,40],iconAnchor:[20,20]})}}).addTo(map);
     wishLayer=L.layerGroup().addTo(map);
+    journeyLayer=L.layerGroup();
+    if(_journeyLineOn)journeyLayer.addTo(map);
     discLayer=L.layerGroup().addTo(map);
     map.on('moveend',()=>{if(showNearby)loadNearbyDebounced()});
     // iOS Safariはピンタップ直後に地図clickも発火するため、直後500msは閉じない
@@ -1582,10 +1588,11 @@ function initMap(){
     const first=vs.length?vs.reduce((m,v)=>v.date<m?v.date:m,vs[0].date):c.id;
     return{c,vs,first};
   }).sort((a,b)=>String(a.first).localeCompare(String(b.first)));
-  if(journey.length>1){
+  if(journeyLayer)journeyLayer.clearLayers();
+  if(journey.length>1&&journeyLayer){
     L.polyline(journey.map(j=>[j.c.lat,j.c.lng]),
       {color:'#9a6437',weight:2.4,opacity:.6,dashArray:'2 9',lineCap:'round',interactive:false}
-    ).addTo(visitedLayer);
+    ).addTo(journeyLayer);
   }
   journey.forEach(({c,vs})=>{
     const photo=vs[0]?.photo;
@@ -1597,6 +1604,7 @@ function initMap(){
   });
   renderWishes();
   updatePassport();
+  const btn=$('#ppLineToggle');if(btn)btn.classList.toggle('on',_journeyLineOn);
   if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:15});
   setTimeout(()=>map.invalidateSize(),120);
 }
@@ -1609,6 +1617,15 @@ function updatePassport(){
     const earliest=visits.reduce((m,v)=>v.date<m?v.date:m,visits[0].date);
     $('#ppSince').textContent=new Date(earliest).toLocaleDateString('en-US',{month:'short',year:'numeric'});
   }else $('#ppSince').textContent='—';
+}
+function toggleJourneyLine(){
+  _journeyLineOn=!_journeyLineOn;
+  localStorage.setItem('drippin_journey',_journeyLineOn?'1':'0');
+  if(map&&journeyLayer){
+    if(_journeyLineOn)journeyLayer.addTo(map);else map.removeLayer(journeyLayer);
+  }
+  const btn=$('#ppLineToggle');
+  if(btn)btn.classList.toggle('on',_journeyLineOn);
 }
 function renderWishes(){
   if(!wishLayer)return;
@@ -2369,7 +2386,7 @@ load().then(()=>{renderAll()});
 /* =============== PWA =============== */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 /* =============== version & debug =============== */
-const APP_VER='0.9.15';
+const APP_VER='0.9.16';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
