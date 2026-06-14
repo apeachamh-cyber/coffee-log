@@ -23,6 +23,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Shippori+Mincho:wght@500;600&family=Noto+Sans+JP:wght@350;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <style>
 :root{
   --paper:#F5EFE4;
@@ -696,6 +698,17 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
 .backup-banner b{display:block;font-size:12.5px;color:var(--espresso);font-weight:500;line-height:1.4}
 .backup-banner>div>span{font-size:11px;color:var(--caramel-deep)}
 .backup-banner i{margin-left:auto;font-style:normal;font-size:20px;color:var(--caramel);flex:none}
+.banner-x{margin-left:auto;background:none;border:none;font-size:16px;color:var(--caramel);cursor:pointer;padding:2px 4px;flex:none;line-height:1}
+.cafe-tabs{display:flex;gap:0;border-bottom:1px solid var(--line-soft);margin-bottom:14px}
+.cafe-tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;padding:10px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--caramel-deep);cursor:pointer;transition:color .2s,border-color .2s}
+.cafe-tab.on{color:var(--espresso);border-bottom-color:var(--caramel)}
+.wish-cafecard{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line-soft);cursor:default}
+.wish-cafecard h3{font-size:14px;font-weight:500;margin:0 0 4px}
+.wish-cafecard .wc-acts a{font-size:12px;color:var(--caramel-deep);text-decoration:underline;cursor:pointer;margin-right:12px}
+.cluster-pin .cl-dot{width:40px;height:40px;border-radius:50%;background:var(--caramel);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.22);border:2px solid #fff}
+.rategrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
+.rategrid>div{display:flex;flex-direction:column;align-items:center;gap:4px}
+.ratelbl{font-size:11px;color:var(--caramel-deep);letter-spacing:.04em}
 
 /* bean mileage */
 .beanmile{
@@ -943,6 +956,7 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
 /* =============== utilities =============== */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -1243,7 +1257,7 @@ function renderHome(){
   const now=new Date(),thisMonth=visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).length;
   const beanMiles=visits.reduce((s,v)=>s+(v.taste||0)+(v.space||0)+(v.again||0),0);
   el.innerHTML=`
-  ${(!fbUser&&visits.length>=2)?`<div class="backup-banner" onclick="openAccount()"><span>☁</span><div><b>記録はこの端末だけに保存されています</b><span>タップして無料でバックアップ →</span></div><i>›</i></div>`:''}
+  ${(!fbUser&&visits.length>=2&&!localStorage.getItem('drippin_backup_dismissed'))?`<div class="backup-banner" onclick="openAccount()"><span>☁</span><div><b>記録はこの端末だけに保存されています</b><span>タップして無料でバックアップ →</span></div><button class="banner-x" onclick="event.stopPropagation();localStorage.setItem('drippin_backup_dismissed','1');this.closest('.backup-banner').remove()">✕</button></div>`:''}
   <div class="statband">
     <div class="st"><b data-count="${visits.length}">0</b><span>Cups</span></div>
     <div class="st"><b data-count="${cafes.length}">0</b><span>Cafés</span></div>
@@ -1290,9 +1304,26 @@ function renderHome(){
 }
 
 /* ---- cafés ---- */
-function renderCafes(){
+let _cafesTab='visited';
+function renderCafes(tab){
+  if(tab)_cafesTab=tab;
   const sec=$('#view-cafes');
-  const head=`<div class="secthead"><span class="word">Cafés</span><span class="lbl">The Collection — あなたの店リスト</span></div>`;
+  const visitedNames=new Set(cafes.map(c=>c.name));
+  const liveWishes=wishes.filter(w=>!visitedNames.has(w.name));
+  const tabs=`<div class="cafe-tabs">
+    <button class="cafe-tab${_cafesTab==='visited'?' on':''}" onclick="renderCafes('visited')">訪問済み（${cafes.length}）</button>
+    <button class="cafe-tab${_cafesTab==='wish'?' on':''}" onclick="renderCafes('wish')">気になる（${liveWishes.length}）</button>
+  </div>`;
+  const head=`<div class="secthead"><span class="word">Cafés</span><span class="lbl">The Collection — あなたの店リスト</span></div>${tabs}`;
+  if(_cafesTab==='wish'){
+    if(!liveWishes.length){sec.innerHTML=head+`<div class="empty"><div class="glyph">★</div><h2>気になるお店はまだありません</h2><p>地図から「気になる」を登録しましょう。</p></div>`;return}
+    sec.innerHTML=head+`<div class="cafelist">`+liveWishes.map(w=>{const nm=esc(w.name).replace(/'/g,'&#39;');return`
+      <div class="wish-cafecard">
+        <div><h3>${esc(w.name)}</h3><div class="wc-acts"><a onclick="recordHere('${nm}',${w.lat},${w.lng})">記録する</a><a onclick="removeWish('${w.id}')">解除</a></div></div>
+        <span style="font-size:20px">🔖</span>
+      </div>`}).join('')+`</div>`;
+    return;
+  }
   if(!cafes.length){sec.innerHTML=head+`<div class="empty"><div class="glyph">¶</div><h2>まだ一軒もありません</h2><p>「＋」から最初のカフェを登録しましょう。</p></div>`;return}
   const ranked=[...cafes].map(c=>{
     const vs=visits.filter(v=>v.cafeId===c.id);
@@ -1506,7 +1537,7 @@ function initMap(){
     map=L.map('map',{scrollWheelZoom:true,zoomControl:true}).setView([33.59,130.40],12); // 福岡
     baseTiles=L.tileLayer(mapTileURL(),{
       attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
-    visitedLayer=L.layerGroup().addTo(map);
+    visitedLayer=L.markerClusterGroup({maxClusterRadius:60,showCoverageOnHover:false,iconCreateFunction:cluster=>{const n=cluster.getChildCount();return L.divIcon({className:'cluster-pin',html:`<div class="cl-dot"><b>${n}</b></div>`,iconSize:[40,40],iconAnchor:[20,20]})}}).addTo(map);
     wishLayer=L.layerGroup().addTo(map);
     discLayer=L.layerGroup().addTo(map);
     map.on('moveend',()=>{if(showNearby)loadNearbyDebounced()});
@@ -1797,9 +1828,11 @@ function openAdd(prefill){
     </div>
     <div class="field"><label>Date — 訪問日</label><input type="date" id="fdate" value="${new Date().toISOString().slice(0,10)}"></div>
     <div class="field"><label>The Cup — 飲んだもの</label><input type="text" id="fdrink" placeholder="例：エチオピア ハンドドリップ"></div>
-    <div class="field"><label>味 — Taste</label><div class="beanpick" data-key="taste">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
-    <div class="field"><label>空間 — Atmosphere</label><div class="beanpick" data-key="space">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
-    <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
+    <div class="field"><label>評価 — Rating</label><div class="rategrid">
+      <div><span class="ratelbl">味</span><div class="beanpick" data-key="taste">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
+      <div><span class="ratelbl">空間</span><div class="beanpick" data-key="space">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
+      <div><span class="ratelbl">再訪</span><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
+    </div></div>
     <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo" placeholder="窓際の席。浅煎りが華やかだった。"></textarea></div>
     <button type="button" class="advtoggle" onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden;this.classList.toggle('open')">味覚チャートを追加する <span class="ar">▾</span></button>
     <div class="advbox" hidden>${flavorBlock()}</div>
