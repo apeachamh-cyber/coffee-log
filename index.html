@@ -702,6 +702,12 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
 .cafe-tabs{display:flex;gap:0;border-bottom:1px solid var(--line-soft);margin-bottom:14px}
 .cafe-tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;padding:10px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--caramel-deep);cursor:pointer;transition:color .2s,border-color .2s}
 .cafe-tab.on{color:var(--espresso);border-bottom-color:var(--caramel)}
+.cafe-search{display:flex;gap:8px;margin:12px 0 4px;align-items:center}
+.cafe-search input{flex:1;font-family:var(--sans);font-size:14px;color:var(--espresso);background:var(--milk);border:1px solid var(--line);border-radius:12px;padding:10px 14px;transition:border-color .2s}
+.cafe-search input:focus{outline:none;border-color:var(--caramel)}
+.cafe-search input::placeholder{color:rgba(43,32,24,.32)}
+.cafe-sort{font-family:var(--sans);font-size:12px;color:var(--espresso);background:var(--milk);border:1px solid var(--line);border-radius:10px;padding:9px 10px;cursor:pointer;white-space:nowrap}
+.cafe-noresult{text-align:center;padding:40px 0;color:var(--caramel-deep);font-size:14px}
 .wish-cafecard{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line-soft);cursor:default}
 .wish-cafecard h3{font-size:14px;font-weight:500;margin:0 0 4px}
 .wish-cafecard .wc-acts a{font-size:12px;color:var(--caramel-deep);text-decoration:underline;cursor:pointer;margin-right:12px}
@@ -1306,6 +1312,8 @@ function renderHome(){
 
 /* ---- cafés ---- */
 let _cafesTab='visited';
+let _cafesQ='';
+let _cafesSort='avg';
 function renderCafes(tab){
   if(tab)_cafesTab=tab;
   const sec=$('#view-cafes');
@@ -1325,17 +1333,36 @@ function renderCafes(tab){
       </div>`}).join('')+`</div>`;
     return;
   }
-  if(!cafes.length){sec.innerHTML=head+`<div class="empty"><div class="glyph">¶</div><h2>まだ一軒もありません</h2><p>「＋」から最初のカフェを登録しましょう。</p></div>`;return}
+  const searchBar=`<div class="cafe-search">
+    <input type="search" id="cafeQ" placeholder="店名で検索…" value="${esc(_cafesQ)}" oninput="_cafesQ=this.value;renderCafes()">
+    <select class="cafe-sort" id="cafeSort" onchange="_cafesSort=this.value;renderCafes()">
+      <option value="avg"${_cafesSort==='avg'?' selected':''}>再訪評価順</option>
+      <option value="count"${_cafesSort==='count'?' selected':''}>訪問回数順</option>
+      <option value="name"${_cafesSort==='name'?' selected':''}>名前順</option>
+      <option value="recent"${_cafesSort==='recent'?' selected':''}>最近の訪問順</option>
+    </select>
+  </div>`;
+  if(!cafes.length){sec.innerHTML=head+searchBar+`<div class="empty"><div class="glyph">¶</div><h2>まだ一軒もありません</h2><p>「＋」から最初のカフェを登録しましょう。</p></div>`;return}
+  const q=_cafesQ.trim().toLowerCase();
   const ranked=[...cafes].map(c=>{
     const vs=visits.filter(v=>v.cafeId===c.id);
     const avg=vs.length?vs.reduce((s,v)=>s+v.again,0)/vs.length:0;
-    return{...c,count:vs.length,avg};
-  }).sort((a,b)=>b.avg-a.avg||b.count-a.count);
-  sec.innerHTML=head+`<div class="cafelist">`+ranked.map(c=>`
+    const lastDate=vs.length?vs.reduce((m,v)=>v.date>m?v.date:m,''):0;
+    return{...c,count:vs.length,avg,lastDate};
+  }).filter(c=>!q||c.name.toLowerCase().includes(q)||(c.tags||[]).some(t=>t.toLowerCase().includes(q)))
+    .sort((a,b)=>{
+      if(_cafesSort==='count')return b.count-a.count||b.avg-a.avg;
+      if(_cafesSort==='name')return a.name.localeCompare(b.name,'ja');
+      if(_cafesSort==='recent')return b.lastDate.localeCompare(a.lastDate);
+      return b.avg-a.avg||b.count-a.count;
+    });
+  const list=ranked.length?`<div class="cafelist">`+ranked.map(c=>`
     <div class="cafecard reveal" onclick="openCafe('${c.id}')">
       <div><h3>${esc(c.name)}</h3><div class="tags">${(c.tags||[]).map(esc).join(' ・ ')}</div></div>
       <div><div class="n">${c.count}</div><div class="nl">visits</div></div>
-    </div>`).join('')+`</div>`;
+    </div>`).join('')+`</div>`
+    :`<div class="cafe-noresult">「${esc(_cafesQ)}」の店が見つかりません</div>`;
+  sec.innerHTML=head+searchBar+list;
   observeReveals();
 }
 
@@ -2341,7 +2368,7 @@ load().then(()=>{renderAll()});
 /* =============== PWA =============== */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 /* =============== version & debug =============== */
-const APP_VER='0.9.13';
+const APP_VER='0.9.14';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
