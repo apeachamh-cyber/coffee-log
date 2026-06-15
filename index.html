@@ -595,7 +595,7 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
 .passport .pp b{font-family:var(--serif);font-weight:500;font-size:17px;color:var(--caramel-deep);line-height:1}
 .passport .pp span{display:block;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--roast);opacity:.65;margin-top:2px}
 .passport .pp+.pp{border-left:1px solid var(--line-soft);padding-left:14px}
-.pp-line-toggle{border:none;background:none;cursor:pointer;font-size:14px;color:var(--caramel);opacity:.45;padding:2px 0 2px 14px;border-left:1px solid var(--line-soft);line-height:1;transition:opacity .2s}
+.pp-line-toggle{border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--caramel);opacity:.45;padding:4px 0 4px 14px;border-left:1px solid var(--line-soft);line-height:1;transition:opacity .2s;font-family:var(--sans)}
 .pp-line-toggle.on{opacity:1}
 
 /* ============================================================
@@ -718,6 +718,23 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
 .rategrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
 .rategrid>div{display:flex;flex-direction:column;align-items:center;gap:4px}
 .ratelbl{font-size:11px;color:var(--caramel-deep);letter-spacing:.04em}
+/* cafe choice selector */
+.cafe-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.cafe-choice-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 10px;border:1.5px solid var(--line);border-radius:14px;background:var(--milk);cursor:pointer;font-size:12px;letter-spacing:.04em;color:var(--roast);transition:all .2s;font-family:var(--sans);line-height:1.3;text-align:center;width:100%}
+.cafe-choice-btn.on{border-color:var(--caramel);background:var(--paper-deep);color:var(--espresso)}
+.cafe-choice-btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.cafe-choice-btn .cc-icon{font-size:20px}
+.cafe-choice-btn .cc-count{font-size:10px;color:var(--caramel-deep);opacity:.7}
+.past-cafe-search{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13.5px;background:var(--milk);margin:10px 0 6px;font-family:var(--sans);color:var(--espresso);outline:none}
+.past-cafe-list{max-height:190px;overflow-y:auto;border:1px solid var(--line-soft);border-radius:10px;background:var(--milk)}
+.past-cafe-item{display:flex;align-items:center;padding:11px 14px;font-size:13.5px;cursor:pointer;border-bottom:1px solid var(--line-soft);font-family:var(--serif-jp)}
+.past-cafe-item:last-child{border-bottom:none}
+.past-cafe-item.selected,.past-cafe-item:active{background:var(--paper-deep)}
+.past-cafe-selected{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--paper-deep);border:1.5px solid var(--caramel);border-radius:10px;margin-top:6px;font-size:13.5px;font-family:var(--serif-jp)}
+.past-cafe-selected button{margin-left:auto;border:none;background:none;font-size:18px;cursor:pointer;color:var(--roast);padding:0}
+/* pp route toggle */
+.pp-route-icon{font-size:13px;letter-spacing:2px;display:block}
+.pp-route-lbl{font-size:7px;letter-spacing:.18em;text-transform:uppercase;opacity:.75;display:block}
 
 /* bean mileage */
 .beanmile{
@@ -958,7 +975,7 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
   <div class="pp"><b id="ppCafes">0</b><span>Cafés</span></div>
   <div class="pp"><b id="ppCups">0</b><span>Cups</span></div>
   <div class="pp"><b id="ppSince">—</b><span>Since</span></div>
-  <button class="pp-line-toggle on" id="ppLineToggle" title="Journey Line" onclick="toggleJourneyLine()">〜</button>
+  <button class="pp-line-toggle on" id="ppLineToggle" title="ルートの表示/非表示" onclick="toggleJourneyLine()"><span class="pp-route-icon">· · ·</span><span class="pp-route-lbl">Route</span></button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1487,6 +1504,19 @@ window.editVisit=id=>{
     <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}" class="${i<=draft.again?'on':''}">${BEAN}</button>`).join('')}</div></div>
     ${flavorBlock()}
     <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo">${esc(v.memo||'')}</textarea></div>
+    <button type="button" class="advtoggle" onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden;this.classList.toggle('open')">カフェ情報を修正する <span class="ar">▾</span></button>
+    <div class="advbox" hidden>
+      <div class="field" style="margin-top:12px"><label>Café — お店の名前</label><input type="text" id="ecname" value="${esc(c.name||'')}"></div>
+      <div class="field"><label>Tags — タグ</label>
+        <div class="chips">${TAGS.map(t=>`<button class="chip${(c.tags||[]).includes(t)?' on':''}" data-tag="${t}">${t}</button>`).join('')}</div>
+      </div>
+      <button type="button" class="advtoggle" style="margin-top:8px" onclick="const b=this.nextElementSibling;b.hidden=!b.hidden;this.classList.toggle('open');if(!b.hidden)setTimeout(initPickMap,80)">場所を修正する <span class="ar">▾</span></button>
+      <div class="advbox" hidden>
+        <div class="field" style="margin-top:12px"><label>Location — 場所（地図をタップ）</label>
+          <div id="pickmap"></div>
+        </div>
+      </div>
+    </div>
     <div class="btnrow"><button class="btn ghost" onclick="tryCloseSheet()">閉じる</button><button class="btn primary" id="saveBtn">保存する</button></div>
   `);
   wireFlavor();addSheetOpen=true;
@@ -1501,6 +1531,12 @@ window.editVisit=id=>{
   $('#pthumbs').addEventListener('click',e=>{
     const img=e.target.closest('img');if(!img)return;
     const idx=parseInt(img.dataset.idx);if(!isNaN(idx))setCover(idx);
+  });
+  // tags (inside cafe edit section)
+  $$('#sheetBody .chip').forEach(ch=>ch.onclick=()=>{
+    ch.classList.toggle('on');
+    const t=ch.dataset.tag;
+    draft.tags=ch.classList.contains('on')?[...draft.tags,t]:draft.tags.filter(x=>x!==t);
   });
   // beans
   $$('.beanpick').forEach(bp=>{
@@ -1522,7 +1558,20 @@ window.editVisit=id=>{
     target.acid=draft.acid||0;target.bitter=draft.bitter||0;target.sweet=draft.sweet||0;target.body=draft.body||0;
     target.memo=$('#fmemo').value.trim();
     target.date=new Date(dateVal+'T12:00:00').toISOString();
-    try{await DB.put('visits',target);cloudSaveVisit(target).catch(e=>console.error(e));}
+    try{
+      // カフェ情報の更新（店名・タグ・場所）
+      const editedCafe=cafeById(target.cafeId);
+      if(editedCafe){
+        const newName=$('#ecname')?.value.trim();
+        if(newName)editedCafe.name=newName;
+        editedCafe.tags=[...draft.tags];
+        if(draft.lat!=null)editedCafe.lat=draft.lat;
+        if(draft.lng!=null)editedCafe.lng=draft.lng;
+        await DB.put('cafes',editedCafe);
+        cloudSaveCafe(editedCafe).catch(e=>console.error(e));
+      }
+      await DB.put('visits',target);cloudSaveVisit(target).catch(e=>console.error(e));
+    }
     catch(e){console.error('edit save',e);toast('保存に失敗しました');sb.disabled=false;sb.textContent='保存する';saving=false;return}
     saving=false;addSheetOpen=false;
     visits.sort((a,b)=>b.date.localeCompare(a.date));
@@ -1860,10 +1909,15 @@ function openAdd(prefill){
       <div class="photothumbs" id="pthumbs"></div>
       <input type="file" id="pfile" accept="image/*" multiple hidden>
     </div>
-    <div class="field"><label>Café — お店</label>
-      <select id="fcafe">${cafes.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}<option value="__new">＋ 新しいカフェを登録…</option></select>
+    <div class="field">
+      <label>Café — お店</label>
+      <div class="cafe-choice">
+        <button type="button" class="cafe-choice-btn on" id="choiceNew" onclick="showCafeChoice('new')"><span class="cc-icon">✦</span><span>新しいカフェ<br>を登録</span></button>
+        <button type="button" class="cafe-choice-btn" id="choicePast" onclick="showCafeChoice('past')"${cafes.length===0?' disabled':''}><span class="cc-icon">☕</span><span>過去のカフェ<br>を選択</span>${cafes.length?`<span class="cc-count">${cafes.length}件</span>`:''}</button>
+      </div>
     </div>
-    <div class="field" id="newcafe" style="display:${cafes.length?'none':'block'}">
+    <div id="pastcafe-area" style="display:none"></div>
+    <div class="field" id="newcafe">
       <label>New Café Name — 店名</label><input type="text" id="fcname" placeholder="例：COFFEE COUNTY">
       <div class="btnrow" style="margin-top:12px"><button class="btn ghost" type="button" id="findLoc" style="flex:none;padding:11px 20px;font-size:11px">🔍 店名から場所を検索</button></div>
       <div id="locresults"></div>
@@ -1874,23 +1928,18 @@ function openAdd(prefill){
     </div>
     <div class="field"><label>Date — 訪問日</label><input type="date" id="fdate" value="${new Date().toISOString().slice(0,10)}"></div>
     <div class="field"><label>The Cup — 飲んだもの</label><input type="text" id="fdrink" placeholder="例：エチオピア ハンドドリップ"></div>
-    <div class="field"><label>評価 — Rating</label><div class="rategrid">
-      <div><span class="ratelbl">味</span><div class="beanpick" data-key="taste">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
-      <div><span class="ratelbl">空間</span><div class="beanpick" data-key="space">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
-      <div><span class="ratelbl">再訪</span><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
-    </div></div>
+    <div class="field"><label>味 — Taste</label><div class="beanpick" data-key="taste">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
+    <div class="field"><label>空間 — Atmosphere</label><div class="beanpick" data-key="space">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
+    <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
     <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo" placeholder="窓際の席。浅煎りが華やかだった。"></textarea></div>
     <button type="button" class="advtoggle" onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden;this.classList.toggle('open')">味覚チャートを追加する <span class="ar">▾</span></button>
     <div class="advbox" hidden>${flavorBlock()}</div>
     <div class="btnrow sticky"><button class="btn ghost" onclick="tryCloseSheet()">閉じる</button><button class="btn primary" id="saveBtn">記録する</button></div>
   `);
+  draft.cafeMode='new';draft.cafeId=null;
   wireSheet();wireFlavor();addSheetOpen=true;
-  if(!cafes.length)$('#fcafe').value='__new';
   if(prefill){
-    $('#fcafe').value='__new';
-    $('#newcafe').style.display='block';
     $('#fcname').value=prefill.name||'';
-    setTimeout(initPickMap,120);
   }
 }
 
@@ -1912,13 +1961,8 @@ function wireSheet(){
     const img=e.target.closest('img');if(!img)return;
     const idx=parseInt(img.dataset.idx);if(!isNaN(idx))setCover(idx);
   });
-  // cafe select
-  $('#fcafe').onchange=e=>{
-    const isNew=e.target.value==='__new';
-    $('#newcafe').style.display=isNew?'block':'none';
-    if(isNew)setTimeout(initPickMap,80);
-  };
-  if($('#fcafe').value==='__new'||!cafes.length)setTimeout(initPickMap,150);
+  // cafe choice (handled by showCafeChoice onclick — new mode always default)
+  setTimeout(initPickMap,150);
   // tags
   $$('#newcafe .chip').forEach(ch=>ch.onclick=()=>{ch.classList.toggle('on');
     const t=ch.dataset.tag;draft.tags=ch.classList.contains('on')?[...draft.tags,t]:draft.tags.filter(x=>x!==t)});
@@ -2006,10 +2050,11 @@ window.setCover=i=>{
 async function saveEntry(){
   if(saving)return; // 二重送信防止
   if(!draft.photos.length){toast('写真を選んでください');return}
-  if($('#fcafe').value==='__new'&&!$('#fcname').value.trim()){toast('カフェ名を入力してください');return}
+  if(draft.cafeMode==='past'&&!draft.cafeId){toast('カフェを選択してください');return}
+  if(draft.cafeMode!=='past'&&!$('#fcname').value.trim()){toast('カフェ名を入力してください');return}
   const earnedBefore=new Set(earnedBadgeIds());
   saving=true;const sb=$('#saveBtn');if(sb){sb.disabled=true;sb.textContent='保存中…'}
-  let cafeId=$('#fcafe').value;
+  let cafeId=draft.cafeId||'__new';
   try{
     if(cafeId==='__new'){
       const name=$('#fcname').value.trim();
@@ -2035,6 +2080,46 @@ async function saveEntry(){
   const fresh=earnedBadgeIds().filter(id=>!earnedBefore.has(id));
   if(fresh.length)setTimeout(()=>celebrateBadges(fresh),600);
 }
+
+/* =============== CAFE CHOICE HELPERS =============== */
+window.showCafeChoice=mode=>{
+  draft.cafeMode=mode;
+  const nb=$('#choiceNew'),pb=$('#choicePast');
+  if(nb)nb.classList.toggle('on',mode==='new');
+  if(pb)pb.classList.toggle('on',mode==='past');
+  const newArea=$('#newcafe'),pastArea=$('#pastcafe-area');
+  if(newArea)newArea.style.display=mode==='new'?'block':'none';
+  if(pastArea){
+    pastArea.style.display=mode==='past'?'block':'none';
+    if(mode==='past'&&!draft.cafeId)renderPastCafeListFull();
+  }
+  if(mode==='new')setTimeout(initPickMap,80);
+};
+function renderPastCafeListFull(){
+  const area=$('#pastcafe-area');if(!area)return;
+  area.innerHTML=`<input type="search" class="past-cafe-search" placeholder="店名で検索…" id="pastCafeQ" oninput="renderPastCafeList(this.value)"><div class="past-cafe-list" id="pastcafe-list"></div>`;
+  renderPastCafeList('');
+}
+function renderPastCafeList(q){
+  const list=$('#pastcafe-list');if(!list)return;
+  const sq=(q||'').toLowerCase();
+  const filtered=cafes.filter(c=>!sq||c.name.toLowerCase().includes(sq));
+  if(!filtered.length){list.innerHTML=`<div style="padding:12px 14px;font-size:12px;color:var(--roast);opacity:.7">見つかりません</div>`;return}
+  list.innerHTML=filtered.map(c=>{
+    const cnt=visits.filter(v=>v.cafeId===c.id).length;
+    const nm=esc(c.name).replace(/'/g,'&#39;');
+    return`<div class="past-cafe-item${draft.cafeId===c.id?' selected':''}" onclick="selectPastCafe('${c.id}','${nm}')"><span style="flex:1">${esc(c.name)}</span>${cnt?`<span style="font-size:10px;letter-spacing:.1em;color:var(--caramel-deep)">${cnt}回</span>`:''}</div>`;
+  }).join('');
+}
+window.selectPastCafe=(id,name)=>{
+  draft.cafeId=id;
+  const area=$('#pastcafe-area');if(!area)return;
+  area.innerHTML=`<div class="past-cafe-selected"><span>☕ ${name}</span><button type="button" onclick="clearPastCafeSelection()">✕</button></div>`;
+};
+window.clearPastCafeSelection=()=>{
+  draft.cafeId=null;
+  renderPastCafeListFull();
+};
 
 /* =============== THE RITUAL — 記録の儀式 =============== */
 var justRecorded=false; // 記録直後のホーム復帰でheroを現像させるフラグ
