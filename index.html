@@ -1357,8 +1357,8 @@ function renderHome(){
   ${memoryHTML()}
   ${wishlistHTML()}
   ${monthlyIssueHTML()}
-  ${rest.length?`<div class="secthead reveal"><span class="word">Archive</span><span class="lbl">これまでの一杯 — ${rest.length} Entries</span></div>
-  <div class="maggrid insta">${rest.map(v=>{const c=cafeById(v.cafeId)||{name:'—'};return`
+  ${rest.length?`<div class="secthead reveal"><span class="word">Archive</span><span class="lbl">これまでの一杯 — ${visits.length} Entries</span></div>
+  <div class="maggrid insta">${visits.map(v=>{const c=cafeById(v.cafeId)||{name:'—'};return`
     <article class="entry reveal" onclick="openVisit('${v.id}')">
       <img class="ph" src="${v.photo}" loading="lazy" alt="">
       <div class="meta">
