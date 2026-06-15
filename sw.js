@@ -1,5 +1,5 @@
 /* Drippin Service Worker — offline shell + CDN cache */
-const CACHE = 'drippin-v3';
+const CACHE = 'drippin-v4';
 const CORE = ['./', './index.html', './manifest.json', './icon.svg', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -26,7 +26,8 @@ self.addEventListener('fetch', e => {
   // ナビゲーション（HTML）はネットワーク優先 → オフライン時はキャッシュ
   if (e.request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request).then(r => {
+      // HTMLは常に最新をネットワークから（HTTPキャッシュも無視）。オフライン時のみキャッシュ
+      fetch(e.request, { cache: 'no-store' }).then(r => {
         const cl = r.clone();
         caches.open(CACHE).then(c => c.put('./index.html', cl));
         return r;

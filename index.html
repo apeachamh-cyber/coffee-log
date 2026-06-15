@@ -2521,9 +2521,16 @@ document.addEventListener('pointerleave',()=>{
 function renderAll(){renderHome();renderCafes();if(map)initMap()}
 load().then(()=>{renderAll()});
 /* =============== PWA =============== */
-if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if('serviceWorker' in navigator){
+  // 新しいSWが有効化されたら一度だけ自動リロード（更新を確実に反映）
+  let _swReloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(_swReloaded)return;_swReloaded=true;location.reload();
+  });
+  navigator.serviceWorker.register('./sw.js').then(reg=>{reg.update();}).catch(()=>{});
+}
 /* =============== version & debug =============== */
-const APP_VER='0.9.16';
+const APP_VER='0.9.23';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
