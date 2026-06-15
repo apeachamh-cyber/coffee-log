@@ -98,8 +98,22 @@ html[data-theme="night"] .beanpick button.on svg path:not(.ck){fill:#C89A6B}
 
 /* ---------- masthead (Instagram-style profile) ---------- */
 header.masthead{
-  text-align:center;padding:max(16px,env(safe-area-inset-top)) 24px 14px;
+  position:relative;text-align:center;padding:max(16px,env(safe-area-inset-top)) 24px 14px;
 }
+/* 同期チップ（Drippinの横・さりげなく） */
+.sync-chip{
+  position:absolute;top:max(16px,env(safe-area-inset-top));right:18px;z-index:3;
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:var(--sans);font-size:11px;letter-spacing:.04em;color:var(--roast);
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:99px;
+  padding:6px 13px;cursor:pointer;
+  backdrop-filter:blur(12px) saturate(1.3);-webkit-backdrop-filter:blur(12px) saturate(1.3);
+  box-shadow:var(--shadow-soft);transition:all .3s;
+  animation:riseIn 1s .6s cubic-bezier(.2,.7,.2,1) both;
+}
+.sync-chip .jp{font-size:11px;letter-spacing:.04em;opacity:.85}
+.sync-chip.on{color:var(--caramel-deep);border-color:var(--caramel)}
+.sync-chip:active{transform:scale(.94)}
 .profile{
   display:flex;align-items:center;justify-content:center;gap:16px;max-width:1080px;margin:0 auto;
 }
@@ -322,7 +336,7 @@ body.map-mode.nearby-on .genrechips{display:flex}
 .placecard .acts a{flex:1;text-align:center;font-size:11.5px;font-weight:500;padding:10px 8px;border-radius:99px;background:var(--espresso);color:var(--paper);cursor:pointer;text-decoration:none;white-space:nowrap}
 .placecard .acts a.ghost{background:var(--milk);color:var(--espresso);box-shadow:var(--shadow-soft)}
 .placecard .x{position:absolute;top:10px;right:12px;width:30px;height:30px;border:none;border-radius:50%;background:rgba(43,32,24,.45);color:#fff;font-size:15px;cursor:pointer;line-height:1;z-index:2}
-body.place-open .fab,body.place-open .locate-fab{opacity:0;pointer-events:none}
+body.place-open .fab,body.place-open .locate-fab,body.place-open .route-fab{opacity:0;pointer-events:none}
 .disc-pin .dot{background:var(--milk);border-color:var(--caramel)}
 .wish-pin .dot{background:var(--caramel);border-color:var(--milk)}
 .wish-pin .dot span{color:var(--paper);font-size:14px}
@@ -595,8 +609,17 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
 .passport .pp b{font-family:var(--serif);font-weight:500;font-size:17px;color:var(--caramel-deep);line-height:1}
 .passport .pp span{display:block;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--roast);opacity:.65;margin-top:2px}
 .passport .pp+.pp{border-left:1px solid var(--line-soft);padding-left:14px}
-.pp-line-toggle{border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--caramel);opacity:.45;padding:4px 0 4px 14px;border-left:1px solid var(--line-soft);line-height:1;transition:opacity .2s;font-family:var(--sans)}
-.pp-line-toggle.on{opacity:1}
+/* route toggle FAB（現在地ボタンの上に積む・マップ時のみ） */
+.route-fab{
+  position:fixed;right:29px;bottom:calc(max(26px,env(safe-area-inset-bottom)) + 142px);z-index:1300;
+  width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;display:none;
+  align-items:center;justify-content:center;background:var(--milk);color:var(--caramel);
+  box-shadow:var(--shadow);opacity:.5;transition:transform .25s cubic-bezier(.2,.7,.2,1),opacity .2s;
+}
+body.map-mode .route-fab{display:flex}
+.route-fab.on{opacity:1;color:var(--caramel-deep)}
+.route-fab:active{transform:scale(.9)}
+.route-fab svg{width:22px;height:22px;display:block}
 
 /* ============================================================
    WAVE 2 — hero develop / monthly issue / badges
@@ -732,9 +755,6 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
 .past-cafe-item.selected,.past-cafe-item:active{background:var(--paper-deep)}
 .past-cafe-selected{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--paper-deep);border:1.5px solid var(--caramel);border-radius:10px;margin-top:6px;font-size:13.5px;font-family:var(--serif-jp)}
 .past-cafe-selected button{margin-left:auto;border:none;background:none;font-size:18px;cursor:pointer;color:var(--roast);padding:0}
-/* pp route toggle */
-.pp-route-icon{font-size:13px;letter-spacing:2px;display:block}
-.pp-route-lbl{font-size:7px;letter-spacing:.18em;text-transform:uppercase;opacity:.75;display:block}
 
 /* bean mileage */
 .beanmile{
@@ -859,13 +879,13 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
       <div class="sub">A Personal Café Journal</div>
     </div>
   </div>
+  <button class="sync-chip" id="syncBtn" onclick="openAccount()" title="クラウド同期" aria-label="クラウド同期">☁<span class="jp">同期</span></button>
 </header>
 
 <nav class="tabs"><div class="inner">
   <button class="tab-btn active" data-view="home">Journal<span class="jp">記録</span></button>
   <button class="tab-btn" data-view="map">Map<span class="jp">地図</span></button>
   <button class="tab-btn" data-view="cafes">Cafés<span class="jp">店</span></button>
-  <button class="tab-btn" id="syncBtn" onclick="openAccount()">☁<span class="jp">同期</span></button>
 </div></nav>
 
 <main>
@@ -904,6 +924,12 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
     <circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/>
     <line x1="12" y1="1.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.5"/>
     <line x1="1.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.5" y2="12"/>
+  </svg>
+</button>
+<button class="route-fab on" id="ppLineToggle" title="ルートの表示／非表示" aria-label="ルート表示切替" onclick="toggleJourneyLine()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="6" cy="18" r="2.3" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="2.3" fill="currentColor" stroke="none"/>
+    <path d="M7.7 16.3 L16.3 7.7" stroke-dasharray="2 2.6"/>
   </svg>
 </button>
 
@@ -975,7 +1001,6 @@ body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;p
   <div class="pp"><b id="ppCafes">0</b><span>Cafés</span></div>
   <div class="pp"><b id="ppCups">0</b><span>Cups</span></div>
   <div class="pp"><b id="ppSince">—</b><span>Since</span></div>
-  <button class="pp-line-toggle on" id="ppLineToggle" title="ルートの表示/非表示" onclick="toggleJourneyLine()"><span class="pp-route-icon">· · ·</span><span class="pp-route-lbl">Route</span></button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1996,7 +2021,8 @@ function wireSheet(){
       $('#locresults').innerHTML=data.places.slice(0,5).map(p=>{
         const lat=p.location?.latitude,lng=p.location?.longitude;
         const addr=(p.formattedAddress||'').replace('日本、','');
-        return `<div onclick="pickLoc(${lat},${lng},this)">📍 ${esc(p.displayName?.text||'')} <span style="opacity:.6;font-size:11px">${esc(addr)}</span></div>`;
+        const nm=esc(p.displayName?.text||'');
+        return `<div data-name="${nm}" onclick="pickLoc(${lat},${lng},this)">📍 ${nm} <span style="opacity:.6;font-size:11px">${esc(addr)}</span></div>`;
       }).join('');
     }catch(e){toast('検索に失敗しました')}
     finally{$('#findLoc').textContent='🔍 店名から場所を検索'}
@@ -2004,6 +2030,9 @@ function wireSheet(){
 }
 window.pickLoc=(lat,lng,el)=>{
   draft.lat=lat;draft.lng=lng;
+  // 検索ヒット店をタップしたら、その店名を入力欄に反映（空でも上書き：選んだ店が正）
+  const nm=el&&el.dataset?el.dataset.name:'';
+  if(nm){const nf=$('#fcname');if(nf)nf.value=nm;}
   $('#locresults').innerHTML='';
   if(pickmap){
     pickmap.setView([lat,lng],17);
@@ -2083,6 +2112,9 @@ async function saveEntry(){
 
 /* =============== CAFE CHOICE HELPERS =============== */
 window.showCafeChoice=mode=>{
+  // 「過去のカフェを選択」をもう一度押したら閉じて新規モードに戻す
+  if(mode==='past'&&draft.cafeMode==='past')mode='new';
+  if(mode==='new')draft.cafeId=null;
   draft.cafeMode=mode;
   const nb=$('#choiceNew'),pb=$('#choicePast');
   if(nb)nb.classList.toggle('on',mode==='new');
