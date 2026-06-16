@@ -1,5 +1,5 @@
 /* Drippin Service Worker — offline shell + CDN cache */
-const CACHE = 'drippin-v5';
+const CACHE = 'drippin-v6';
 const CORE = ['./', './index.html', './manifest.json', './icon.svg', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

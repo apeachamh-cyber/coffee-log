@@ -572,9 +572,10 @@ footer{
 .r-dripper{fill:none;stroke:url(#rgold);stroke-width:5.5;stroke-linejoin:round}
 .r-bar{stroke:#D9C5A6;stroke-width:3;stroke-linecap:round}
 .r-cupbody{fill:none;stroke:rgba(217,197,166,.7);stroke-width:3}
-.r-fill{fill:url(#rcoffee);transform:translateY(46px)}
-.ritual.show .r-fill{animation:rrise 1.4s .45s cubic-bezier(.3,.7,.2,1) forwards}
-@keyframes rrise{to{transform:translateY(0)}}
+/* カップ底(y≈149)を支点にscaleYで満ちる＝液面が下からせり上がる自然な注ぎ */
+.r-fill{fill:url(#rcoffee);transform:translateY(149px) scaleY(0) translateY(-149px)}
+.ritual.show .r-fill{animation:rfill 1.5s .4s cubic-bezier(.33,.68,.32,1) forwards}
+@keyframes rfill{0%{transform:translateY(149px) scaleY(.05) translateY(-149px)}100%{transform:translateY(149px) scaleY(1) translateY(-149px)}}
 .r-drop{fill:#9a6437;opacity:0}
 .ritual.show .r-drop{animation:rdrop 1.05s linear .35s 3}
 .ritual.show .r-drop.d2{animation-delay:.85s}
@@ -973,7 +974,7 @@ body.map-mode .route-fab{display:flex}
       <circle class="r-drop d2" cx="60" cy="72" r="3.1"/>
       <path class="r-cupbody" d="M37 104 H83 L78.5 143 a6 6 0 0 1 -6 5.4 H49.5 a6 6 0 0 1 -6 -5.4 Z"/>
       <clipPath id="rcup"><path d="M37 104 H83 L78.5 143 a6 6 0 0 1 -6 5.4 H49.5 a6 6 0 0 1 -6 -5.4 Z"/></clipPath>
-      <rect class="r-fill" clip-path="url(#rcup)" x="37" y="116" width="46" height="34"/>
+      <rect class="r-fill" clip-path="url(#rcup)" x="37" y="106" width="46" height="43"/>
       <path class="r-steam" d="M54 100 C50 94 58 90 54 84"/>
       <path class="r-steam" d="M66 100 C62 94 70 90 66 84" style="animation-delay:2.1s"/>
     </svg>
@@ -998,8 +999,8 @@ body.map-mode .route-fab{display:flex}
   </div>
 </div>
 
-<!-- PULL TO RECORD — 引いて記録 -->
-<div class="pullind" id="pullInd"><span class="pi">↓</span><span id="pullTxt">引いて記録する</span></div>
+<!-- PULL TO REFRESH — 引いて更新 -->
+<div class="pullind" id="pullInd"><span class="pi">↓</span><span id="pullTxt">引いて更新</span></div>
 
 <!-- BADGE WIN — 記章獲得の瞬間 -->
 <div class="badgewin" id="badgewin"><div class="m"></div><div class="t"><span>New Badge — 記章獲得</span><b></b></div></div>
@@ -1950,7 +1951,7 @@ function openAdd(prefill){
   openSheet(`
     <h2>New Entry<small>今日の一杯を記録</small></h2>
     <div class="field"><label>Photographs — 写真（複数OK）</label>
-      <div class="photodrop" id="pdrop" onclick="$('#pfile').click()"><span style="font-family:var(--serif);font-size:26px;font-style:italic">+</span><span>タップして写真を選ぶ（何枚でも）</span></div>
+      <div class="photodrop" id="pdrop" onclick="$('#pfile').click()"><span style="font-family:var(--serif);font-size:28px;font-style:normal;line-height:1">＋</span><span>タップして写真を選ぶ（何枚でも）</span></div>
       <div class="photothumbs" id="pthumbs"></div>
       <input type="file" id="pfile" accept="image/*" multiple hidden>
     </div>
@@ -2555,15 +2556,21 @@ document.addEventListener('pointerleave',()=>{
       ind.style.opacity=Math.min(1,dist/90);
       ind.style.transform=`translateX(-50%) translateY(${Math.min(dist*.45,52)}px)`;
       ind.classList.toggle('ready',dist>90);
-      $('#pullTxt').textContent=dist>90?'はなして記録':'引いて記録する';
+      $('#pullTxt').textContent=dist>90?'はなして更新':'引いて更新';
     }else if(dist<0){pulling=false;ind.style.opacity='0'}
   },{passive:true});
   window.addEventListener('touchend',()=>{
-    if(pulling&&dist>90){if(navigator.vibrate)navigator.vibrate(12);openAdd()}
+    if(pulling&&dist>90){if(navigator.vibrate)navigator.vibrate(12);doRefresh()}
     if(ind){ind.style.opacity='0';ind.style.transform='translateX(-50%)';ind.classList.remove('ready')}
     pulling=false;dist=0;
   },{passive:true});
 })();
+// 引いて更新：ログイン時はクラウド同期、未ログインは端末データを再描画
+async function doRefresh(){
+  if(typeof fbUser!=='undefined'&&fbUser){
+    try{await cloudSync()}catch(e){console.error('refresh',e);renderAll();toast('更新しました')}
+  }else{renderAll();toast('更新しました')}
+}
 
 /* =============== boot =============== */
 function renderAll(){renderHome();renderCafes();if(map)initMap()}
@@ -2578,7 +2585,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(reg=>{reg.update();}).catch(()=>{});
 }
 /* =============== version & debug =============== */
-const APP_VER='0.9.24';
+const APP_VER='0.9.25';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
