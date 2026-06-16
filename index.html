@@ -474,8 +474,10 @@ body.map-mode .locate-fab{display:flex}
 .photodrop:hover{border-color:var(--caramel)}
 .photodrop.has{border-style:solid;color:transparent}
 .photothumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.photothumbs .thumb-wrap{position:relative;width:58px;height:58px;flex-shrink:0}
 .photothumbs img{width:58px;height:58px;object-fit:cover;border-radius:12px;cursor:pointer;opacity:.75;border:2px solid transparent;box-shadow:var(--shadow-soft)}
 .photothumbs img.cover{opacity:1;border-color:var(--caramel)}
+.photothumbs .thumb-del{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--roast);color:var(--milk);font-size:11px;line-height:18px;text-align:center;cursor:pointer;z-index:1;border:none;padding:0;font-style:normal;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
 .gallery img{cursor:pointer;border:2px solid transparent;transition:border-color .25s,opacity .25s;opacity:.85}
 .gallery img.cur{border-color:var(--caramel);opacity:1}
@@ -1213,6 +1215,7 @@ async function importData(file){
 }
 const uroot=()=>fbDb.collection('users').doc(fbUser.uid);
 async function cloudSaveCafe(c){if(!fbUser)return;await uroot().collection('cafes').doc(c.id).set(c)}
+async function cloudDeleteCafe(id){if(!fbUser)return;await uroot().collection('cafes').doc(id).delete()}
 async function uploadPhoto(visitId,i,dataUrl){
   const ref=fbStorage.ref().child(`users/${fbUser.uid}/photos/${visitId}_${i}.jpg`);
   await ref.putString(dataUrl,'data_url');
@@ -1520,6 +1523,11 @@ window.delVisit=async id=>{
   const target=visits.find(v=>v.id===id);
   await DB.del('visits',id);visits=visits.filter(v=>v.id!==id);
   cloudDeleteVisit(id,target?.photos?.length||1).catch(e=>console.error(e));
+  // この記録が参照していたカフェが他の記録から参照されていなければ、カフェ自体も削除
+  if(target?.cafeId && !visits.some(v=>v.cafeId===target.cafeId)){
+    await DB.del('cafes',target.cafeId);cafes=cafes.filter(c=>c.id!==target.cafeId);
+    cloudDeleteCafe(target.cafeId).catch(e=>console.error(e));
+  }
   renderAll();show('home');toast('削除しました');
 };
 
@@ -1532,12 +1540,11 @@ window.editVisit=id=>{
     acid:v.acid||0,bitter:v.bitter||0,sweet:v.sweet||0,body:v.body||0,
     tags:c.tags||[],lat:c.lat||null,lng:c.lng||null};
   const dateStr=v.date?new Date(v.date).toISOString().slice(0,10):new Date().toISOString().slice(0,10);
-  const thumbs=draft.photos.map((p,i)=>`<img src="${p}" class="${i===0?'cover':''}" data-idx="${i}" title="タップで表紙にする">`).join('');
   openSheet(`
     <h2>Edit Entry<small>記録を編集</small></h2>
     <div class="field"><label>Photographs — 写真</label>
       <div class="photodrop has" id="pdrop" style="background-image:url(${draft.photos[0]||''})" onclick="$('#pfile').click()"></div>
-      <div class="photothumbs" id="pthumbs">${thumbs}</div>
+      <div class="photothumbs" id="pthumbs"></div>
       <input type="file" id="pfile" accept="image/*" multiple hidden>
     </div>
     <div class="field"><label>Date — 訪問日</label><input type="date" id="fdate" value="${dateStr}"></div>
@@ -1563,15 +1570,17 @@ window.editVisit=id=>{
     <div class="btnrow"><button class="btn ghost" onclick="tryCloseSheet()">閉じる</button><button class="btn primary" id="saveBtn">保存する</button></div>
   `);
   wireFlavor();addSheetOpen=true;
-  // photo upload
+  renderThumbs();
+  // photo upload (edit: add more photos)
   $('#pfile').onchange=async e=>{
     const files=[...e.target.files];if(!files.length)return;
     for(const f of files){const d=await compress(f,1400,.82);draft.photos.push(d)}
-    const pd=$('#pdrop');pd.classList.add('has');pd.style.backgroundImage=`url(${draft.photos[0]})`;
-    $('#pthumbs').innerHTML=draft.photos.map((p,i)=>`<img src="${p}" class="${i===0?'cover':''}" data-idx="${i}" title="タップで表紙にする">`).join('');
-    e.target.value='';
+    renderThumbs();e.target.value='';
   };
+  // photo thumbnail: tap img → set cover, tap × → delete
   $('#pthumbs').addEventListener('click',e=>{
+    const del=e.target.closest('.thumb-del');
+    if(del){const i=parseInt(del.dataset.del);if(!isNaN(i)){draft.photos.splice(i,1);renderThumbs();if(!draft.photos.length){const pd=$('#pdrop');pd.classList.remove('has');pd.style.backgroundImage=''}return}}
     const img=e.target.closest('img');if(!img)return;
     const idx=parseInt(img.dataset.idx);if(!isNaN(idx))setCover(idx);
   });
@@ -1909,7 +1918,7 @@ window.recordHere=(name,lat,lng)=>{
 /* =============== add sheet =============== */
 const TAGS=['自家焙煎','ハンドドリップ','電源あり','Wi-Fi','テラス','スイーツ','深夜営業','古民家','ロースター併設'];
 let draft={};
-function openSheet(html){addSheetOpen=false;$('#sheetBody').innerHTML=html;$('#sheet').classList.add('open');$('#sheetBack').classList.add('open');if(_topTag()!=='sheet')pushBack('sheet',_doCloseSheet)}
+function openSheet(html){addSheetOpen=false;$('#sheetBody').innerHTML=html;$('#sheet').scrollTop=0;$('#sheet').classList.add('open');$('#sheetBack').classList.add('open');if(_topTag()!=='sheet')pushBack('sheet',_doCloseSheet)}
 function _doCloseSheet(){$('#sheet').classList.remove('open');$('#sheetBack').classList.remove('open');addSheetOpen=false}
 function closeSheet(){if(_topTag()==='sheet')history.back();else _doCloseSheet()}
 /* 記録シートで入力途中なら確認してから閉じる（誤クローズ保護） */
@@ -1996,12 +2005,13 @@ function wireSheet(){
       const durl=await compress(f,1400,.82);
       draft.photos.push(durl);
     }
-    const pd=$('#pdrop');pd.classList.add('has');pd.style.backgroundImage=`url(${draft.photos[0]})`;
-    $('#pthumbs').innerHTML=draft.photos.map((p,i)=>`<img src="${p}" class="${i===0?'cover':''}" data-idx="${i}" title="タップで表紙にする">`).join('');
+    renderThumbs();
     e.target.value='';
   };
-  // photo thumbnail tap → set cover (event delegation)
+  // photo thumbnail: tap img → set cover, tap × → delete
   $('#pthumbs').addEventListener('click',e=>{
+    const del=e.target.closest('.thumb-del');
+    if(del){const i=parseInt(del.dataset.del);if(!isNaN(i)){draft.photos.splice(i,1);renderThumbs();if(!draft.photos.length){const pd=$('#pdrop');pd.classList.remove('has');pd.style.backgroundImage=''}return}}
     const img=e.target.closest('img');if(!img)return;
     const idx=parseInt(img.dataset.idx);if(!isNaN(idx))setCover(idx);
   });
@@ -2137,10 +2147,18 @@ function compress(file,maxW,q){
     };img.src=URL.createObjectURL(file);
   });
 }
+function renderThumbs(){
+  const el=$('#pthumbs');if(!el)return;
+  el.innerHTML=draft.photos.map((p,i)=>`
+    <div class="thumb-wrap">
+      <img src="${p}" class="${i===0?'cover':''}" data-idx="${i}" title="タップで表紙にする">
+      <button class="thumb-del" data-del="${i}" title="削除">×</button>
+    </div>`).join('');
+  if(draft.photos[0]){const pd=$('#pdrop');if(pd){pd.classList.add('has');pd.style.backgroundImage=`url(${draft.photos[0]})`}}
+}
 window.setCover=i=>{
   draft.photos.unshift(...draft.photos.splice(i,1));
-  $('#pdrop').style.backgroundImage=`url(${draft.photos[0]})`;
-  $('#pthumbs').innerHTML=draft.photos.map((p,j)=>`<img src="${p}" class="${j===0?'cover':''}" data-idx="${j}" title="タップで表紙にする">`).join('');
+  renderThumbs();
 };
 async function saveEntry(){
   if(saving)return; // 二重送信防止
@@ -2571,7 +2589,14 @@ async function doRefresh(){
 
 /* =============== boot =============== */
 function renderAll(){renderHome();renderCafes();if(map)initMap()}
-load().then(()=>{renderAll()});
+load().then(async()=>{
+  // 記録が0件のカフェを一掃（既存の孤立カフェ対策・初回のみ実質的に動く）
+  const usedIds=new Set(visits.map(v=>v.cafeId));
+  const orphans=cafes.filter(c=>!usedIds.has(c.id));
+  for(const c of orphans){await DB.del('cafes',c.id);cloudDeleteCafe(c.id).catch(()=>{})}
+  if(orphans.length)cafes=cafes.filter(c=>usedIds.has(c.id));
+  renderAll();
+});
 /* =============== PWA =============== */
 if('serviceWorker' in navigator){
   // 新しいSWが有効化されたら一度だけ自動リロード（更新を確実に反映）
