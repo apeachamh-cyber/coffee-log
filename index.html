@@ -287,6 +287,8 @@ section.view.active{display:block}
 .maggrid.insta .entry:hover .ph{box-shadow:0 4px 14px rgba(43,32,24,.20)}
 .maggrid.insta .meta{display:block;padding:7px 3px 0;text-align:center}
 .maggrid.insta .meta .d,.maggrid.insta .meta .dr{display:none}
+.entry .meta .idx{display:none}
+.maggrid.insta .meta .idx{display:block;font-family:var(--serif);font-style:italic;font-size:12px;letter-spacing:.12em;color:var(--caramel);line-height:1;margin-bottom:1px}
 .maggrid.insta .meta h3{
   font-family:var(--serif-jp);font-weight:600;font-size:12px;letter-spacing:.06em;
   line-height:1.3;margin:0;color:var(--espresso);
@@ -1359,10 +1361,11 @@ function renderHome(){
   ${wishlistHTML()}
   ${monthlyIssueHTML()}
   ${rest.length?`<div class="secthead reveal"><span class="word">Archive</span><span class="lbl">これまでの一杯 — ${visits.length} Entries</span></div>
-  <div class="maggrid insta">${visits.map(v=>{const c=cafeById(v.cafeId)||{name:'—'};return`
+  <div class="maggrid insta">${visits.map((v,i)=>{const c=cafeById(v.cafeId)||{name:'—'};return`
     <article class="entry reveal" onclick="openVisit('${v.id}')">
       <img class="ph" src="${v.photo}" loading="lazy" alt="">
       <div class="meta">
+        <div class="idx">${String(visits.length-i).padStart(2,'0')}</div>
         <div class="d">${fmtDateJP(v.date)}</div>
         <h3>${esc(c.name)}</h3>
         <div class="dr">${esc(v.drink)||''}</div>
