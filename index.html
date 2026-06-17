@@ -2610,7 +2610,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(reg=>{reg.update();}).catch(()=>{});
 }
 /* =============== version & debug =============== */
-const APP_VER='0.9.29';
+const APP_VER='0.9.30';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
