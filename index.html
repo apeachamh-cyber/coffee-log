@@ -74,7 +74,7 @@ html[data-theme="night"]{
   --glass:rgba(32,25,19,.55);--glass-strong:rgba(32,25,19,.82);--glass-line:rgba(255,255,255,.09);
 }
 html[data-theme="night"] body{background:radial-gradient(120% 90% at 50% 0%,#221A14 0%,#171210 50%,#0C0907 100%) fixed}
-html[data-theme="night"] #bg3d{display:none}
+/* 夜は背景アニメを消さず、夜パレット（暗いフォグ＋残り火）にチューニングして表示 */
 /* 夜の地図：タイルは明るいまま・温かみフィルタのみ（暗いタイルは視認性が悪いため不使用） */
 html[data-theme="night"] #map{filter:sepia(.3) brightness(.9) saturate(.8)}
 /* 夜の豆：ON=明るい茶 / OFF=暗い茶（.offを必ず後に書いて優先させる） */
@@ -273,13 +273,17 @@ section.view.active{display:block}
 .entry .dr{font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--roast);opacity:.85}
 
 /* Archive — Instagram風 3列タイルグリッド */
-.maggrid.insta{grid-template-columns:repeat(3,1fr);gap:5px}
-@media(min-width:760px){.maggrid.insta{grid-template-columns:repeat(3,1fr);gap:10px}}
+/* 列間を詰め、各カード下にヘアラインを通す → 3列ぶち抜きの罫線で行が区切られる */
+.maggrid.insta{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 4px}
+@media(min-width:760px){.maggrid.insta{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px}}
+.maggrid.insta .entry{position:relative;padding-bottom:11px}
+/* 各カード下の線を列間(4px)に2pxずつはみ出させて隣と連結 → 3列ぶち抜きの1本線に。色はsectheadの罫線と統一 */
+.maggrid.insta .entry::after{content:"";position:absolute;left:-2px;right:-2px;bottom:0;height:1px;background:var(--line)}
 .maggrid.insta .entry,.maggrid.insta .entry:nth-child(6n+1){grid-column:auto;grid-row:auto;min-width:0}
 .maggrid.insta .entry:hover{transform:none}
 .maggrid.insta .entry .ph,.maggrid.insta .entry:nth-child(6n+1) .ph{aspect-ratio:1/1;border-radius:7px;box-shadow:0 1px 3px rgba(43,32,24,.10)}
 .maggrid.insta .entry:hover .ph{box-shadow:0 4px 14px rgba(43,32,24,.20)}
-.maggrid.insta .meta{display:block;padding:0 3px 7px;text-align:center}
+.maggrid.insta .meta{display:block;padding:0 3px 2px;text-align:center}
 .maggrid.insta .meta .d,.maggrid.insta .meta .dr{display:none}
 .entry .meta .idx{display:none}
 .maggrid.insta .meta .idx{display:block;font-family:var(--serif);font-style:italic;font-size:12px;letter-spacing:.12em;color:var(--caramel);line-height:1;margin-bottom:1px}
@@ -657,6 +661,17 @@ body.map-mode .route-fab{display:flex}
 .ic-n{font-family:var(--serif);font-weight:500;font-size:42px;line-height:1;color:#E0BC85}
 .ic-l{font-size:9px;letter-spacing:.22em;text-transform:uppercase;opacity:.7;margin-top:6px;text-align:center;padding:0 8px}
 
+/* Insights — 統計カード */
+.statgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
+@media(min-width:520px){.statgrid{gap:14px}}
+.statcard{
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:16px;
+  padding:16px 8px 13px;text-align:center;box-shadow:var(--shadow-soft);min-width:0;
+}
+.statcard b{display:block;font-family:var(--serif);font-weight:500;font-size:30px;line-height:1;color:var(--espresso)}
+.statcard .su{display:block;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--caramel-deep);margin-top:5px}
+.statcard .sl{display:block;font-size:11px;letter-spacing:.04em;color:var(--roast);opacity:.8;margin-top:4px}
+
 /* Badges — 記章 */
 .badges{display:flex;gap:14px;overflow-x:auto;padding:6px 2px 14px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
 .badges::-webkit-scrollbar{display:none}
@@ -902,6 +917,7 @@ body.map-mode .route-fab{display:flex}
   <button class="tab-btn active" data-view="home">Journal<span class="jp">記録</span></button>
   <button class="tab-btn" data-view="map">Map<span class="jp">地図</span></button>
   <button class="tab-btn" data-view="cafes">Cafés<span class="jp">店</span></button>
+  <button class="tab-btn" data-view="insights">Stats<span class="jp">統計</span></button>
 </div></nav>
 
 <main>
@@ -926,6 +942,8 @@ body.map-mode .route-fab{display:flex}
   </section>
   <!-- CAFES -->
   <section class="view" id="view-cafes"><div class="secthead"><span class="word">Cafés</span><span class="lbl">The Collection — あなたの店リスト</span></div><div class="cafelist" id="cafeList"></div></section>
+  <!-- INSIGHTS -->
+  <section class="view" id="view-insights"></section>
   <!-- DETAIL -->
   <section class="view" id="view-detail"></section>
 </main>
@@ -1353,7 +1371,6 @@ function renderHome(){
   <div class="mq"><span class="in">${MQ}</span></div>
   <div class="quote reveal">飲んだら、忘れてしまう。<br>記したら、人生になる。</div>
   ${memoryHTML()}
-  ${wishlistHTML()}
   ${monthlyIssueHTML()}
   ${rest.length?`<div class="secthead reveal"><span class="word">Archive</span><span class="lbl">これまでの一杯 — ${visits.length} Entries</span></div>
   <div class="maggrid insta">${visits.map((v,i)=>{const c=cafeById(v.cafeId)||{name:'—'};return`
@@ -1365,8 +1382,7 @@ function renderHome(){
         <div class="dr">${esc(v.drink)||''}</div>
       </div>
       <img class="ph" src="${v.photo}" loading="lazy" alt="">
-    </article>`}).join('')}</div>`:''}
-  ${badgesHTML()}`;
+    </article>`}).join('')}</div>`:''}`;
   observeReveals();
   countUp(el);
   if(justRecorded)justRecorded=false;
@@ -2228,22 +2244,41 @@ function playRitual(v,c){
 
 /* =============== badges / monthly issue =============== */
 const BADGES=[
-  {id:'first',n:'First Drip',jp:'はじめの一杯',icon:'☕',test:s=>s.cups>=1},
-  {id:'three',n:'Habit',jp:'習慣',icon:'🌱',test:s=>s.cups>=3},
-  {id:'five',n:'Regular',jp:'常連',icon:'🎟',test:s=>s.cups>=5},
-  {id:'ten',n:'Collector',jp:'蒐集家',icon:'📚',test:s=>s.cups>=10},
-  {id:'explorer',n:'Explorer',jp:'開拓者',icon:'🧭',test:s=>s.cafes>=5},
-  {id:'carto',n:'Cartographer',jp:'地図職人',icon:'🗺',test:s=>s.cafes>=10},
-  {id:'taster',n:'Connoisseur',jp:'目利き',icon:'🏅',test:s=>s.fives>=3},
-  {id:'devoted',n:'Devoted',jp:'皆勤',icon:'🔥',test:s=>s.thisMonth>=4},
+  {id:'first',  n:'First Drip',   jp:'はじめの一杯',icon:'☕', test:s=>s.cups>=1,        hint:s=>'最初の一杯を'},
+  {id:'collect',n:'Collector',    jp:'蒐集家',    icon:'📚', test:s=>s.cups>=25,        hint:s=>`あと${25-s.cups}杯`},
+  {id:'half',   n:'Half Century', jp:'五十杯',    icon:'🎖', test:s=>s.cups>=50,        hint:s=>`あと${50-s.cups}杯`},
+  {id:'century',n:'Centurion',    jp:'百杯',      icon:'💯', test:s=>s.cups>=100,       hint:s=>`あと${100-s.cups}杯`},
+  {id:'explorer',n:'Explorer',    jp:'開拓者',    icon:'🧭', test:s=>s.cafes>=10,       hint:s=>`あと${10-s.cafes}軒`},
+  {id:'carto',  n:'Cartographer', jp:'地図職人',  icon:'🗺', test:s=>s.cafes>=30,       hint:s=>`あと${30-s.cafes}軒`},
+  {id:'regular',n:'Regular',      jp:'常連',      icon:'🎟', test:s=>s.maxRevisit>=3,   hint:s=>`同じ店にあと${3-s.maxRevisit}回`},
+  {id:'sanct',  n:'Sanctuary',    jp:'行きつけ',  icon:'🔁', test:s=>s.maxRevisit>=5,   hint:s=>`同じ店にあと${5-s.maxRevisit}回`},
+  {id:'habit',  n:'Habit',        jp:'習慣',      icon:'🌱', test:s=>s.streak>=3,       hint:s=>`連続記録あと${3-s.streak}ヶ月`},
+  {id:'seasons',n:'Four Seasons', jp:'四季',      icon:'🍂', test:s=>s.months>=12,      hint:s=>`あと${12-s.months}ヶ月分`},
+  {id:'wander', n:'Wanderer',     jp:'旅人',      icon:'✈️', test:s=>s.travel>=5,       hint:s=>`旅先あと${5-s.travel}軒`},
+  {id:'taster', n:'Connoisseur',  jp:'目利き',    icon:'🏅', test:s=>s.fiveCafes>=5,    hint:s=>`★5の店あと${5-s.fiveCafes}軒`},
 ];
 function badgeStats(){
   const now=new Date();
+  // 店ごとの訪問回数 → 最多再訪
+  const perCafe={};visits.forEach(v=>{perCafe[v.cafeId]=(perCafe[v.cafeId]||0)+1});
+  const counts=Object.values(perCafe);
+  const maxRevisit=counts.length?Math.max(...counts):0;
+  // 記録のある月（YYYY-MM）と最長連続月数
+  const ms=[...new Set(visits.map(v=>v.date.slice(0,7)))].sort();
+  let streak=ms.length?1:0,run=ms.length?1:0;
+  for(let i=1;i<ms.length;i++){
+    const [y0,m0]=ms[i-1].split('-').map(Number),[y1,m1]=ms[i].split('-').map(Number);
+    run=(y1*12+m1===y0*12+m0+1)?run+1:1;
+    if(run>streak)streak=run;
+  }
+  // 生活圏外（旅先）のカフェ数 — 1番のhomeArea判定を流用
+  const home=homeArea();
+  const travel=home?cafes.filter(c=>c.lat!=null&&c.lng!=null&&haversineKm(home.lat,home.lng,c.lat,c.lng)>HOME_RADIUS_KM).length:0;
   return{
     cups:visits.length,
     cafes:cafes.length,
-    fives:visits.filter(v=>v.again>=5).length,
-    thisMonth:visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).length,
+    fiveCafes:new Set(visits.filter(v=>v.again>=5).map(v=>v.cafeId)).size,
+    maxRevisit,months:ms.length,streak,travel,
   };
 }
 /* On This Day — 思い出の一杯（日替わりで過去の記録を1つ） */
@@ -2264,12 +2299,35 @@ function memoryHTML(){
       <div class="mem-cap"><div class="mem-l">On This Day</div><h3>${esc(c.name)}</h3>${pick.drink?`<div class="mem-dr">${esc(pick.drink)}</div>`:''}<div class="mem-go">あの日をひらく →</div></div>
     </article>`;
 }
-/* 再訪リマインド — お気に入りでしばらく行ってない店 */
+/* 生活圏の自動推定 — 記録カフェの密集地（直近重み付け重心）。自宅住所は保存しない */
+function haversineKm(lat1,lng1,lat2,lng2){
+  const R=6371,r=Math.PI/180;
+  const dLat=(lat2-lat1)*r,dLng=(lng2-lng1)*r;
+  const s=Math.sin(dLat/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s));
+}
+const HOME_RADIUS_KM=50; // この半径内＝気軽に行ける生活圏
+function homeArea(){
+  // 平均重心は旅先など外れ値に引っ張られるため、最も通っている店（直近重み付け）を生活圏のアンカーにする
+  const now=Date.now();const w={};
+  visits.forEach(v=>{
+    const c=cafeById(v.cafeId);if(!c||c.lat==null||c.lng==null)return;
+    const days=(now-new Date(v.date))/864e5;
+    w[v.cafeId]=(w[v.cafeId]||0)+Math.exp(-days/180); // 半減期約4ヶ月：昔住んでいた土地は薄れていく
+  });
+  let best=null,bw=0;
+  for(const id in w){if(w[id]>bw){bw=w[id];best=id}}
+  if(!best)return null;
+  const c=cafeById(best);return{lat:c.lat,lng:c.lng};
+}
+/* 再訪リマインド — お気に入りでしばらく行ってない店（生活圏内に限る） */
 function revisitHTML(){
   if(cafes.length<2||visits.length<3)return '';
-  const now=new Date();let best=null;
+  const now=new Date();let best=null;const home=homeArea();
   cafes.forEach(c=>{
     const vs=visits.filter(v=>v.cafeId===c.id);if(!vs.length)return;
+    // 旅先など生活圏外の店はリマインド対象外（座標不明の店は判定できないので残す）
+    if(home&&c.lat!=null&&c.lng!=null&&haversineKm(home.lat,home.lng,c.lat,c.lng)>HOME_RADIUS_KM)return;
     const last=vs.reduce((m,v)=>v.date>m?v.date:m,vs[0].date);
     const days=(now-new Date(last))/864e5;
     const score=Math.max(...vs.map(v=>v.again||0));
@@ -2312,7 +2370,7 @@ function badgesHTML(){
   const s=badgeStats();const earned=BADGES.filter(b=>b.test(s)).length;
   return `<div class="secthead reveal"><span class="word">Badges</span><span class="lbl">あなたの記章 — ${earned} / ${BADGES.length}</span></div>
     <div class="badges reveal">${BADGES.map(b=>{const on=b.test(s);
-      return `<div class="badge ${on?'on':''}"><div class="bg-ic">${on?b.icon:'🔒'}</div><div class="bg-n">${b.n}</div><div class="bg-jp">${on?b.jp:'未獲得'}</div></div>`;
+      return `<div class="badge ${on?'on':''}"><div class="bg-ic">${on?b.icon:'🔒'}</div><div class="bg-n">${b.n}</div><div class="bg-jp">${on?b.jp:b.hint(s)}</div></div>`;
     }).join('')}</div>`;
 }
 
@@ -2556,7 +2614,26 @@ async function doRefresh(){
 }
 
 /* =============== boot =============== */
-function renderAll(){renderHome();renderCafes();if(map)initMap()}
+function renderAll(){renderHome();renderCafes();renderInsights();if(map)initMap()}
+/* ---- insights（統計＋バッジ） ---- */
+function renderInsights(){
+  const sec=$('#view-insights');if(!sec)return;
+  const s=badgeStats();
+  const now=new Date();
+  const thisMonth=visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).length;
+  const cards=[
+    {n:s.cups,    u:'cups',   l:'総杯数'},
+    {n:s.cafes,   u:'cafés',  l:'訪問した店'},
+    {n:thisMonth, u:'cups',   l:'今月'},
+    {n:s.months,  u:'months', l:'記録した月'},
+    {n:s.streak,  u:'months', l:'連続記録'},
+    {n:s.travel,  u:'cafés',  l:'旅先の店'},
+  ];
+  sec.innerHTML=`<div class="secthead reveal"><span class="word">Insights</span><span class="lbl">あなたの軌跡 — Drippinは溜まる</span></div>
+    <div class="statgrid reveal">${cards.map(c=>`<div class="statcard"><b>${c.n}</b><span class="su">${c.u}</span><span class="sl">${c.l}</span></div>`).join('')}</div>
+    ${badgesHTML()}`;
+  observeReveals();
+}
 load().then(async()=>{
   // 記録が0件のカフェを一掃（既存の孤立カフェ対策・初回のみ実質的に動く）
   const usedIds=new Set(visits.map(v=>v.cafeId));
@@ -2575,7 +2652,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(reg=>{reg.update();}).catch(()=>{});
 }
 /* =============== version & debug =============== */
-const APP_VER='0.9.33';
+const APP_VER='0.9.34';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
@@ -2598,10 +2675,12 @@ if(location.search.includes('debug')){
   cam.position.set(0,0,16);
 
   // warm studio lighting
-  scene.add(new THREE.AmbientLight(0xfff3e0,.85));
+  const amb=new THREE.AmbientLight(0xfff3e0,.85);scene.add(amb);
   const key=new THREE.DirectionalLight(0xfff0d8,1.6);key.position.set(6,10,8);scene.add(key);
   const rim=new THREE.DirectionalLight(0xffc890,.9);rim.position.set(-8,-4,-6);scene.add(rim);
   const fill=new THREE.PointLight(0xffe8c8,.7,40);fill.position.set(0,-6,10);scene.add(fill);
+  // 夜用の残り火（焙煎の灯り）。昼は消灯
+  const ember=new THREE.PointLight(0xff7a2e,0,30);ember.position.set(0,-2,5);scene.add(ember);
 
   // coffee bean: two scaled hemispheres with a crease
   function beanGeo(){
@@ -2646,6 +2725,30 @@ if(location.search.includes('debug')){
     o.position.set((Math.random()-.5)*30,(Math.random()-.5)*20,-16-Math.random()*10);
     scene.add(o);
   }
+
+  // テーマに応じて昼/夜のライティングを切替（夜＝暗いフォグ＋残り火）
+  function styleScene(){
+    const night=document.documentElement.dataset.theme==='night';
+    if(night){
+      scene.fog.color.setHex(0x1a1310);scene.fog.near=12;scene.fog.far=40;
+      amb.color.setHex(0x5a4330);amb.intensity=.9;
+      key.color.setHex(0xffe0b0);key.intensity=.85;
+      rim.color.setHex(0xffb066);rim.intensity=.8;
+      fill.intensity=.4;
+      ember.intensity=2.2;
+      orbMat.color.setHex(0x4a3320);orbMat.opacity=.22;
+    }else{
+      scene.fog.color.setHex(0xf5efe4);scene.fog.near=14;scene.fog.far=34;
+      amb.color.setHex(0xfff3e0);amb.intensity=.85;
+      key.intensity=1.6;
+      rim.color.setHex(0xffc890);rim.intensity=.9;
+      fill.intensity=.7;
+      ember.intensity=0;
+      orbMat.color.setHex(0xfdf6e8);orbMat.opacity=.5;
+    }
+  }
+  styleScene();
+  new MutationObserver(styleScene).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
   let mx=0,my=0,tx=0,ty=0;
   addEventListener('pointermove',e=>{tx=(e.clientX/innerWidth-.5);ty=(e.clientY/innerHeight-.5)});
