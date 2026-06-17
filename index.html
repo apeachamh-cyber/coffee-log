@@ -802,6 +802,7 @@ body.map-mode .route-fab{display:flex}
 .advtoggle.open{border-style:solid;color:var(--roast)}
 .advtoggle .ar{display:inline-block;transition:transform .3s}
 .advtoggle.open .ar{transform:rotate(180deg)}
+.advbox{padding-bottom:16px}
 .advbox[hidden]{display:none}
 
 /* sticky save bar inside sheet */
@@ -2610,7 +2611,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(reg=>{reg.update();}).catch(()=>{});
 }
 /* =============== version & debug =============== */
-const APP_VER='0.9.31';
+const APP_VER='0.9.32';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
