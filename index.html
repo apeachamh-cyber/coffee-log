@@ -89,12 +89,6 @@ html[data-theme="night"] .beanpick button.on svg path:not(.ck){fill:#C89A6B}
 .pager a.dis{opacity:.25;pointer-events:none}
 .pager span{letter-spacing:.32em;font-family:var(--serif);font-style:italic}
 
-/* ---------- flavor sliders + radar ---------- */
-.flv{display:grid;gap:9px;margin-top:4px}
-.frow{display:flex;align-items:center;gap:12px;font-size:12px}
-.frow span{width:3.2em;color:var(--roast);flex:none}
-.frow b{width:1.2em;text-align:center;color:var(--caramel-deep);font-family:var(--serif);font-weight:500}
-.frow input{flex:1;accent-color:var(--caramel)}
 
 /* ---------- masthead (Instagram-style profile) ---------- */
 header.masthead{
@@ -496,6 +490,8 @@ body.map-mode .locate-fab{display:flex}
 .beanpick button.on svg{transform:scale(1.08)}
 @keyframes beanPop{0%{transform:scale(.6) rotate(-20deg)}55%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1.08) rotate(0)}}
 .beanpick button.pop svg{animation:beanPop .4s cubic-bezier(.2,.8,.2,1)}
+/* C-5 両端ラベル（また行きたい度の意味づけ） */
+.bean-ends{display:flex;justify-content:space-between;max-width:178px;margin-top:7px;font-size:10.5px;letter-spacing:.04em;color:var(--roast);opacity:.6}
 /* tag chips */
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .chip{
@@ -1329,7 +1325,7 @@ function renderHome(){
   const lc=cafeById(latest.cafeId)||{name:'—'};
   const MQ='Drip by drip, pin by pin — A Personal Café Journal — '.repeat(4);
   const now=new Date(),thisMonth=visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).length;
-  const beanMiles=visits.reduce((s,v)=>s+(v.taste||0)+(v.space||0)+(v.again||0),0);
+  const beanMiles=visits.reduce((s,v)=>s+(v.again||0),0);
   el.innerHTML=`
   ${(!fbUser&&visits.length>=2&&!localStorage.getItem('drippin_backup_dismissed'))?`<div class="backup-banner" onclick="openAccount()"><span>☁</span><div><b>記録はこの端末だけに保存されています</b><span>タップして無料でバックアップ →</span></div><button class="banner-x" onclick="event.stopPropagation();localStorage.setItem('drippin_backup_dismissed','1');this.closest('.backup-banner').remove()">✕</button></div>`:''}
   <div class="statband">
@@ -1347,9 +1343,7 @@ function renderHome(){
       <h2>${esc(lc.name)}</h2>
       <div class="drink">${esc(latest.drink)||'&nbsp;'}</div>
       <div class="rating-row">
-        <span class="axis">味 ${beanRow(latest.taste)}</span>
-        <span class="axis">空間 ${beanRow(latest.space)}</span>
-        <span class="axis">再訪 ${beanRow(latest.again)}</span>
+        <span class="axis">また行きたい ${beanRow(latest.again)}</span>
       </div>
       ${latest.memo?`<div class="memo">${esc(latest.memo)}</div>`:''}
     </div>
@@ -1459,12 +1453,9 @@ window.openVisit=id=>{
         <h2 style="font-family:var(--serif-jp);font-weight:600;font-size:26px;letter-spacing:.04em;margin:4px 0">${esc(c.name)}</h2>
         <div style="font-family:var(--serif);font-style:italic;color:var(--roast)">${esc(v.drink)||''}</div>
         <div class="rating-row">
-          <span class="axis">味 ${beanRow(v.taste)}</span>
-          <span class="axis">空間 ${beanRow(v.space)}</span>
-          <span class="axis">再訪 ${beanRow(v.again)}</span>
+          <span class="axis">また行きたい ${beanRow(v.again)}</span>
         </div>
         ${v.memo?`<p style="font-size:13.5px;font-weight:350;margin-top:12px;border-top:1px solid var(--line-soft);padding-top:12px">${esc(v.memo)}</p>`:''}
-        ${radarSVG(v)}
         ${(v.photos&&v.photos.length>1)?`<div class="gallery">${v.photos.map((p,i)=>`<img src="${p}" loading="lazy" onclick="openVisitPhotos('${v.id}',${i})">`).join('')}</div>`:''}
         <div class="toolbar">
           <button class="minibtn" onclick="editVisit('${v.id}')">Edit ✎</button>
@@ -1499,21 +1490,6 @@ window.flipVisit=dir=>{ // +1=古い記録へ, -1=新しい記録へ
   },{passive:true});
 })();
 
-/* ---- flavor radar ---- */
-function radarSVG(v){
-  const vals=[v.acid||0,v.bitter||0,v.sweet||0,v.body||0];
-  if(!vals.some(x=>x>0))return '';
-  const cx=70,cy=70,R=50,labels=['酸味','苦味','甘み','コク'];
-  const pt=(i,r)=>{const a=-Math.PI/2+i*Math.PI/2;return [cx+r*Math.cos(a),cy+r*Math.sin(a)]};
-  const grid=[1,2,3,4,5].map(g=>`<polygon points="${[0,1,2,3].map(i=>pt(i,R*g/5).join(',')).join(' ')}" fill="none" stroke="var(--line-soft)"/>`).join('');
-  const axes=[0,1,2,3].map(i=>{const[x,y]=pt(i,R);return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line)"/>`}).join('');
-  const poly=vals.map((x,i)=>pt(i,R*x/5).join(',')).join(' ');
-  const lbl=[0,1,2,3].map(i=>{const[x,y]=pt(i,R+14);return `<text x="${x}" y="${y}" font-size="9.5" text-anchor="middle" dominant-baseline="middle" fill="var(--caramel-deep)" letter-spacing="2">${labels[i]}</text>`}).join('');
-  return `<div style="margin-top:14px;border-top:1px solid var(--line-soft);padding-top:6px">
-    <div style="font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--caramel-deep);text-align:center;margin-top:8px">Flavor</div>
-    <svg viewBox="0 0 140 140" style="width:178px;display:block;margin:6px auto 0;overflow:visible">${grid}${axes}<polygon points="${poly}" fill="rgba(176,125,79,.3)" stroke="var(--caramel)" stroke-width="1.5"/>${lbl}</svg></div>`;
-}
-
 /* ---- time of day theme ---- */
 function applyTimeTheme(){
   const h=new Date().getHours();
@@ -1540,8 +1516,7 @@ window.editVisit=id=>{
   const v=visits.find(x=>x.id===id);if(!v)return;
   const c=cafeById(v.cafeId)||{};
   draft={photos:[...(v.photos||(v.photo?[v.photo]:[])).filter(Boolean)],
-    taste:v.taste||3,space:v.space||3,again:v.again||3,
-    acid:v.acid||0,bitter:v.bitter||0,sweet:v.sweet||0,body:v.body||0,
+    again:v.again||3,
     tags:c.tags||[],lat:c.lat||null,lng:c.lng||null};
   const dateStr=v.date?new Date(v.date).toISOString().slice(0,10):new Date().toISOString().slice(0,10);
   openSheet(`
@@ -1553,10 +1528,7 @@ window.editVisit=id=>{
     </div>
     <div class="field"><label>Date — 訪問日</label><input type="date" id="fdate" value="${dateStr}"></div>
     <div class="field"><label>The Cup — 飲んだもの</label><input type="text" id="fdrink" placeholder="例：エチオピア ハンドドリップ" value="${esc(v.drink||'')}"></div>
-    <div class="field"><label>味 — Taste</label><div class="beanpick" data-key="taste">${[1,2,3,4,5].map(i=>`<button data-v="${i}" class="${i<=draft.taste?'on':''}">${BEAN}</button>`).join('')}</div></div>
-    <div class="field"><label>空間 — Atmosphere</label><div class="beanpick" data-key="space">${[1,2,3,4,5].map(i=>`<button data-v="${i}" class="${i<=draft.space?'on':''}">${BEAN}</button>`).join('')}</div></div>
-    <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}" class="${i<=draft.again?'on':''}">${BEAN}</button>`).join('')}</div></div>
-    ${flavorBlock()}
+    <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}" class="${i<=draft.again?'on':''}">${BEAN}</button>`).join('')}</div><div class="bean-ends"><span>もう行かない</span><span>通いたい</span></div></div>
     <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo">${esc(v.memo||'')}</textarea></div>
     <button type="button" class="advtoggle" onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden;this.classList.toggle('open')">カフェ情報を修正する <span class="ar">▾</span></button>
     <div class="advbox" hidden>
@@ -1573,7 +1545,7 @@ window.editVisit=id=>{
     </div>
     <div class="btnrow"><button class="btn ghost" onclick="tryCloseSheet()">閉じる</button><button class="btn primary" id="saveBtn">保存する</button></div>
   `);
-  wireFlavor();addSheetOpen=true;
+  addSheetOpen=true;
   renderThumbs();
   // photo upload (edit: add more photos)
   $('#pfile').onchange=async e=>{
@@ -1610,8 +1582,7 @@ window.editVisit=id=>{
     const dateVal=$('#fdate').value||new Date().toISOString().slice(0,10);
     target.photo=draft.photos[0];target.photos=draft.photos;
     target.drink=$('#fdrink').value.trim();
-    target.taste=draft.taste;target.space=draft.space;target.again=draft.again;
-    target.acid=draft.acid||0;target.bitter=draft.bitter||0;target.sweet=draft.sweet||0;target.body=draft.body||0;
+    target.again=draft.again;
     target.memo=$('#fmemo').value.trim();
     target.date=new Date(dateVal+'T12:00:00').toISOString();
     try{
@@ -1954,10 +1925,8 @@ $('#sheetBack').onclick=tryCloseSheet;
 })();
 
 $('#fab').onclick=()=>openAdd();
-const flavorBlock=()=>`<div class="field"><label>Flavor — 味覚チャート（任意）</label><div class="flv">${[['acid','酸味'],['bitter','苦味'],['sweet','甘み'],['body','コク']].map(([k,l])=>`<div class="frow"><span>${l}</span><input type="range" min="0" max="5" step="1" value="${draft[k]||0}" data-fk="${k}"><b data-fv="${k}">${draft[k]||0}</b></div>`).join('')}</div></div>`;
-const wireFlavor=()=>$$('input[data-fk]').forEach(r=>r.oninput=()=>{draft[r.dataset.fk]=+r.value;$('[data-fv="'+r.dataset.fk+'"]').textContent=r.value});
 function openAdd(prefill){
-  draft={photos:[],taste:0,space:0,again:0,acid:0,bitter:0,sweet:0,body:0,tags:[],lat:prefill?.lat??null,lng:prefill?.lng??null};
+  draft={photos:[],again:0,tags:[],lat:prefill?.lat??null,lng:prefill?.lng??null};
   openSheet(`
     <h2>New Entry<small>今日の一杯を記録</small></h2>
     <div class="field"><label>Photographs — 写真（複数OK）</label>
@@ -1984,16 +1953,12 @@ function openAdd(prefill){
     </div>
     <div class="field"><label>Date — 訪問日</label><input type="date" id="fdate" value="${new Date().toISOString().slice(0,10)}" data-auto="1" oninput="this.dataset.auto='0'"></div>
     <div class="field"><label>The Cup — 飲んだもの</label><input type="text" id="fdrink" placeholder="例：エチオピア ハンドドリップ"></div>
-    <div class="field"><label>味 — Taste</label><div class="beanpick" data-key="taste">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
-    <div class="field"><label>空間 — Atmosphere</label><div class="beanpick" data-key="space">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
-    <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div></div>
-    <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo" placeholder="窓際の席。浅煎りが華やかだった。"></textarea></div>
-    <button type="button" class="advtoggle" onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden;this.classList.toggle('open')">味覚チャートを追加する <span class="ar">▾</span></button>
-    <div class="advbox" hidden>${flavorBlock()}</div>
+    <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div><div class="bean-ends"><span>もう行かない</span><span>通いたい</span></div></div>
+    <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo" placeholder="窓際の席。浅煎りが華やかだった。苦味しっかりで好み。"></textarea></div>
     <div class="btnrow sticky"><button class="btn ghost" onclick="tryCloseSheet()">閉じる</button><button class="btn primary" id="saveBtn">記録する</button></div>
   `);
   draft.cafeMode='new';draft.cafeId=null;
-  wireSheet();wireFlavor();addSheetOpen=true;
+  wireSheet();addSheetOpen=true;
   if(prefill){
     $('#fcname').value=prefill.name||'';
   }
@@ -2181,8 +2146,7 @@ async function saveEntry(){
     }
     const dateVal=$('#fdate').value||new Date().toISOString().slice(0,10);
     var v={id:uid(),cafeId,photo:draft.photos[0],photos:draft.photos,drink:$('#fdrink').value.trim(),
-      taste:draft.taste||3,space:draft.space||3,again:draft.again||3,
-      acid:draft.acid||0,bitter:draft.bitter||0,sweet:draft.sweet||0,body:draft.body||0,
+      again:draft.again||3,
       memo:$('#fmemo').value.trim(),date:new Date(dateVal+'T12:00:00').toISOString()};
     await DB.put('visits',v);visits.push(v);visits.sort((a,b)=>b.date.localeCompare(a.date));
     cloudSaveVisit(v).catch(e=>console.error(e));
@@ -2611,7 +2575,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(reg=>{reg.update();}).catch(()=>{});
 }
 /* =============== version & debug =============== */
-const APP_VER='0.9.32';
+const APP_VER='0.9.33';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
