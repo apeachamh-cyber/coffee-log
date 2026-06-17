@@ -2183,7 +2183,7 @@ async function saveEntry(){
       taste:draft.taste||3,space:draft.space||3,again:draft.again||3,
       acid:draft.acid||0,bitter:draft.bitter||0,sweet:draft.sweet||0,body:draft.body||0,
       memo:$('#fmemo').value.trim(),date:new Date(dateVal+'T12:00:00').toISOString()};
-    await DB.put('visits',v);visits.unshift(v);
+    await DB.put('visits',v);visits.push(v);visits.sort((a,b)=>b.date.localeCompare(a.date));
     cloudSaveVisit(v).catch(e=>console.error(e));
   }catch(e){console.error('save',e);toast('保存に失敗しました');if(sb){sb.disabled=false;sb.textContent='記録する'}saving=false;return}
   saving=false;addSheetOpen=false;
