@@ -888,10 +888,87 @@ body.map-mode .route-fab{display:flex}
 .confirm-row .c-cancel{background:var(--milk);color:var(--roast);box-shadow:var(--shadow-soft)}
 .confirm-row .c-ok{background:#8c3b2e;color:var(--milk)}
 .confirm-row .c-ok.warn{background:linear-gradient(145deg,#c08a58,#9a6437)}
+/* =============== onboarding =============== */
+.onb{position:fixed;inset:0;z-index:300;background:var(--paper);display:none;flex-direction:column;
+  padding:max(46px,env(safe-area-inset-top)) 26px max(30px,env(safe-area-inset-bottom));overflow:hidden}
+.onb.on{display:flex;animation:onbIn .5s ease both}
+@keyframes onbIn{from{opacity:0}to{opacity:1}}
+.onb-skip{position:absolute;top:max(46px,env(safe-area-inset-top));right:24px;background:none;border:none;cursor:pointer;
+  font-family:var(--sans);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--caramel-deep);padding:6px}
+.onb-track{flex:1;position:relative;overflow:hidden}
+.onb-slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  padding:0 8px;opacity:0;transform:translateX(24px);transition:opacity .45s ease,transform .45s ease;pointer-events:none}
+.onb-slide.show{opacity:1;transform:none;pointer-events:auto}
+.onb-art{height:128px;display:flex;align-items:center;justify-content:center;margin-bottom:34px}
+.onb-kicker{font-family:var(--serif);font-style:italic;font-size:13px;letter-spacing:.06em;color:var(--caramel-deep);margin-bottom:14px}
+.onb-h{font-family:var(--serif-jp);font-weight:600;font-size:24px;line-height:1.5;letter-spacing:.04em;color:var(--espresso);max-width:300px}
+.onb-h em{font-family:var(--serif);font-style:italic;color:var(--caramel-deep)}
+.onb-p{font-size:13.5px;line-height:2;color:var(--roast);margin-top:18px;max-width:290px}
+.onb-foot{display:flex;flex-direction:column;align-items:center;gap:22px;padding-top:14px}
+.onb-dots{display:flex;gap:9px}
+.onb-dots i{width:7px;height:7px;border-radius:99px;background:var(--line);transition:all .3s ease}
+.onb-dots i.act{background:var(--caramel);width:22px}
+.onb-next{border:none;cursor:pointer;border-radius:99px;background:var(--espresso);color:var(--milk);
+  font-family:var(--sans);font-weight:700;font-size:13px;letter-spacing:.14em;padding:15px 46px;box-shadow:var(--shadow)}
+.onb-next.go{background:linear-gradient(145deg,#c08a58,#8C5E36)}
+.onb-mini{display:flex;align-items:center;gap:12px;margin-top:8px}
+.onb-mini .ic{flex:0 0 38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--milk);box-shadow:var(--shadow-soft);font-size:18px;color:var(--caramel-deep)}
+.onb-mini .tx{text-align:left;font-size:12px;line-height:1.6;color:var(--roast)}
+.onb-mini .tx b{color:var(--espresso);font-weight:700}
 </style>
 </head>
 <body>
 <canvas id="bg3d"></canvas>
+
+<div class="onb" id="onb">
+  <button class="onb-skip" onclick="finishOnb()">Skip</button>
+  <div class="onb-track" id="onbTrack">
+    <section class="onb-slide" data-i="0">
+      <div class="onb-art">
+        <svg width="78" height="103" viewBox="0 0 100 132" aria-hidden="true">
+          <defs><linearGradient id="onbg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#C49A6A"/><stop offset="1" stop-color="#8C5E36"/></linearGradient></defs>
+          <path d="M8 12 L92 12 L61 70 L39 70 Z" fill="none" stroke="url(#onbg)" stroke-width="7" stroke-linejoin="round"/>
+          <path d="M24 28 L76 28" stroke="#D9C5A6" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M50 84 C50 84 38 99 38 108 a12 12 0 0 0 24 0 C62 99 50 84 50 84 Z" fill="url(#onbg)"/>
+          <path d="M46.5 96 C53 102 46 110 51.5 115" fill="none" stroke="#F5EFE4" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="onb-kicker">Welcome to</div>
+      <h2 class="onb-h">Drippin へようこそ。<br>コーヒーとの出会いを、<br><em>自分だけの雑誌</em>に。</h2>
+      <p class="onb-p">SNSに流れて消える記録じゃない。あなたのためだけに、一杯ずつ溜まっていく場所です。</p>
+    </section>
+    <section class="onb-slide" data-i="1">
+      <div class="onb-art">
+        <svg width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="#8C5E36" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="4"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+      </div>
+      <div class="onb-kicker">How it works</div>
+      <h2 class="onb-h"><em>＋</em> ボタンで、<br>一杯を記録する。</h2>
+      <div class="onb-p" style="display:flex;flex-direction:column;gap:14px;margin-top:24px">
+        <div class="onb-mini"><span class="ic">📷</span><span class="tx"><b>写真と店名</b>を選ぶ。撮影日から訪問日も自動で入ります。</span></div>
+        <div class="onb-mini"><span class="ic">☕</span><span class="tx"><b>また行きたい度</b>を豆で。細かい採点はいりません。</span></div>
+        <div class="onb-mini"><span class="ic">✎</span><span class="tx"><b>一言</b>だけ。「酸味が好みだった」その感覚で十分。</span></div>
+      </div>
+    </section>
+    <section class="onb-slide" data-i="2">
+      <div class="onb-art">
+        <svg width="94" height="94" viewBox="0 0 24 24" fill="none" stroke="#8C5E36" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/>
+        </svg>
+      </div>
+      <div class="onb-kicker">It accumulates</div>
+      <h2 class="onb-h">ストーリーは流れる。<br><em>Drippinは溜まる。</em></h2>
+      <p class="onb-p">記録した店は地図にピンとして残り、訪れた軌跡になる。月を重ねるほど、あなただけのカフェ雑誌が分厚くなります。</p>
+    </section>
+  </div>
+  <div class="onb-foot">
+    <div class="onb-dots" id="onbDots"><i class="act"></i><i></i><i></i></div>
+    <button class="onb-next" id="onbNext" onclick="nextOnb()">次へ</button>
+  </div>
+</div>
 
 <header class="masthead">
   <div class="profile">
@@ -2613,6 +2690,26 @@ async function doRefresh(){
   }else{renderAll();toast('更新しました')}
 }
 
+/* =============== onboarding =============== */
+let _onbStep=0;
+function showSlide(n){
+  _onbStep=n;
+  document.querySelectorAll('.onb-slide').forEach(s=>s.classList.toggle('show',+s.dataset.i===n));
+  document.querySelectorAll('#onbDots i').forEach((d,i)=>d.classList.toggle('act',i===n));
+  const btn=$('#onbNext'),last=n===2;
+  btn.textContent=last?'はじめる ☕':'次へ';
+  btn.classList.toggle('go',last);
+}
+function nextOnb(){ if(_onbStep>=2){finishOnb();} else {showSlide(_onbStep+1);} }
+function finishOnb(){
+  localStorage.setItem('drippin_onboarded','1');
+  const o=$('#onb');o.style.transition='opacity .45s ease';o.style.opacity='0';
+  setTimeout(()=>{o.classList.remove('on');o.style.opacity='';o.style.transition='';},450);
+}
+function maybeOnboard(){
+  if(localStorage.getItem('drippin_onboarded'))return;
+  $('#onb').classList.add('on');showSlide(0);
+}
 /* =============== boot =============== */
 function renderAll(){renderHome();renderCafes();renderInsights();if(map)initMap()}
 /* ---- insights（統計＋バッジ） ---- */
@@ -2641,6 +2738,7 @@ load().then(async()=>{
   for(const c of orphans){await DB.del('cafes',c.id);cloudDeleteCafe(c.id).catch(()=>{})}
   if(orphans.length)cafes=cafes.filter(c=>usedIds.has(c.id));
   renderAll();
+  maybeOnboard();
 });
 /* =============== PWA =============== */
 if('serviceWorker' in navigator){
@@ -2652,7 +2750,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(reg=>{reg.update();}).catch(()=>{});
 }
 /* =============== version & debug =============== */
-const APP_VER='0.9.34';
+const APP_VER='0.9.35';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
