@@ -946,7 +946,7 @@ body.map-mode .route-fab{display:flex}
         </svg>
       </div>
       <div class="onb-kicker">How it works</div>
-      <h2 class="onb-h"><em>＋</em> ボタンで、<br>一杯を記録する。</h2>
+      <h2 class="onb-h"><em style="font-style:normal;display:inline-block">＋</em> ボタンで、<br>一杯を記録する。</h2>
       <div class="onb-p" style="display:flex;flex-direction:column;gap:14px;margin-top:24px">
         <div class="onb-mini"><span class="ic">📷</span><span class="tx"><b>写真と店名</b>を選ぶ。撮影日から訪問日も自動で入ります。</span></div>
         <div class="onb-mini"><span class="ic">☕</span><span class="tx"><b>また行きたい度</b>を豆で。細かい採点はいりません。</span></div>
@@ -2750,7 +2750,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(reg=>{reg.update();}).catch(()=>{});
 }
 /* =============== version & debug =============== */
-const APP_VER='0.9.36';
+const APP_VER='0.9.37';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
