@@ -210,6 +210,8 @@ body.lifted .hero h1 .en{opacity:1;transform:none}
   opacity:0;transform:translateY(14px);transition:opacity .9s ease 1.2s,transform .9s ease 1.2s;
 }
 body.lifted .hero p.lead{opacity:1;transform:none}
+/* 日本語：文節を途中で折り返さない */
+.nbr{display:inline-block}
 .hero-cta{
   display:inline-flex;align-items:center;gap:14px;
   font-family:var(--serif-jp);font-size:17px;letter-spacing:.18em;font-weight:600;
@@ -567,7 +569,7 @@ footer .flogo i{font-style:italic;color:var(--caramel-deep)}
     <span class="hline"><span>物語に。</span></span>
     <span class="en">— every cup tells a story —</span>
   </h1>
-  <p class="lead">出会ったカフェ、味わった一杯、流れた時間。<br>Drippinは、コーヒーと過ごす日々を一冊のジャーナルのように綴じていく、あなただけの記録帳です。</p>
+  <p class="lead"><span class="nbr">出会ったカフェ、</span><span class="nbr">味わった一杯、</span><span class="nbr">流れた時間。</span><br><span class="nbr">Drippinは、</span><span class="nbr">コーヒーと過ごす日々を</span><span class="nbr">一冊のジャーナルのように</span><span class="nbr">綴じていく、</span><span class="nbr">あなただけの記録帳です。</span></p>
   <a class="hero-cta magnetic" href="./index.html">Drippin をはじめる<span aria-hidden="true">→</span></a>
   <div class="hero-scroll">SCROLL</div>
 </section>
@@ -585,8 +587,8 @@ footer .flogo i{font-style:italic;color:var(--caramel-deep)}
 <!-- ================= PHILOSOPHY (scroll-scrub) ================= -->
 <section class="philo-scene" id="philo">
   <div class="philo-sticky">
-    <p class="philo-big" id="philoText"><span data-plain>飲んだら、忘れてしまう。</span><br><span data-accent>記したら、人生になる。</span></p>
-    <p class="philo-sub" id="philoSub">お気に入りのカフェの名前を、3ヶ月後に思い出せますか。あの日の一杯の余韻を、写真フォルダの海から見つけ出せますか。Drippinは「美味しかった」で終わらせないための、小さな習慣です。</p>
+    <p class="philo-big" id="philoText"><span data-plain>ストーリーは、流れる。</span><br><span data-accent>Drippinは、溜まる。</span></p>
+    <p class="philo-sub" id="philoSub">SNSに上げた一杯は、24時間で消えていく。お気に入りのカフェの名前を、3ヶ月後に思い出せますか。Drippinは、流して終わりにしない。訪れた店も、味わった一杯も、一冊の雑誌のように溜まっていく。あなただけのカフェの記録です。</p>
   </div>
 </section>
 
@@ -664,7 +666,7 @@ footer .flogo i{font-style:italic;color:var(--caramel-deep)}
           <div class="feat-num">03</div>
           <span class="en-tag">Beans</span>
           <h3>評価は、豆で。</h3>
-          <p>星じゃない。コーヒーの記録なら、豆で語ろう。5粒の焙煎豆で、あの一杯の満足度を直感的に刻む。あなたの味覚の年輪が、少しずつ育っていく。</p>
+          <p>星じゃない。コーヒーの記録なら、豆で語ろう。問いはひとつ、「また行きたいか」。5粒の焙煎豆で直感的に刻むだけ。細かい採点はいらない。だから、続く。</p>
         </div>
         <div class="feat-visual">
           <div class="vcard tilt">
@@ -677,7 +679,7 @@ footer .flogo i{font-style:italic;color:var(--caramel-deep)}
                 <g transform="translate(231,0) rotate(10 26 26)"><ellipse cx="26" cy="26" rx="22" ry="29" fill="#C9B99A"/><path d="M26 2 q9 24 0 48" stroke="#FDFBF6" stroke-width="3.5" fill="none"/></g>
                 <g transform="translate(308,0) rotate(-9 26 26)"><ellipse cx="26" cy="26" rx="22" ry="29" fill="#C9B99A"/><path d="M26 2 q9 24 0 48" stroke="#FDFBF6" stroke-width="3.5" fill="none"/></g>
               </g>
-              <text x="240" y="100" font-family="Shippori Mincho" font-size="20" fill="#4A372A" text-anchor="middle" letter-spacing="6">今日の一杯は──</text>
+              <text x="240" y="100" font-family="Shippori Mincho" font-size="20" fill="#4A372A" text-anchor="middle" letter-spacing="6">また、行きたい？</text>
               <text x="240" y="296" font-family="Playfair Display" font-style="italic" font-size="22" fill="#B07D4F" text-anchor="middle">3 of 5 beans</text>
             </svg>
           </div>

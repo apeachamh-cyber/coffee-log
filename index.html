@@ -889,7 +889,7 @@ body.map-mode .route-fab{display:flex}
 .confirm-row .c-ok{background:#8c3b2e;color:var(--milk)}
 .confirm-row .c-ok.warn{background:linear-gradient(145deg,#c08a58,#9a6437)}
 /* =============== onboarding =============== */
-.onb{position:fixed;inset:0;z-index:300;background:var(--paper);display:none;flex-direction:column;
+.onb{position:fixed;inset:0;z-index:8000;background:var(--paper);display:none;flex-direction:column;
   padding:max(46px,env(safe-area-inset-top)) 26px max(30px,env(safe-area-inset-bottom));overflow:hidden}
 .onb.on{display:flex;animation:onbIn .5s ease both}
 @keyframes onbIn{from{opacity:0}to{opacity:1}}
@@ -2750,7 +2750,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(reg=>{reg.update();}).catch(()=>{});
 }
 /* =============== version & debug =============== */
-const APP_VER='0.9.35';
+const APP_VER='0.9.36';
 document.getElementById('ver').textContent='v'+APP_VER;
 if(location.search.includes('debug')){
   const s=document.createElement('script');s.src='https://unpkg.com/eruda';
