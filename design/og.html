@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,500;1,600&family=Shippori+Mincho:wght@600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1200px;height:630px;overflow:hidden;
+  background:radial-gradient(120% 110% at 50% 0%,#FBF6EC 0%,#F5EFE4 45%,#EADFC9 100%);
+  display:flex;align-items:center;justify-content:center;position:relative;
+  font-family:'Playfair Display',serif}
+.grain{position:absolute;inset:0;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.17 0 0 0 0 0.12 0 0 0 0 0.09 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E")}
+.outline{position:absolute;left:50%;top:46px;transform:translateX(-50%);
+  font-style:italic;font-weight:500;font-size:200px;line-height:1;white-space:nowrap;
+  color:transparent;-webkit-text-stroke:2px rgba(176,125,79,.4)}
+.center{text-align:center;position:relative;margin-top:60px}
+.logo{width:110px;height:110px;margin:0 auto 8px;display:block}
+h1{font-style:italic;font-weight:600;font-size:96px;color:#2B2018;letter-spacing:.01em}
+.tag{font-size:24px;letter-spacing:.5em;text-transform:uppercase;color:#8C5E36;margin-top:10px}
+.jp{font-family:'Shippori Mincho',serif;font-weight:600;font-size:30px;letter-spacing:.18em;color:#4A372A;margin-top:30px}
+.rule{width:60px;height:2px;background:#B07D4F;margin:26px auto 0}
+</style></head>
+<body>
+<div class="grain"></div>
+<div class="outline">Drippin'</div>
+<div class="center">
+  <img class="logo" src="../icon.svg">
+  <h1>Drippin'</h1>
+  <div class="tag">A Personal Café Journal</div>
+  <div class="jp">あなたの一杯を、物語に。</div>
+  <div class="rule"></div>
+</div>
+</body></html>

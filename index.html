@@ -1,0 +1,2887 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F5EFE4">
+<title>Drippin — A Personal Café Journal</title>
+<meta name="description" content="あなたの一杯を、物語に。訪れたカフェを1ページずつ、自分だけの雑誌にしていく記録アプリ。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Drippin' — あなたの一杯を、物語に。">
+<meta property="og:description" content="訪れたカフェを1ページずつ、自分だけの雑誌に。記録×地図×共有のパーソナルカフェジャーナル。">
+<meta property="og:url" content="https://apeachamh-cyber.github.io/coffee-log/">
+<meta property="og:image" content="https://apeachamh-cyber.github.io/coffee-log/og.jpg">
+<meta property="og:site_name" content="Drippin">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Drippin">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Shippori+Mincho:wght@500;600&family=Noto+Sans+JP:wght@350;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<style>
+:root{
+  --paper:#F5EFE4;
+  --paper-deep:#EDE4D3;
+  --espresso:#2B2018;
+  --roast:#4A372A;
+  --caramel:#B07D4F;
+  --caramel-deep:#8C5E36;
+  --milk:#FDFBF6;
+  --line:rgba(43,32,24,.16);
+  --line-soft:rgba(43,32,24,.08);
+  --shadow:0 10px 40px rgba(43,32,24,.10);
+  --shadow-soft:0 4px 18px rgba(43,32,24,.07);
+  --serif:'Playfair Display',serif;
+  --serif-jp:'Shippori Mincho',serif;
+  --sans:'Noto Sans JP',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);font-weight:400;color:var(--espresso);
+  background:radial-gradient(120% 90% at 50% 0%,#FBF6EC 0%,#F5EFE4 45%,#EADFC9 100%) fixed;
+  letter-spacing:.01em;line-height:1.75;
+  min-height:100vh;
+}
+#bg3d{position:fixed;inset:0;z-index:-1;pointer-events:none}
+body.map-mode #bg3d{display:none}
+:root{
+  --glass:rgba(253,251,246,.58);
+  --glass-strong:rgba(253,251,246,.78);
+  --glass-line:rgba(255,255,255,.65);
+  --depth:0 1px 2px rgba(43,32,24,.06),0 12px 32px rgba(43,32,24,.12),0 44px 90px rgba(43,32,24,.14);
+}
+/* paper grain */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.17 0 0 0 0 0.12 0 0 0 0 0.09 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+::selection{background:var(--caramel);color:var(--milk)}
+
+/* ---------- time of day themes ---------- */
+html[data-theme="morning"] body{background:radial-gradient(120% 90% at 50% 0%,#FDFAF1 0%,#F8F2E6 45%,#EFE5CE 100%) fixed}
+html[data-theme="evening"] body{background:radial-gradient(120% 90% at 50% 0%,#F8EDDA 0%,#F1E2C6 45%,#E3CBA2 100%) fixed}
+html[data-theme="night"]{
+  --paper:#171210;--paper-deep:#100C0A;--espresso:#F2E9DA;--roast:#CBB8A4;
+  --milk:#251D17;--line:rgba(242,233,218,.18);--line-soft:rgba(242,233,218,.09);
+  --glass:rgba(32,25,19,.55);--glass-strong:rgba(32,25,19,.82);--glass-line:rgba(255,255,255,.09);
+}
+html[data-theme="night"] body{background:radial-gradient(120% 90% at 50% 0%,#221A14 0%,#171210 50%,#0C0907 100%) fixed}
+/* 夜は背景アニメを消さず、夜パレット（暗いフォグ＋残り火）にチューニングして表示 */
+/* 夜の地図：タイルは明るいまま・温かみフィルタのみ（暗いタイルは視認性が悪いため不使用） */
+html[data-theme="night"] #map{filter:sepia(.3) brightness(.9) saturate(.8)}
+/* 夜の豆：ON=明るい茶 / OFF=暗い茶（.offを必ず後に書いて優先させる） */
+html[data-theme="night"] .beans svg path:not(.ck){fill:#C89A6B}
+html[data-theme="night"] .beans .off svg path:not(.ck){fill:#5A4938}
+html[data-theme="night"] .beanpick svg path:not(.ck){fill:#5A4938}
+html[data-theme="night"] .beanpick button.on svg path:not(.ck){fill:#C89A6B}
+
+/* ---------- pager (page flip) ---------- */
+.pager{display:flex;justify-content:space-between;align-items:center;margin:20px 0 0;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--caramel-deep)}
+.pager a{cursor:pointer;padding:6px 2px}
+.pager a.dis{opacity:.25;pointer-events:none}
+.pager span{letter-spacing:.32em;font-family:var(--serif);font-style:italic}
+
+
+/* ---------- masthead (Instagram-style profile) ---------- */
+header.masthead{
+  position:relative;text-align:center;padding:max(16px,env(safe-area-inset-top)) 24px 14px;
+}
+/* 同期チップ（Drippinの横・さりげなく） */
+.sync-chip{
+  position:absolute;top:max(16px,env(safe-area-inset-top));right:18px;z-index:3;
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:var(--sans);font-size:11px;letter-spacing:.04em;color:var(--roast);
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:99px;
+  padding:6px 13px;cursor:pointer;
+  backdrop-filter:blur(12px) saturate(1.3);-webkit-backdrop-filter:blur(12px) saturate(1.3);
+  box-shadow:var(--shadow-soft);transition:all .3s;
+  animation:riseIn 1s .6s cubic-bezier(.2,.7,.2,1) both;
+}
+.sync-chip .jp{font-size:11px;letter-spacing:.04em;opacity:.85}
+.sync-chip.on{color:var(--caramel-deep);border-color:var(--caramel)}
+.sync-chip:active{transform:scale(.94)}
+.profile{
+  display:flex;align-items:center;justify-content:center;gap:16px;max-width:1080px;margin:0 auto;
+}
+.avatar{
+  width:54px;height:62px;flex:none;display:flex;align-items:center;justify-content:center;
+  animation:riseIn 1s .2s cubic-bezier(.2,.7,.2,1) both;
+}
+.pinfo{text-align:left}
+.pinfo h1{
+  font-family:var(--serif);font-weight:600;letter-spacing:.02em;
+  font-size:clamp(30px,8vw,46px);line-height:1;
+}
+.pinfo .sub{
+  font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--caramel-deep);margin-top:7px;
+}
+/* opening sequence */
+@keyframes riseIn{from{opacity:0;transform:translateY(34px) scale(.97);filter:blur(10px)}to{opacity:1;transform:none;filter:none}}
+.masthead h1{animation:riseIn 1.1s .3s cubic-bezier(.2,.7,.2,1) both}
+.masthead .sub{animation:riseIn .9s .5s cubic-bezier(.2,.7,.2,1) both}
+nav.tabs .inner{animation:riseIn .9s .7s cubic-bezier(.2,.7,.2,1) both}
+
+/* ---------- nav (floating glass console) ---------- */
+nav.tabs{
+  position:sticky;top:10px;z-index:1200;background:transparent;pointer-events:none;
+}
+nav.tabs .inner{
+  pointer-events:auto;width:max-content;margin:0 auto;display:flex;justify-content:center;gap:6px;
+  padding:6px 8px;border-radius:99px;
+  background:var(--glass);border:1px solid var(--glass-line);
+  backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);
+  box-shadow:var(--depth);
+}
+.tab-btn{
+  font-family:var(--sans);font-size:12px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--roast);background:none;border:none;cursor:pointer;
+  padding:9px 18px;border-radius:99px;transition:all .35s cubic-bezier(.2,.7,.2,1);
+}
+.tab-btn:hover{background:var(--paper-deep)}
+.tab-btn.active{background:var(--espresso);color:var(--paper);box-shadow:var(--shadow-soft)}
+.tab-btn .jp{font-size:10px;letter-spacing:.1em;display:block;line-height:1;margin-top:2px;opacity:.55}
+.tab-btn.on{color:var(--caramel-deep)}
+.tab-btn.on .jp{opacity:.9}
+
+main{max-width:1080px;margin:0 auto;padding:0 24px 140px}
+section.view{display:none;animation:fadeUp .6s cubic-bezier(.2,.7,.2,1) both}
+section.view.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- editorial bits ---------- */
+.kicker{
+  display:flex;align-items:center;gap:14px;margin:42px 0 20px;
+  font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--caramel-deep);
+}
+.kicker::before,.kicker::after{content:"";height:1px;background:var(--line);flex:0 0 36px}
+.kicker::after{flex:1}
+/* LP echoes — outline section word */
+.secthead{margin:72px 0 26px}
+.secthead .word{
+  font-family:var(--serif);font-style:italic;font-weight:500;line-height:.95;
+  font-size:clamp(46px,9vw,86px);letter-spacing:.01em;
+  color:transparent;-webkit-text-stroke:1.2px var(--caramel);
+  display:block;user-select:none;
+}
+.secthead .lbl{
+  display:flex;align-items:center;gap:14px;margin-top:10px;
+  font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--caramel-deep);
+}
+.secthead .lbl::after{content:"";height:1px;background:var(--line);flex:1}
+/* LP echoes — marquee divider */
+.mq{overflow:hidden;white-space:nowrap;margin:64px -24px 0;pointer-events:none}
+.mq .in{
+  display:inline-block;animation:mqslide 30s linear infinite;
+  font-family:var(--serif);font-style:italic;font-size:14px;letter-spacing:.34em;
+  text-transform:uppercase;color:var(--caramel-deep);opacity:.55;
+}
+@keyframes mqslide{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.mq .in{animation:none}}
+/* LP echoes — philosophy quote */
+.quote{
+  text-align:center;margin:58px auto 6px;max-width:560px;
+  font-family:var(--serif-jp);font-weight:600;font-size:clamp(16px,3vw,21px);
+  letter-spacing:.14em;line-height:2;color:var(--roast);
+}
+.quote::after{content:"";display:block;width:36px;height:1px;background:var(--caramel);margin:26px auto 0}
+
+/* ---------- welcome (first run) ---------- */
+.welcome{max-width:520px;margin:48px auto 0;text-align:center;padding:0 8px}
+.welcome .wmark{width:72px;height:72px;margin:0 auto 22px;display:block}
+.welcome h2{font-family:var(--serif-jp);font-weight:600;font-size:clamp(26px,6vw,34px);letter-spacing:.08em;line-height:1.6}
+.welcome .wlead{font-size:13.5px;font-weight:350;color:var(--roast);opacity:.85;margin-top:16px;line-height:2}
+.wsteps{display:grid;gap:14px;margin:34px 0 8px;text-align:left}
+.wsteps div{display:flex;align-items:center;gap:16px;background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:14px 18px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--shadow-soft)}
+.wsteps b{font-family:var(--serif);font-style:italic;font-weight:500;font-size:24px;color:var(--caramel);flex:none}
+.wsteps span{font-size:13px;font-weight:350;color:var(--roast)}
+.welcome .btn{width:100%;margin-top:14px;padding:16px}
+.welcome .hintline{font-size:11px;color:var(--roast);opacity:.55;margin-top:18px}
+
+/* ---------- empty state ---------- */
+.empty{
+  text-align:center;padding:90px 20px;
+}
+.empty .glyph{font-family:var(--serif);font-size:64px;font-style:italic;color:var(--caramel);line-height:1}
+.empty h2{font-family:var(--serif-jp);font-weight:600;font-size:24px;margin:18px 0 8px;letter-spacing:.08em}
+.empty p{font-size:13px;color:var(--roast);opacity:.75;font-weight:350}
+
+/* ---------- hero (latest entry, 3D tilt) ---------- */
+.hero{
+  position:relative;margin-top:34px;cursor:pointer;perspective:1200px;
+}
+.hero .tilt{
+  transform-style:preserve-3d;transition:transform .25s ease-out;will-change:transform;
+}
+.hero .photo{
+  aspect-ratio:4/5;max-height:72vh;width:100%;object-fit:cover;display:block;
+  border-radius:26px;box-shadow:var(--depth);
+}
+@media(min-width:760px){.hero .photo{aspect-ratio:16/10}}
+.hero .caption{
+  background:var(--glass-strong);border:1px solid var(--glass-line);border-radius:22px;
+  backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);
+  box-shadow:var(--depth);
+  margin:-64px 18px 0;position:relative;padding:26px 28px 24px;
+  transform:translateZ(60px);
+}
+@media(min-width:760px){
+  .hero .caption{width:min(480px,80%);margin:-110px auto 0}
+}
+.hero .date{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--caramel-deep)}
+.hero h2{font-family:var(--serif-jp);font-weight:600;font-size:clamp(22px,4.6vw,34px);line-height:1.3;letter-spacing:.04em;margin:6px 0 4px}
+.hero .drink{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--roast)}
+.hero .memo{font-size:13px;font-weight:350;color:var(--roast);margin-top:10px;border-top:1px solid var(--line-soft);padding-top:10px}
+
+/* bean rating */
+.beans{display:inline-flex;gap:3px;align-items:center}
+.beans svg{width:15px;height:15px;display:block}
+.beans .off svg path:not(.ck){fill:#C9B99A}
+.rating-row{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+.rating-row .axis{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.18em;color:var(--roast)}
+
+/* ---------- magazine grid ---------- */
+.maggrid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:22px 18px;margin-top:8px;
+}
+@media(min-width:760px){.maggrid{grid-template-columns:repeat(3,1fr);gap:38px 28px}}
+.entry{cursor:pointer;transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.entry:hover{transform:translateY(-4px)}
+.entry:nth-child(6n+1){grid-column:span 2}
+@media(min-width:760px){.entry:nth-child(6n+1){grid-column:span 2;grid-row:span 1}}
+.entry .ph{
+  width:100%;aspect-ratio:1/1;object-fit:cover;display:block;
+  border-radius:20px;box-shadow:0 2px 6px rgba(43,32,24,.08),0 18px 44px rgba(43,32,24,.16);
+  background:var(--paper-deep);transition:box-shadow .45s;
+}
+.entry:hover .ph{box-shadow:var(--depth)}
+/* scroll reveal (LP風・スクロールに合わせて立ち上がる) */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+.entry:nth-child(6n+1) .ph{aspect-ratio:16/9}
+.entry .meta{padding:12px 2px 0}
+.entry .d{font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--caramel-deep)}
+.entry h3{font-family:var(--serif-jp);font-weight:600;font-size:16px;letter-spacing:.04em;line-height:1.4;margin:2px 0}
+.entry .dr{font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--roast);opacity:.85}
+
+/* Archive — Instagram風 3列タイルグリッド */
+/* 列間を詰め、各カード下にヘアラインを通す → 3列ぶち抜きの罫線で行が区切られる */
+.maggrid.insta{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 4px}
+@media(min-width:760px){.maggrid.insta{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px}}
+.maggrid.insta .entry{position:relative;padding-bottom:11px}
+/* 各カード下の線を列間(4px)に2pxずつはみ出させて隣と連結 → 3列ぶち抜きの1本線に。色はsectheadの罫線と統一 */
+.maggrid.insta .entry::after{content:"";position:absolute;left:-2px;right:-2px;bottom:0;height:1px;background:var(--line)}
+.maggrid.insta .entry,.maggrid.insta .entry:nth-child(6n+1){grid-column:auto;grid-row:auto;min-width:0}
+.maggrid.insta .entry:hover{transform:none}
+.maggrid.insta .entry .ph,.maggrid.insta .entry:nth-child(6n+1) .ph{aspect-ratio:1/1;border-radius:7px;box-shadow:0 1px 3px rgba(43,32,24,.10)}
+.maggrid.insta .entry:hover .ph{box-shadow:0 4px 14px rgba(43,32,24,.20)}
+.maggrid.insta .meta{display:block;padding:0 3px 2px;text-align:center}
+.maggrid.insta .meta .d,.maggrid.insta .meta .dr{display:none}
+.entry .meta .idx{display:none}
+.maggrid.insta .meta .idx{display:block;font-family:var(--serif);font-style:italic;font-size:12px;letter-spacing:.12em;color:var(--caramel);line-height:1;margin-bottom:1px}
+.maggrid.insta .meta h3{
+  font-family:var(--serif-jp);font-weight:600;font-size:12px;letter-spacing:.06em;
+  line-height:1.3;margin:0;color:var(--espresso);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* ---------- map (fullscreen) ---------- */
+#map{
+  position:fixed;inset:0;height:100dvh;z-index:900;
+  filter:sepia(.18) saturate(.85);
+}
+body.map-mode header.masthead,body.map-mode footer{display:none}
+body.map-mode #view-map{transform:none!important;animation:none!important}
+/* floating console (Google Maps style) */
+body.map-mode nav.tabs{
+  position:fixed;top:0;left:0;right:0;background:transparent;border:none;
+  backdrop-filter:none;-webkit-backdrop-filter:none;pointer-events:none;
+}
+body.map-mode nav.tabs .inner{
+  pointer-events:auto;background:var(--milk);width:max-content;border-radius:99px;
+  box-shadow:var(--shadow);margin:14px auto 0;padding:6px 8px;
+}
+.mapconsole{
+  position:fixed;z-index:950;top:88px;left:50%;transform:translateX(-50%);
+  width:min(92vw,480px);display:none;flex-direction:column;gap:9px;
+}
+body.map-mode .mapconsole{display:flex}
+.searchbar{display:flex;align-items:center;background:var(--glass-strong);border:1px solid var(--glass-line);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-radius:99px;box-shadow:var(--depth);padding:4px 6px 4px 20px}
+.searchbar input{flex:1;border:none;background:none;outline:none;font-family:var(--sans);font-size:14px;color:var(--espresso);padding:10px 0;min-width:0}
+.searchbar input::placeholder{color:var(--roast);opacity:.45}
+.searchbar button{border:none;background:var(--espresso);color:var(--paper);border-radius:99px;padding:10px 18px;font-size:11px;letter-spacing:.14em;cursor:pointer;font-weight:500}
+.mapchips{display:flex;gap:8px;justify-content:center}
+.mapchip{font-size:11.5px;letter-spacing:.06em;padding:8px 16px;border-radius:99px;border:none;cursor:pointer;background:var(--milk);color:var(--roast);box-shadow:var(--shadow-soft);font-weight:500;transition:all .25s}
+.mapchip.on{background:var(--espresso);color:var(--paper)}
+.searchresults{background:var(--milk);box-shadow:var(--shadow);border-radius:20px;overflow:hidden;display:none}
+.searchresults div{padding:11px 20px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line-soft);font-weight:350}
+.searchresults div:last-child{border-bottom:none}
+.searchresults div:hover{background:var(--paper-deep)}
+/* genre chips (nearby ON のとき表示) */
+.genrechips{display:none;gap:8px;justify-content:center}
+body.map-mode.nearby-on .genrechips{display:flex}
+.genrechip{font-size:11px;padding:7px 14px;border-radius:99px;border:none;cursor:pointer;background:var(--milk);color:var(--roast);box-shadow:var(--shadow-soft);opacity:.5;font-weight:500;transition:all .25s}
+.genrechip.on{opacity:1;background:var(--caramel);color:var(--milk)}
+/* place card (Google Maps風・下からスライド) */
+.placecard{
+  position:fixed;left:50%;transform:translate(-50%,130%);bottom:max(18px,env(safe-area-inset-bottom));
+  width:min(92vw,440px);z-index:1250;
+  background:var(--glass-strong);border:1px solid var(--glass-line);border-radius:24px;
+  backdrop-filter:blur(26px) saturate(1.4);-webkit-backdrop-filter:blur(26px) saturate(1.4);
+  box-shadow:var(--depth);overflow:hidden;
+  transition:transform .45s cubic-bezier(.2,.8,.2,1);pointer-events:none;
+}
+.placecard.open{transform:translate(-50%,0);pointer-events:auto}
+.placecard img.cph{width:100%;height:132px;object-fit:cover;display:block}
+.placecard .pad{padding:14px 18px 16px}
+.placecard h4{font-family:var(--serif-jp);font-weight:600;font-size:16.5px;letter-spacing:.03em;padding-right:30px}
+.placecard .sub{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--caramel-deep);margin-top:2px}
+.placecard .acts{display:flex;gap:8px;margin-top:13px}
+.placecard .acts a{flex:1;text-align:center;font-size:11.5px;font-weight:500;padding:10px 8px;border-radius:99px;background:var(--espresso);color:var(--paper);cursor:pointer;text-decoration:none;white-space:nowrap}
+.placecard .acts a.ghost{background:var(--milk);color:var(--espresso);box-shadow:var(--shadow-soft)}
+.placecard .x{position:absolute;top:10px;right:12px;width:30px;height:30px;border:none;border-radius:50%;background:rgba(43,32,24,.45);color:#fff;font-size:15px;cursor:pointer;line-height:1;z-index:2}
+body.place-open .fab,body.place-open .locate-fab,body.place-open .route-fab{opacity:0;pointer-events:none}
+.disc-pin .dot{background:var(--milk);border-color:var(--caramel)}
+.wish-pin .dot{background:var(--caramel);border-color:var(--milk)}
+.wish-pin .dot span{color:var(--paper);font-size:14px}
+/* locate FAB (above the + button, map mode only) */
+.locate-fab{
+  position:fixed;right:29px;bottom:calc(max(26px,env(safe-area-inset-bottom)) + 78px);z-index:1300;
+  width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;display:none;
+  align-items:center;justify-content:center;background:var(--milk);color:var(--espresso);
+  box-shadow:var(--shadow);transition:transform .25s cubic-bezier(.2,.7,.2,1);
+}
+body.map-mode .locate-fab{display:flex}
+.locate-fab:active{transform:scale(.9)}
+.locate-fab svg{width:22px;height:22px;display:block}
+.pop .row{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.leaflet-top.leaflet-left{top:auto;bottom:96px}
+.leaflet-top .leaflet-control{margin-top:0}
+.leaflet-control-zoom{box-shadow:var(--shadow-soft)!important;border:none!important}
+.leaflet-control-zoom a{background:var(--milk)!important;color:var(--espresso)!important;border-color:var(--line-soft)!important}
+.leaflet-container{font-family:var(--sans);background:var(--paper-deep)}
+.leaflet-popup-content-wrapper{
+  background:var(--milk);border-radius:0;box-shadow:var(--shadow);
+}
+.leaflet-popup-content{margin:0;width:230px!important}
+.pop{padding:0}
+.pop img{width:100%;height:120px;object-fit:cover;display:block}
+.pop .pad{padding:12px 14px 14px}
+.pop h4{font-family:var(--serif-jp);font-weight:600;font-size:15px;letter-spacing:.04em}
+.pop .visits{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--caramel-deep);margin-top:2px}
+.pop a{font-size:11px;color:var(--caramel-deep);text-decoration:underline;cursor:pointer}
+/* photo pin — the collection on the map */
+.photo-pin{background:none;border:none}
+.photo-pin .frame{
+  width:52px;height:52px;border-radius:50%;overflow:hidden;
+  border:3px solid var(--milk);box-shadow:0 2px 6px rgba(43,32,24,.25),0 12px 26px rgba(43,32,24,.35);
+  transition:transform .25s cubic-bezier(.2,.7,.2,1);
+}
+.photo-pin .frame img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-pin::after{
+  content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);
+  border:7px solid transparent;border-top:9px solid var(--milk);border-bottom:0;
+  filter:drop-shadow(0 2px 2px rgba(43,32,24,.25));
+}
+.photo-pin:hover .frame{transform:scale(1.15)}
+@keyframes pinDrop{from{opacity:0;transform:translateY(-26px)}to{opacity:1;transform:none}}
+.photo-pin .frame{animation:pinDrop .5s cubic-bezier(.2,.8,.2,1) both}
+.bean-pin{background:none;border:none}
+.bean-pin .dot{
+  width:30px;height:30px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);
+  background:var(--espresso);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(43,32,24,.35);border:2px solid var(--paper);
+}
+.bean-pin .dot span{transform:rotate(45deg);font-size:13px}
+
+/* ---------- cafés list ---------- */
+.cafelist{display:grid;gap:14px;margin-top:8px}
+@media(min-width:760px){.cafelist{grid-template-columns:1fr 1fr;gap:18px}}
+.cafecard{
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:22px;
+  backdrop-filter:blur(20px) saturate(1.35);-webkit-backdrop-filter:blur(20px) saturate(1.35);
+  box-shadow:var(--shadow-soft);padding:20px 24px;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+  transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s;
+}
+.cafecard:hover{transform:translateY(-4px) scale(1.01);box-shadow:var(--depth)}
+.cafecard h3{font-family:var(--serif-jp);font-weight:600;font-size:17px;letter-spacing:.04em}
+.cafecard .tags{font-size:11px;color:var(--caramel-deep);font-weight:350;margin-top:2px}
+.cafecard .n{font-family:var(--serif);font-size:26px;font-weight:500;color:var(--caramel);line-height:1}
+.cafecard .nl{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--roast);opacity:.6;text-align:center}
+
+/* ---------- FAB ---------- */
+.fab{
+  position:fixed;right:22px;bottom:max(26px,env(safe-area-inset-bottom));z-index:1300;
+  width:62px;height:62px;border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(145deg,#3a2b20,#241a12);color:var(--paper);
+  font-size:28px;font-weight:300;line-height:1;
+  box-shadow:0 12px 30px rgba(43,32,24,.4),inset 0 1px 0 rgba(255,255,255,.12);
+  transition:transform .35s cubic-bezier(.2,.7,.2,1);
+}
+.fab:hover{transform:scale(1.07) rotate(90deg)}
+
+/* ---------- sheet (modal) ---------- */
+.sheet-back{
+  position:fixed;inset:0;background:rgba(28,20,14,.45);backdrop-filter:blur(4px);
+  z-index:1400;opacity:0;pointer-events:none;transition:opacity .35s;
+}
+.sheet-back.open{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:1500;
+  background:var(--glass-strong);border:1px solid var(--glass-line);
+  border-radius:28px 28px 0 0;
+  backdrop-filter:blur(30px) saturate(1.4);-webkit-backdrop-filter:blur(30px) saturate(1.4);
+  max-height:92vh;overflow-y:auto;
+  transform:translateY(105%);transition:transform .5s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 -18px 60px rgba(43,32,24,.3);
+  padding:26px 24px max(34px,env(safe-area-inset-bottom));
+}
+.sheet.open{transform:none}
+@media(min-width:760px){
+  .sheet{left:50%;right:auto;width:560px;transform:translate(-50%,105%)}
+  .sheet.open{transform:translate(-50%,0)}
+}
+.sheet .grab{width:42px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 18px}
+/* グラブバーのタッチ領域を広げる（4pxでは掴めない） */
+.sheet .grabzone{padding:14px 0 4px;margin:-20px 0 0;cursor:grab;touch-action:none}
+.sheet h2{font-family:var(--serif);font-weight:600;font-size:24px;letter-spacing:.03em}
+.sheet h2 small{font-family:var(--sans);display:block;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--caramel-deep);margin-top:4px;font-weight:500}
+.field{margin-top:20px}
+.field label{display:block;font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--roast);margin-bottom:7px;font-weight:500}
+.field input[type=text],.field textarea,.field select{
+  width:100%;border:none;border-bottom:1.5px solid var(--line);background:transparent;
+  font-family:var(--sans);font-size:16px;padding:8px 2px;color:var(--espresso);outline:none;
+  border-radius:0;transition:border-color .3s;
+}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--caramel)}
+.field textarea{resize:none;min-height:64px;line-height:1.7}
+/* photo drop */
+.photodrop{
+  margin-top:8px;aspect-ratio:16/9;border:1.5px dashed var(--line);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  color:var(--roast);font-size:12px;letter-spacing:.1em;background:var(--paper-deep);
+  background-size:cover;background-position:center;transition:border-color .3s;
+}
+.photodrop:hover{border-color:var(--caramel)}
+.photodrop.has{border-style:solid;color:transparent}
+.photothumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.photothumbs .thumb-wrap{position:relative;width:58px;height:58px;flex-shrink:0}
+.photothumbs img{width:58px;height:58px;object-fit:cover;border-radius:12px;cursor:pointer;opacity:.75;border:2px solid transparent;box-shadow:var(--shadow-soft)}
+.photothumbs img.cover{opacity:1;border-color:var(--caramel)}
+.photothumbs .thumb-del{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--roast);color:var(--milk);font-size:11px;line-height:18px;text-align:center;cursor:pointer;z-index:1;border:none;padding:0;font-style:normal;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.gallery img{cursor:pointer;border:2px solid transparent;transition:border-color .25s,opacity .25s;opacity:.85}
+.gallery img.cur{border-color:var(--caramel);opacity:1}
+.gallery img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;box-shadow:var(--shadow-soft);cursor:pointer}
+#locresults{margin-top:8px}
+#locresults div{padding:9px 14px;font-size:12.5px;background:var(--glass);border:1px solid var(--glass-line);border-radius:14px;margin-bottom:6px;cursor:pointer;font-weight:350}
+#locresults div:hover{background:var(--paper-deep)}
+/* bean input */
+.beanpick{display:flex;gap:8px;margin-top:4px}
+.beanpick button{background:none;border:none;cursor:pointer;padding:2px}
+.beanpick svg{width:26px;height:26px;transition:transform .2s;opacity:1}
+.beanpick svg path:not(.ck){fill:#C9B99A;transition:fill .2s}
+.beanpick button.on svg path:not(.ck){fill:#8C5E36}
+.beanpick button.on svg{transform:scale(1.08)}
+@keyframes beanPop{0%{transform:scale(.6) rotate(-20deg)}55%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1.08) rotate(0)}}
+.beanpick button.pop svg{animation:beanPop .4s cubic-bezier(.2,.8,.2,1)}
+/* C-5 両端ラベル（また行きたい度の意味づけ） */
+.bean-ends{display:flex;justify-content:space-between;max-width:178px;margin-top:7px;font-size:10.5px;letter-spacing:.04em;color:var(--roast);opacity:.6}
+/* tag chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.chip{
+  font-size:12px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);
+  background:transparent;cursor:pointer;color:var(--roast);font-weight:350;transition:all .25s;
+}
+.chip.on{background:var(--espresso);color:var(--paper);border-color:var(--espresso)}
+/* mini map for cafe location */
+#pickmap{height:200px;margin-top:8px;box-shadow:var(--shadow-soft)}
+.hint{font-size:11px;color:var(--roast);opacity:.6;margin-top:6px;font-weight:350}
+/* buttons */
+.btnrow{display:flex;gap:12px;margin-top:30px}
+.btn{
+  flex:1;border:none;cursor:pointer;border-radius:99px;padding:15px 22px;
+  font-family:var(--sans);font-size:13px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  transition:transform .25s,box-shadow .25s;
+}
+.btn.primary{
+  background:linear-gradient(145deg,#c08a58,#9a6437);color:var(--milk);
+  box-shadow:0 8px 22px rgba(140,94,54,.4),inset 0 1px 0 rgba(255,255,255,.25);
+}
+.btn.primary:hover{transform:translateY(-2px)}
+.btn.ghost{background:transparent;color:var(--roast);border:1px solid var(--line)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.dark{background:var(--espresso);color:var(--paper);box-shadow:var(--shadow-soft)}
+
+/* ---------- detail view ---------- */
+.detail-top{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-top:36px;flex-wrap:wrap}
+.detail-top h2{font-family:var(--serif-jp);font-weight:600;font-size:clamp(26px,6vw,40px);letter-spacing:.05em;line-height:1.25}
+.backlink{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--caramel-deep);background:none;border:none;cursor:pointer;padding:6px 0}
+.visit-article{margin-top:46px}
+.visit-article img.main{width:100%;max-height:70vh;object-fit:cover;box-shadow:var(--shadow)}
+.visit-article .body{background:var(--milk);box-shadow:var(--shadow-soft);margin:-40px 14px 0;position:relative;padding:22px 24px}
+@media(min-width:760px){.visit-article .body{margin:-60px auto 0;width:min(560px,86%)}}
+.toolbar{display:flex;gap:10px;margin-top:16px}
+.minibtn{
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;
+  border:1px solid var(--line);background:transparent;color:var(--roast);
+  border-radius:99px;padding:8px 16px;cursor:pointer;transition:all .25s;
+}
+.minibtn:hover{background:var(--espresso);color:var(--paper);border-color:var(--espresso)}
+.minibtn.danger:hover{background:#8c3b2e;border-color:#8c3b2e}
+
+/* ---------- share modal ---------- */
+.share-wrap{text-align:center}
+.share-wrap canvas{
+  width:min(62vw,250px);box-shadow:var(--shadow);margin:18px auto 6px;display:block;
+}
+.tplrow{display:flex;justify-content:center;gap:10px;margin-top:14px}
+
+/* footer */
+footer{
+  text-align:center;padding:60px 20px 120px;
+  font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--roast);opacity:.5;
+}
+.toast{
+  position:fixed;left:50%;bottom:110px;transform:translate(-50%,20px);z-index:2000;
+  background:var(--espresso);color:var(--paper);font-size:13px;padding:12px 26px;border-radius:99px;
+  opacity:0;pointer-events:none;transition:all .4s cubic-bezier(.2,.7,.2,1);box-shadow:var(--shadow);
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ============================================================
+   THE RITUAL — 記録完了の儀式（体験の核）
+   ============================================================ */
+.ritual{
+  position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(120% 90% at 50% 18%,#3a2b1e 0%,#241a12 48%,#0c0907 100%);
+  opacity:0;pointer-events:none;transition:opacity .55s ease;
+}
+.ritual.show{opacity:1;pointer-events:auto}
+.r-stage{text-align:center;transform:translateY(8px) scale(.98);transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.ritual.show .r-stage{transform:none}
+.r-pour{width:118px;height:auto;display:block;margin:0 auto;overflow:visible}
+.r-dripper{fill:none;stroke:url(#rgold);stroke-width:5.5;stroke-linejoin:round}
+.r-bar{stroke:#D9C5A6;stroke-width:3;stroke-linecap:round}
+.r-cupbody{fill:none;stroke:rgba(217,197,166,.7);stroke-width:3}
+/* カップ底(y≈149)を支点にscaleYで満ちる＝液面が下からせり上がる自然な注ぎ */
+.r-fill{fill:url(#rcoffee);transform:translateY(149px) scaleY(0) translateY(-149px)}
+.ritual.show .r-fill{animation:rfill 1.5s .4s cubic-bezier(.33,.68,.32,1) forwards}
+@keyframes rfill{0%{transform:translateY(149px) scaleY(.05) translateY(-149px)}100%{transform:translateY(149px) scaleY(1) translateY(-149px)}}
+.r-drop{fill:#9a6437;opacity:0}
+.ritual.show .r-drop{animation:rdrop 1.05s linear .35s 3}
+.ritual.show .r-drop.d2{animation-delay:.85s}
+@keyframes rdrop{0%{opacity:0;transform:translateY(0)}12%{opacity:1}80%{opacity:1;transform:translateY(34px)}81%{opacity:0;transform:translateY(34px)}100%{opacity:0;transform:translateY(34px)}}
+.r-steam{stroke:rgba(217,197,166,.5);stroke-width:2.4;stroke-linecap:round;fill:none;opacity:0}
+.ritual.show .r-steam{animation:rsteam 2.4s ease-in-out 1.6s infinite}
+@keyframes rsteam{0%{opacity:0;transform:translateY(4px)}40%{opacity:.7}100%{opacity:0;transform:translateY(-14px)}}
+.r-meta{margin-top:26px;opacity:0;transform:translateY(14px)}
+.ritual.show .r-meta{animation:rmeta .8s 1.9s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes rmeta{to{opacity:1;transform:none}}
+.r-pageno{font-family:var(--serif);font-style:italic;font-size:13px;letter-spacing:.42em;color:#C49A6A;text-transform:uppercase}
+.r-pageno b{font-style:normal;font-weight:600;font-size:15px}
+.r-cafe{font-family:var(--serif-jp);font-weight:600;font-size:clamp(24px,6vw,32px);color:#FDFBF6;letter-spacing:.06em;margin:10px 0 4px;line-height:1.4;padding:0 24px}
+.r-beans svg path:not(.ck){fill:#C49A6A}
+.r-beans .off svg path:not(.ck){fill:#5a4632}
+.r-tag{font-family:var(--serif-jp);font-size:13px;color:rgba(217,197,166,.85);letter-spacing:.16em;margin-top:18px;line-height:2}
+.r-tag::before{content:"";display:block;width:30px;height:1px;background:rgba(196,154,106,.6);margin:0 auto 18px}
+@media(prefers-reduced-motion:reduce){
+  .ritual.show .r-fill,.ritual.show .r-drop,.ritual.show .r-steam{animation:none}
+  .ritual.show .r-meta{animation:rmeta .4s 0s forwards}
+  .r-fill{transform:none}
+}
+
+/* ============================================================
+   STAT BAND — 雑誌が育つ実感
+   ============================================================ */
+.statband{
+  display:flex;justify-content:center;gap:0;margin:26px auto 0;max-width:460px;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.statband .st{flex:1;text-align:center;padding:16px 4px;position:relative}
+.statband .st+.st::before{content:"";position:absolute;left:0;top:22%;height:56%;width:1px;background:var(--line-soft)}
+.statband .st b{display:block;font-family:var(--serif);font-weight:500;font-size:clamp(26px,6vw,34px);color:var(--caramel-deep);line-height:1}
+.statband .st span{display:block;font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--roast);opacity:.65;margin-top:6px}
+
+/* journey passport overlay (map) */
+.passport{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:max(22px,env(safe-area-inset-bottom));
+  z-index:940;display:none;align-items:center;gap:14px;
+  background:var(--glass-strong);border:1px solid var(--glass-line);border-radius:99px;
+  backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);
+  box-shadow:var(--depth);padding:9px 20px;
+}
+body.map-mode .passport{display:flex}
+body.map-mode.place-open .passport,body.map-mode.nearby-on .passport{opacity:0;pointer-events:none;transition:opacity .3s}
+.passport .pp{text-align:center}
+.passport .pp b{font-family:var(--serif);font-weight:500;font-size:17px;color:var(--caramel-deep);line-height:1}
+.passport .pp span{display:block;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--roast);opacity:.65;margin-top:2px}
+.passport .pp+.pp{border-left:1px solid var(--line-soft);padding-left:14px}
+/* route toggle FAB（現在地ボタンの上に積む・マップ時のみ） */
+.route-fab{
+  position:fixed;right:29px;bottom:calc(max(26px,env(safe-area-inset-bottom)) + 142px);z-index:1300;
+  width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;display:none;
+  align-items:center;justify-content:center;background:var(--milk);color:var(--caramel);
+  box-shadow:var(--shadow);opacity:.5;transition:transform .25s cubic-bezier(.2,.7,.2,1),opacity .2s;
+}
+body.map-mode .route-fab{display:flex}
+.route-fab.on{opacity:1;color:var(--caramel-deep)}
+.route-fab:active{transform:scale(.9)}
+.route-fab svg{width:22px;height:22px;display:block}
+
+/* ============================================================
+   WAVE 2 — hero develop / monthly issue / badges
+   ============================================================ */
+/* hero develops like a polaroid when you just recorded */
+@keyframes develop{
+  0%{filter:sepia(.55) contrast(.92) brightness(1.12) blur(9px);opacity:.25;transform:scale(1.015)}
+  100%{filter:none;opacity:1;transform:none}
+}
+.hero.develop .photo{animation:develop 1.5s cubic-bezier(.2,.7,.2,1) both}
+.hero.develop .caption{animation:riseIn 1s .5s cubic-bezier(.2,.7,.2,1) both}
+
+/* This Month's Issue */
+.issue-cover{
+  display:flex;align-items:stretch;gap:0;margin-top:8px;border-radius:22px;overflow:hidden;
+  background:var(--glass);border:1px solid var(--glass-line);box-shadow:var(--shadow-soft);
+  backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);
+}
+.ic-strip{display:flex;flex:1;min-width:0}
+.ic-strip img{flex:1;min-width:0;height:108px;object-fit:cover;display:block;border-right:1px solid var(--milk)}
+.ic-meta{flex:none;width:108px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--espresso);color:var(--paper)}
+.ic-n{font-family:var(--serif);font-weight:500;font-size:42px;line-height:1;color:#E0BC85}
+.ic-l{font-size:9px;letter-spacing:.22em;text-transform:uppercase;opacity:.7;margin-top:6px;text-align:center;padding:0 8px}
+
+/* Insights — 統計カード */
+.statgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
+@media(min-width:520px){.statgrid{gap:14px}}
+.statcard{
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:16px;
+  padding:16px 8px 13px;text-align:center;box-shadow:var(--shadow-soft);min-width:0;
+}
+.statcard b{display:block;font-family:var(--serif);font-weight:500;font-size:30px;line-height:1;color:var(--espresso)}
+.statcard .su{display:block;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--caramel-deep);margin-top:5px}
+.statcard .sl{display:block;font-size:11px;letter-spacing:.04em;color:var(--roast);opacity:.8;margin-top:4px}
+
+/* Badges — 記章 */
+.badges{display:flex;gap:14px;overflow-x:auto;padding:6px 2px 14px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.badges::-webkit-scrollbar{display:none}
+.badge{
+  flex:none;width:104px;scroll-snap-align:start;text-align:center;
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:16px 10px 14px;
+  box-shadow:var(--shadow-soft);opacity:.42;filter:grayscale(.7);transition:transform .4s cubic-bezier(.2,.7,.2,1),opacity .4s,filter .4s;
+}
+.badge.on{opacity:1;filter:none}
+.badge.on:hover{transform:translateY(-4px)}
+.bg-ic{
+  width:50px;height:50px;margin:0 auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;
+  background:radial-gradient(circle at 32% 28%,#fff7ea,#e9d6b6);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 4px 12px rgba(140,94,54,.25);
+}
+.badge.on .bg-ic{background:radial-gradient(circle at 32% 28%,#F0D49A,#B07D4F);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 6px 16px rgba(140,94,54,.45)}
+.bg-n{font-family:var(--serif);font-style:italic;font-weight:500;font-size:14px;color:var(--espresso);line-height:1.2}
+.bg-jp{font-size:10px;color:var(--roast);opacity:.7;margin-top:3px;letter-spacing:.08em}
+@keyframes badgePop{0%{transform:scale(.4) rotate(-12deg);opacity:0}60%{transform:scale(1.15) rotate(6deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+.badge.justEarned .bg-ic{animation:badgePop .7s cubic-bezier(.2,.8,.2,1) both}
+
+/* ============================================================
+   WAVE 3 — badge win / lightbox / loading
+   ============================================================ */
+/* badge earned celebration */
+.badgewin{
+  position:fixed;left:50%;top:max(80px,calc(env(safe-area-inset-top) + 70px));transform:translate(-50%,-18px);
+  z-index:2600;display:flex;align-items:center;gap:13px;
+  background:var(--glass-strong);border:1px solid var(--glass-line);border-radius:99px;
+  backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);
+  box-shadow:var(--depth);padding:9px 22px 9px 11px;opacity:0;pointer-events:none;
+  transition:opacity .5s cubic-bezier(.2,.8,.2,1),transform .5s cubic-bezier(.2,.8,.2,1);
+}
+.badgewin.show{opacity:1;transform:translate(-50%,0)}
+.badgewin .m{
+  width:44px;height:44px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:21px;
+  background:radial-gradient(circle at 32% 28%,#F0D49A,#B07D4F);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 5px 14px rgba(140,94,54,.45);
+}
+.badgewin.show .m{animation:badgePop .7s cubic-bezier(.2,.8,.2,1) both}
+.badgewin .t span{display:block;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--caramel-deep)}
+.badgewin .t b{font-family:var(--serif);font-style:italic;font-weight:500;font-size:15px;color:var(--espresso)}
+
+/* lightbox — 全画面写真ビューア */
+.lightbox{
+  position:fixed;inset:0;z-index:2700;background:rgba(16,11,8,.94);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .35s ease;touch-action:pan-y;
+}
+.lightbox.open{opacity:1;pointer-events:auto}
+.lightbox img{max-width:96vw;max-height:84vh;object-fit:contain;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+.lb-x{position:fixed;top:max(16px,env(safe-area-inset-top));right:18px;width:42px;height:42px;border:none;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:18px;cursor:pointer;z-index:2;backdrop-filter:blur(8px)}
+.lb-dots{position:fixed;bottom:max(28px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;gap:8px}
+.lb-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .25s,transform .25s}
+.lb-dots i.on{background:#E0BC85;transform:scale(1.25)}
+.lb-nav{position:fixed;top:50%;transform:translateY(-50%);width:44px;height:44px;border:none;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:20px;cursor:pointer;z-index:2;backdrop-filter:blur(8px);display:none}
+@media(pointer:fine){.lb-nav{display:block}}
+.lb-prev{left:14px}.lb-next{right:14px}
+.lightbox .taphint{position:fixed;bottom:max(54px,calc(env(safe-area-inset-bottom) + 26px));left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.2em;color:rgba(255,255,255,.4);text-transform:uppercase}
+
+/* loading indicator */
+.loadingrow{padding:14px 20px!important;display:flex;align-items:center;gap:10px;color:var(--roast);font-size:13px;font-weight:350}
+.spin{width:15px;height:15px;border:2px solid var(--line);border-top-color:var(--caramel);border-radius:50%;animation:spin .7s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mapchip.loading{opacity:.7;pointer-events:none}
+.photo,.entry .ph,.visit-article img.main,.gallery img,.hero .photo{cursor:zoom-in}
+
+/* ============================================================
+   CHURN DEFENSE + WAVE 5
+   ============================================================ */
+/* backup warning banner */
+.backup-banner{
+  display:flex;align-items:center;gap:13px;margin:18px 0 0;cursor:pointer;
+  background:linear-gradient(135deg,rgba(176,125,79,.14),rgba(140,94,54,.08));
+  border:1px solid rgba(176,125,79,.32);border-radius:18px;padding:13px 16px;
+  transition:transform .3s;
+}
+.backup-banner:active{transform:scale(.99)}
+.backup-banner>span{font-size:20px;flex:none}
+.backup-banner b{display:block;font-size:12.5px;color:var(--espresso);font-weight:500;line-height:1.4}
+.backup-banner>div>span{font-size:11px;color:var(--caramel-deep)}
+.backup-banner i{margin-left:auto;font-style:normal;font-size:20px;color:var(--caramel);flex:none}
+.banner-x{margin-left:auto;background:none;border:none;font-size:16px;color:var(--caramel);cursor:pointer;padding:2px 4px;flex:none;line-height:1}
+.cafe-tabs{display:flex;gap:0;border-bottom:1px solid var(--line-soft);margin-bottom:14px}
+.cafe-tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;padding:10px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--caramel-deep);cursor:pointer;transition:color .2s,border-color .2s}
+.cafe-tab.on{color:var(--espresso);border-bottom-color:var(--caramel)}
+.cafe-search{display:flex;gap:8px;margin:12px 0 4px;align-items:center}
+.cafe-search .searchwrap{flex:1;position:relative;display:flex;align-items:center}
+.cafe-search .search-ico{position:absolute;left:13px;width:17px;height:17px;color:var(--caramel-deep);opacity:.75;pointer-events:none}
+.cafe-search input{flex:1;width:100%;font-family:var(--sans);font-size:14px;color:var(--espresso);background:var(--milk);border:1px solid var(--line);border-radius:12px;padding:10px 14px 10px 40px;transition:border-color .2s}
+.cafe-search input:focus{outline:none;border-color:var(--caramel)}
+.cafe-search input::placeholder{color:var(--roast);opacity:.55}
+.cafe-sort{font-family:var(--sans);font-size:12px;color:var(--espresso);background:var(--milk);border:1px solid var(--line);border-radius:10px;padding:9px 10px;cursor:pointer;white-space:nowrap}
+.cafe-noresult{text-align:center;padding:40px 0;color:var(--caramel-deep);font-size:14px}
+.wish-cafecard{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line-soft);cursor:default}
+.wish-cafecard h3{font-size:14px;font-weight:500;margin:0 0 4px}
+.wish-cafecard .wc-acts a{font-size:12px;color:var(--caramel-deep);text-decoration:underline;cursor:pointer;margin-right:12px}
+.cluster-pin .cl-dot{width:40px;height:40px;border-radius:50%;background:var(--caramel);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.22);border:2px solid #fff}
+.rategrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
+.rategrid>div{display:flex;flex-direction:column;align-items:center;gap:4px}
+.ratelbl{font-size:11px;color:var(--caramel-deep);letter-spacing:.04em}
+/* cafe choice selector */
+.cafe-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.cafe-choice-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 10px;border:1.5px solid var(--line);border-radius:14px;background:var(--milk);cursor:pointer;font-size:12px;letter-spacing:.04em;color:var(--roast);transition:all .2s;font-family:var(--sans);line-height:1.3;text-align:center;width:100%}
+.cafe-choice-btn.on{border-color:var(--caramel);background:var(--paper-deep);color:var(--espresso)}
+.cafe-choice-btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.cafe-choice-btn .cc-icon{font-size:20px}
+.cafe-choice-btn .cc-count{font-size:10px;color:var(--caramel-deep);opacity:.7}
+.past-cafe-search{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13.5px;background:var(--milk);margin:10px 0 6px;font-family:var(--sans);color:var(--espresso);outline:none}
+.past-cafe-list{max-height:190px;overflow-y:auto;border:1px solid var(--line-soft);border-radius:10px;background:var(--milk)}
+.past-cafe-item{display:flex;align-items:center;padding:11px 14px;font-size:13.5px;cursor:pointer;border-bottom:1px solid var(--line-soft);font-family:var(--serif-jp)}
+.past-cafe-item:last-child{border-bottom:none}
+.past-cafe-item.selected,.past-cafe-item:active{background:var(--paper-deep)}
+.past-cafe-selected{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--paper-deep);border:1.5px solid var(--caramel);border-radius:10px;margin-top:6px;font-size:13.5px;font-family:var(--serif-jp)}
+.past-cafe-selected button{margin-left:auto;border:none;background:none;font-size:18px;cursor:pointer;color:var(--roast);padding:0}
+
+/* bean mileage */
+.beanmile{
+  text-align:center;margin:14px 0 0;font-size:11.5px;letter-spacing:.06em;color:var(--roast);font-weight:350;
+}
+.beanmile b{font-family:var(--serif);font-style:italic;font-weight:500;font-size:16px;color:var(--caramel-deep);margin:0 3px}
+
+/* account / data sheet */
+.acct{display:flex;align-items:center;gap:14px;margin-top:18px;padding:16px;border-radius:16px}
+.acct.ok{background:rgba(120,160,110,.12);border:1px solid rgba(120,160,110,.3)}
+.acct.warn{background:rgba(200,120,60,.12);border:1px solid rgba(200,120,60,.32)}
+.acct-ic{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--milk)}
+.acct.ok .acct-ic{background:#7a9a6b}.acct.warn .acct-ic{background:#c8783c}
+.acct b{display:block;font-size:14px;color:var(--espresso);font-weight:600}
+.acct>div>span{font-size:11.5px;color:var(--roast);word-break:break-all}
+.acct-row{display:flex;gap:12px;margin-top:14px}
+.acct-row .btn{font-size:12px;padding:13px 10px;letter-spacing:.1em}
+
+/* collapsible advanced fields */
+.advtoggle{
+  width:100%;margin-top:22px;background:none;border:1px dashed var(--line);border-radius:14px;
+  padding:13px;color:var(--caramel-deep);font-family:var(--sans);font-size:12px;font-weight:500;
+  letter-spacing:.12em;cursor:pointer;transition:all .25s;
+}
+.advtoggle:hover{border-color:var(--caramel);background:var(--paper-deep)}
+.advtoggle.open{border-style:solid;color:var(--roast)}
+.advtoggle .ar{display:inline-block;transition:transform .3s}
+.advtoggle.open .ar{transform:rotate(180deg)}
+.advbox{padding-bottom:16px}
+.advbox[hidden]{display:none}
+
+/* sticky save bar inside sheet */
+.btnrow.sticky{
+  position:sticky;bottom:0;z-index:5;margin:26px -24px -34px;padding:16px 24px max(22px,env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--glass-strong) 62%,rgba(253,251,246,0));
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+
+/* pull-to-record indicator */
+.pullind{
+  position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:1150;
+  display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:0 0 16px 16px;
+  background:var(--glass-strong);border:1px solid var(--glass-line);border-top:none;
+  box-shadow:var(--shadow-soft);font-size:11px;letter-spacing:.1em;color:var(--caramel-deep);
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.pullind .pi{font-size:15px;transition:transform .3s}
+.pullind.ready{color:var(--espresso)}
+.pullind.ready .pi{transform:rotate(180deg)}
+
+/* ============================================================
+   RETENTION — On This Day memory / revisit reminder
+   ============================================================ */
+.memory{position:relative;display:block;border-radius:22px;overflow:hidden;cursor:pointer;box-shadow:var(--depth);margin-top:8px}
+.memory img{width:100%;height:264px;object-fit:cover;display:block;transition:transform .7s cubic-bezier(.2,.7,.2,1);filter:saturate(.9)}
+.memory:hover img{transform:scale(1.04)}
+.memory .mem-cap{position:absolute;inset:auto 0 0 0;padding:46px 22px 20px;background:linear-gradient(to top,rgba(24,17,11,.85),rgba(24,17,11,.1) 70%,transparent);color:var(--milk)}
+.mem-l{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:#E0BC85}
+.memory h3{font-family:var(--serif-jp);font-weight:600;font-size:22px;letter-spacing:.04em;margin-top:5px;color:#FDFBF6}
+.mem-dr{font-family:var(--serif);font-style:italic;font-size:13px;opacity:.86;margin-top:2px}
+.mem-go{font-size:11px;letter-spacing:.12em;color:#E0BC85;margin-top:10px}
+.revisit{display:flex;align-items:center;gap:13px;margin-top:24px;cursor:pointer;
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:14px 16px;
+  box-shadow:var(--shadow-soft);transition:transform .3s;
+  backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);}
+.revisit:active{transform:scale(.99)}
+.rv-ic{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:19px;
+  background:radial-gradient(circle at 32% 28%,#F0D49A,#B07D4F);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 4px 12px rgba(140,94,54,.3)}
+.revisit b{display:block;font-size:13px;color:var(--espresso);font-weight:600;line-height:1.45}
+.revisit>div>span{font-size:11px;color:var(--roast)}
+.revisit i{margin-left:auto;font-style:normal;font-size:20px;color:var(--caramel);flex:none}
+
+/* ============================================================
+   WISHLIST activation
+   ============================================================ */
+.wishrow{display:flex;gap:13px;overflow-x:auto;padding:6px 2px 14px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.wishrow::-webkit-scrollbar{display:none}
+.wishcard{
+  flex:none;width:174px;scroll-snap-align:start;display:flex;flex-direction:column;gap:10px;
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:14px 15px 13px;
+  box-shadow:var(--shadow-soft);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+}
+.wc-top{display:flex;align-items:center;justify-content:space-between}
+.wc-pin{font-size:15px}
+.wc-x{border:none;background:none;color:var(--roast);opacity:.4;font-size:13px;cursor:pointer;padding:2px 4px;line-height:1}
+.wc-x:hover{opacity:1}
+.wishcard h4{font-family:var(--serif-jp);font-weight:600;font-size:14.5px;letter-spacing:.03em;line-height:1.45;min-height:2.7em}
+.wc-acts{display:flex;gap:7px;margin-top:auto}
+.wc-acts a{flex:1;text-align:center;font-size:11px;font-weight:500;padding:8px 4px;border-radius:99px;background:var(--espresso);color:var(--paper);cursor:pointer;text-decoration:none}
+.wc-acts a.ghost{background:var(--milk);color:var(--espresso);box-shadow:var(--shadow-soft)}
+
+/* in-app confirm dialog (replaces native confirm) */
+.confirm-back{position:fixed;inset:0;background:rgba(28,20,14,.5);backdrop-filter:blur(4px);z-index:2800;opacity:0;pointer-events:none;transition:opacity .3s;display:flex;align-items:center;justify-content:center;padding:28px}
+.confirm-back.open{opacity:1;pointer-events:auto}
+.confirm-card{width:min(340px,100%);background:var(--glass-strong);border:1px solid var(--glass-line);border-radius:24px;backdrop-filter:blur(26px) saturate(1.4);-webkit-backdrop-filter:blur(26px) saturate(1.4);box-shadow:var(--depth);padding:26px 24px 20px;text-align:center;transform:scale(.94);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.confirm-back.open .confirm-card{transform:none}
+.confirm-card h3{font-family:var(--serif-jp);font-weight:600;font-size:18px;letter-spacing:.04em;color:var(--espresso)}
+.confirm-card p{font-size:12.5px;color:var(--roast);margin-top:8px;line-height:1.7}
+.confirm-row{display:flex;gap:11px;margin-top:22px}
+.confirm-row button{flex:1;border:none;cursor:pointer;border-radius:99px;padding:13px;font-family:var(--sans);font-size:12.5px;font-weight:700;letter-spacing:.12em}
+.confirm-row .c-cancel{background:var(--milk);color:var(--roast);box-shadow:var(--shadow-soft)}
+.confirm-row .c-ok{background:#8c3b2e;color:var(--milk)}
+.confirm-row .c-ok.warn{background:linear-gradient(145deg,#c08a58,#9a6437)}
+/* =============== onboarding =============== */
+.onb{position:fixed;inset:0;z-index:8000;background:var(--paper);display:none;flex-direction:column;
+  padding:max(46px,env(safe-area-inset-top)) 26px max(30px,env(safe-area-inset-bottom));overflow:hidden}
+.onb.on{display:flex;animation:onbIn .5s ease both}
+@keyframes onbIn{from{opacity:0}to{opacity:1}}
+.onb-skip{position:absolute;top:max(46px,env(safe-area-inset-top));right:24px;background:none;border:none;cursor:pointer;
+  font-family:var(--sans);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--caramel-deep);padding:6px}
+.onb-track{flex:1;position:relative;overflow:hidden}
+.onb-slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  padding:0 8px;opacity:0;transform:translateX(24px);transition:opacity .45s ease,transform .45s ease;pointer-events:none}
+.onb-slide.show{opacity:1;transform:none;pointer-events:auto}
+.onb-art{height:128px;display:flex;align-items:center;justify-content:center;margin-bottom:34px}
+.onb-kicker{font-family:var(--serif);font-style:italic;font-size:13px;letter-spacing:.06em;color:var(--caramel-deep);margin-bottom:14px}
+.onb-h{font-family:var(--serif-jp);font-weight:600;font-size:24px;line-height:1.5;letter-spacing:.04em;color:var(--espresso);max-width:300px}
+.onb-h em{font-family:var(--serif);font-style:italic;color:var(--caramel-deep)}
+.onb-p{font-size:13.5px;line-height:2;color:var(--roast);margin-top:18px;max-width:290px}
+.onb-foot{display:flex;flex-direction:column;align-items:center;gap:22px;padding-top:14px}
+.onb-dots{display:flex;gap:9px}
+.onb-dots i{width:7px;height:7px;border-radius:99px;background:var(--line);transition:all .3s ease}
+.onb-dots i.act{background:var(--caramel);width:22px}
+.onb-next{border:none;cursor:pointer;border-radius:99px;background:var(--espresso);color:var(--milk);
+  font-family:var(--sans);font-weight:700;font-size:13px;letter-spacing:.14em;padding:15px 46px;box-shadow:var(--shadow)}
+.onb-next.go{background:linear-gradient(145deg,#c08a58,#8C5E36)}
+.onb-mini{display:flex;align-items:center;gap:12px;margin-top:8px}
+.onb-mini .ic{flex:0 0 38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--milk);box-shadow:var(--shadow-soft);font-size:18px;color:var(--caramel-deep)}
+.onb-mini .tx{text-align:left;font-size:12px;line-height:1.6;color:var(--roast)}
+.onb-mini .tx b{color:var(--espresso);font-weight:700}
+</style>
+</head>
+<body>
+<canvas id="bg3d"></canvas>
+
+<div class="onb" id="onb">
+  <button class="onb-skip" onclick="finishOnb()">Skip</button>
+  <div class="onb-track" id="onbTrack">
+    <section class="onb-slide" data-i="0">
+      <div class="onb-art">
+        <svg width="78" height="103" viewBox="0 0 100 132" aria-hidden="true">
+          <defs><linearGradient id="onbg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#C49A6A"/><stop offset="1" stop-color="#8C5E36"/></linearGradient></defs>
+          <path d="M8 12 L92 12 L61 70 L39 70 Z" fill="none" stroke="url(#onbg)" stroke-width="7" stroke-linejoin="round"/>
+          <path d="M24 28 L76 28" stroke="#D9C5A6" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M50 84 C50 84 38 99 38 108 a12 12 0 0 0 24 0 C62 99 50 84 50 84 Z" fill="url(#onbg)"/>
+          <path d="M46.5 96 C53 102 46 110 51.5 115" fill="none" stroke="#F5EFE4" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="onb-kicker">Welcome to</div>
+      <h2 class="onb-h">Drippin へようこそ。<br>コーヒーとの出会いを、<br><em>自分だけの雑誌</em>に。</h2>
+      <p class="onb-p">SNSに流れて消える記録じゃない。あなたのためだけに、一杯ずつ溜まっていく場所です。</p>
+    </section>
+    <section class="onb-slide" data-i="1">
+      <div class="onb-art">
+        <svg width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="#8C5E36" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="4"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+      </div>
+      <div class="onb-kicker">How it works</div>
+      <h2 class="onb-h"><em style="font-style:normal;display:inline-block">＋</em> ボタンで、<br>一杯を記録する。</h2>
+      <div class="onb-p" style="display:flex;flex-direction:column;gap:14px;margin-top:24px">
+        <div class="onb-mini"><span class="ic">📷</span><span class="tx"><b>写真と店名</b>を選ぶ。撮影日から訪問日も自動で入ります。</span></div>
+        <div class="onb-mini"><span class="ic">☕</span><span class="tx"><b>また行きたい度</b>を豆で。細かい採点はいりません。</span></div>
+        <div class="onb-mini"><span class="ic">✎</span><span class="tx"><b>一言</b>だけ。「酸味が好みだった」その感覚で十分。</span></div>
+      </div>
+    </section>
+    <section class="onb-slide" data-i="2">
+      <div class="onb-art">
+        <svg width="94" height="94" viewBox="0 0 24 24" fill="none" stroke="#8C5E36" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/>
+        </svg>
+      </div>
+      <div class="onb-kicker">It accumulates</div>
+      <h2 class="onb-h">ストーリーは流れる。<br><em>Drippinは溜まる。</em></h2>
+      <p class="onb-p">記録した店は地図にピンとして残り、訪れた軌跡になる。月を重ねるほど、あなただけのカフェ雑誌が分厚くなります。</p>
+    </section>
+  </div>
+  <div class="onb-foot">
+    <div class="onb-dots" id="onbDots"><i class="act"></i><i></i><i></i></div>
+    <button class="onb-next" id="onbNext" onclick="nextOnb()">次へ</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="profile">
+    <div class="avatar">
+      <svg width="42" height="55" viewBox="0 0 100 132" aria-hidden="true">
+        <defs><linearGradient id="ghead" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#C49A6A"/><stop offset="1" stop-color="#8C5E36"/></linearGradient></defs>
+        <path d="M8 12 L92 12 L61 70 L39 70 Z" fill="none" stroke="url(#ghead)" stroke-width="7" stroke-linejoin="round"/>
+        <path d="M24 28 L76 28" stroke="#D9C5A6" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M50 84 C50 84 38 99 38 108 a12 12 0 0 0 24 0 C62 99 50 84 50 84 Z" fill="url(#ghead)"/>
+        <path d="M46.5 96 C53 102 46 110 51.5 115" fill="none" stroke="#F5EFE4" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="pinfo">
+      <h1>Drippin</h1>
+      <div class="sub">A Personal Café Journal</div>
+    </div>
+  </div>
+  <button class="sync-chip" id="syncBtn" onclick="openAccount()" title="クラウド同期" aria-label="クラウド同期">☁<span class="jp">同期</span></button>
+</header>
+
+<nav class="tabs"><div class="inner">
+  <button class="tab-btn active" data-view="home">Journal<span class="jp">記録</span></button>
+  <button class="tab-btn" data-view="map">Map<span class="jp">地図</span></button>
+  <button class="tab-btn" data-view="cafes">Cafés<span class="jp">店</span></button>
+  <button class="tab-btn" data-view="insights">Stats<span class="jp">統計</span></button>
+</div></nav>
+
+<main>
+  <!-- HOME -->
+  <section class="view active" id="view-home"></section>
+  <!-- MAP -->
+  <section class="view" id="view-map"><div id="map"></div>
+    <div class="mapconsole">
+      <div class="searchbar"><input id="mapq" placeholder="カフェ・場所を検索" enterkeyhint="search"><button id="mapgo">検索</button></div>
+      <div class="searchresults" id="mapresults"></div>
+      <div class="mapchips">
+        <button class="mapchip on" id="chipVisited">☕ 訪問済み</button>
+        <button class="mapchip on" id="chipWish">🔖 気になる</button>
+        <button class="mapchip" id="chipNearby">周辺のカフェ</button>
+      </div>
+      <div class="genrechips">
+        <button class="genrechip on" data-genre="cafe">☕ カフェ</button>
+        <button class="genrechip on" data-genre="sweets">🍰 スイーツ</button>
+        <button class="genrechip on" data-genre="bakery">🥐 ベーカリー</button>
+      </div>
+    </div>
+  </section>
+  <!-- CAFES -->
+  <section class="view" id="view-cafes"><div class="secthead"><span class="word">Cafés</span><span class="lbl">The Collection — あなたの店リスト</span></div><div class="cafelist" id="cafeList"></div></section>
+  <!-- INSIGHTS -->
+  <section class="view" id="view-insights"></section>
+  <!-- DETAIL -->
+  <section class="view" id="view-detail"></section>
+</main>
+
+<footer>Drippin — drip by drip, pin by pin<span id="ver" style="opacity:.4;font-size:9px;margin-left:10px"></span><br><a href="./privacy.html" target="_blank" rel="noopener" style="color:inherit;opacity:.55;font-size:10px;text-decoration:underline;text-underline-offset:2px">プライバシーポリシー</a></footer>
+
+<button class="fab" id="fab" title="記録する">＋</button>
+<!-- place card は body直下に置く（iOSではアニメーション持ちセクション内のfixedが画面外にズレるため） -->
+<div class="placecard" id="placecard"></div>
+<button class="locate-fab" id="locateBtn" title="現在地" aria-label="現在地">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/>
+    <line x1="12" y1="1.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.5"/>
+    <line x1="1.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.5" y2="12"/>
+  </svg>
+</button>
+<button class="route-fab on" id="ppLineToggle" title="ルートの表示／非表示" aria-label="ルート表示切替" onclick="toggleJourneyLine()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="6" cy="18" r="2.3" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="2.3" fill="currentColor" stroke="none"/>
+    <path d="M7.7 16.3 L16.3 7.7" stroke-dasharray="2 2.6"/>
+  </svg>
+</button>
+
+<!-- ADD SHEET -->
+<div class="sheet-back" id="sheetBack"></div>
+<div class="sheet" id="sheet">
+  <div class="grabzone" id="grabzone"><div class="grab"></div></div>
+  <div id="sheetBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- THE RITUAL — body直下（fixedオーバーレイの原則） -->
+<div class="ritual" id="ritual" aria-hidden="true">
+  <div class="r-stage">
+    <svg class="r-pour" viewBox="0 0 120 165" aria-hidden="true">
+      <defs>
+        <linearGradient id="rgold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E0BC85"/><stop offset="1" stop-color="#9a6437"/></linearGradient>
+        <linearGradient id="rcoffee" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6e4527"/><stop offset="1" stop-color="#2e1d10"/></linearGradient>
+      </defs>
+      <path class="r-dripper" d="M28 24 L92 24 L66 66 L54 66 Z"/>
+      <line class="r-bar" x1="40" y1="33" x2="80" y2="33"/>
+      <circle class="r-drop d1" cx="60" cy="72" r="3.1"/>
+      <circle class="r-drop d2" cx="60" cy="72" r="3.1"/>
+      <path class="r-cupbody" d="M37 104 H83 L78.5 143 a6 6 0 0 1 -6 5.4 H49.5 a6 6 0 0 1 -6 -5.4 Z"/>
+      <clipPath id="rcup"><path d="M37 104 H83 L78.5 143 a6 6 0 0 1 -6 5.4 H49.5 a6 6 0 0 1 -6 -5.4 Z"/></clipPath>
+      <rect class="r-fill" clip-path="url(#rcup)" x="37" y="106" width="46" height="43"/>
+      <path class="r-steam" d="M54 100 C50 94 58 90 54 84"/>
+      <path class="r-steam" d="M66 100 C62 94 70 90 66 84" style="animation-delay:2.1s"/>
+    </svg>
+    <div class="r-meta">
+      <div class="r-pageno">Page <b>1</b></div>
+      <div class="r-cafe">—</div>
+      <div class="r-beans"></div>
+      <div class="r-tag">あなたの雑誌に、新しい1ページ。</div>
+    </div>
+  </div>
+</div>
+
+<!-- IN-APP CONFIRM — body直下 -->
+<div class="confirm-back" id="confirmBack">
+  <div class="confirm-card">
+    <h3 id="cfTitle">確認</h3>
+    <p id="cfMsg"></p>
+    <div class="confirm-row">
+      <button class="c-cancel" id="cfCancel">やめる</button>
+      <button class="c-ok" id="cfOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- PULL TO REFRESH — 引いて更新 -->
+<div class="pullind" id="pullInd"><span class="pi">↓</span><span id="pullTxt">引いて更新</span></div>
+
+<!-- BADGE WIN — 記章獲得の瞬間 -->
+<div class="badgewin" id="badgewin"><div class="m"></div><div class="t"><span>New Badge — 記章獲得</span><b></b></div></div>
+
+<!-- LIGHTBOX — 全画面写真ビューア -->
+<div class="lightbox" id="lightbox">
+  <button class="lb-x" onclick="closeLightbox()" aria-label="閉じる">✕</button>
+  <button class="lb-nav lb-prev" onclick="lbStep(-1)" aria-label="前">‹</button>
+  <img id="lbImg" alt="">
+  <button class="lb-nav lb-next" onclick="lbStep(1)" aria-label="次">›</button>
+  <div class="lb-dots" id="lbDots"></div>
+</div>
+
+<!-- JOURNEY PASSPORT — 旅の地図のステータス -->
+<div class="passport" id="passport">
+  <div class="pp"><b id="ppCafes">0</b><span>Cafés</span></div>
+  <div class="pp"><b id="ppCups">0</b><span>Cups</span></div>
+  <div class="pp"><b id="ppSince">—</b><span>Since</span></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+/* =============== utilities =============== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const BEAN='<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#8C5E36" transform="rotate(-14 12 12)" d="M12 2.2A8.3 9.8 0 1 0 12.001 2.2Z"/><path class="ck" fill="none" stroke="#F5EFE4" stroke-width="1.7" stroke-linecap="round" transform="rotate(-14 12 12)" d="M12 3.4C9.7 7 14.2 9.2 12.4 12C10.6 14.8 14.6 16.8 12.1 20.6"/></svg>';
+const beanRow=(v,sz)=>{let h='<span class="beans">';for(let i=1;i<=5;i++)h+=`<span class="${i<=v?'':'off'}">${BEAN}</span>`;return h+'</span>'};
+const fmtDate=iso=>{const d=new Date(iso);return d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})};
+const fmtDateJP=iso=>{const d=new Date(iso);return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400)}
+/* アプリ内confirm（native confirmの置き換え）。Promise<boolean>を返す */
+function uiConfirm({title='確認',msg='',ok='OK',cancel='やめる',danger=true}={}){
+  return new Promise(res=>{
+    const back=$('#confirmBack'),okb=$('#cfOk'),cb=$('#cfCancel');
+    $('#cfTitle').textContent=title;$('#cfMsg').innerHTML=msg;
+    okb.textContent=ok;cb.textContent=cancel;okb.className='c-ok'+(danger?'':' warn');
+    const close=v=>{back.classList.remove('open');okb.onclick=cb.onclick=back.onclick=null;setTimeout(()=>res(v),130)};
+    okb.onclick=()=>close(true);cb.onclick=()=>close(false);back.onclick=e=>{if(e.target===back)close(false)};
+    back.classList.add('open');
+  });
+}
+/* UX状態：二重送信防止・下書き保護 */
+var saving=false,addSheetOpen=false;
+function draftDirty(){return !!(typeof draft!=='undefined'&&draft&&draft.photos&&draft.photos.length)||!!($('#fdrink')&&$('#fdrink').value)||!!($('#fmemo')&&$('#fmemo').value)||!!($('#fcname')&&$('#fcname').value)}
+/* LP echoes: scroll reveal + magnet FAB */
+const _obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');_obs.unobserve(e.target)}}),{threshold:.12,rootMargin:'0px 0px -4% 0px'});
+function observeReveals(){$$('.reveal:not(.in)').forEach(el=>_obs.observe(el))}
+if(matchMedia('(pointer:fine)').matches){
+  const f=$('#fab');
+  f.addEventListener('mousemove',e=>{const r=f.getBoundingClientRect();f.style.transform=`translate(${(e.clientX-r.x-r.width/2)*.3}px,${(e.clientY-r.y-r.height/2)*.3}px) scale(1.06)`});
+  f.addEventListener('mouseleave',()=>f.style.transform='');
+}
+
+/* =============== hardware/browser BACK button manager =============== */
+// オーバーレイ（シート・ライトボックス・詳細）を開くときに履歴を1つ積む。
+// 端末の戻るでアプリを抜けず、開いている層を閉じる。
+var _backStack=[]; // {tag, fn}
+const _topTag=()=>_backStack.length?_backStack[_backStack.length-1].tag:null;
+function pushBack(tag,fn){_backStack.push({tag,fn});history.pushState({b:_backStack.length},'')}
+window.addEventListener('popstate',()=>{
+  const e=_backStack.pop();
+  if(e&&e.fn){try{e.fn()}catch(err){console.error('back',err)}}
+});
+const _curView=()=>{const a=document.querySelector('.view.active');return a?a.id.replace('view-',''):'home'};
+
+/* =============== lightbox =============== */
+var lbPhotos=[],lbIdx=0;
+window.openLightbox=(photos,i)=>{
+  if(!photos||!photos.length)return;
+  lbPhotos=photos;lbIdx=i||0;
+  lbRender();
+  $('#lightbox').classList.add('open');
+  pushBack('lb',_doCloseLightbox);
+};
+function lbRender(){
+  $('#lbImg').src=lbPhotos[lbIdx];
+  $('#lbDots').innerHTML=lbPhotos.length>1?lbPhotos.map((_,i)=>`<i class="${i===lbIdx?'on':''}"></i>`).join(''):'';
+  $('.lb-prev').style.visibility=$('.lb-next').style.visibility=lbPhotos.length>1?'visible':'hidden';
+}
+window.lbStep=d=>{if(lbPhotos.length<2)return;lbIdx=(lbIdx+d+lbPhotos.length)%lbPhotos.length;
+  const img=$('#lbImg');img.style.transform=`translateX(${d*30}px)`;img.style.opacity='.4';
+  setTimeout(()=>{lbRender();img.style.transform='';img.style.opacity='1'},120);
+};
+function _doCloseLightbox(){$('#lightbox').classList.remove('open')}
+window.closeLightbox=()=>{if(_topTag()==='lb')history.back();else _doCloseLightbox()};
+(function(){
+  const lb=$('#lightbox');let sx=0,sy=0;
+  lb.addEventListener('click',e=>{if(e.target===lb)closeLightbox()});
+  lb.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+  lb.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dy)>90&&Math.abs(dx)<60){closeLightbox();return}
+    if(Math.abs(dx)>60&&Math.abs(dy)<60)lbStep(dx<0?1:-1);
+  },{passive:true});
+})();
+
+/* =============== badge celebration =============== */
+function earnedBadgeIds(){const s=badgeStats();return BADGES.filter(b=>b.test(s)).map(b=>b.id)}
+function celebrateBadges(ids){
+  if(!ids.length)return;
+  const w=$('#badgewin');
+  let i=0;
+  const showOne=()=>{
+    if(i>=ids.length){w.classList.remove('show');return}
+    const b=BADGES.find(x=>x.id===ids[i]);i++;
+    w.querySelector('.m').textContent=b.icon;
+    w.querySelector('.t b').textContent=`${b.n} — ${b.jp}`;
+    w.classList.remove('show');void w.offsetWidth;w.classList.add('show');
+    if(navigator.vibrate)navigator.vibrate([10,30,10,40,18]);
+    setTimeout(showOne,2600);
+  };
+  showOne();
+}
+
+/* =============== data layer (IndexedDB now / Firebase later) =============== */
+const DB={
+  _db:null,
+  open(){return new Promise((res,rej)=>{
+    const r=indexedDB.open('coffeelog',2);
+    r.onupgradeneeded=e=>{const d=e.target.result;
+      if(!d.objectStoreNames.contains('cafes'))d.createObjectStore('cafes',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('visits'))d.createObjectStore('visits',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('wishes'))d.createObjectStore('wishes',{keyPath:'id'});
+    };
+    r.onsuccess=e=>{DB._db=e.target.result;res()};r.onerror=rej;
+  })},
+  all(store){return new Promise((res,rej)=>{const t=DB._db.transaction(store).objectStore(store).getAll();t.onsuccess=()=>res(t.result);t.onerror=rej})},
+  put(store,obj){return new Promise((res,rej)=>{const t=DB._db.transaction(store,'readwrite').objectStore(store).put(obj);t.onsuccess=res;t.onerror=rej})},
+  del(store,id){return new Promise((res,rej)=>{const t=DB._db.transaction(store,'readwrite').objectStore(store).delete(id);t.onsuccess=res;t.onerror=rej})},
+};
+let cafes=[],visits=[],wishes=[];
+async function load(){await DB.open();cafes=await DB.all('cafes');visits=await DB.all('visits');wishes=await DB.all('wishes');visits.sort((a,b)=>b.date.localeCompare(a.date));}
+
+/* =============== Firebase cloud sync =============== */
+const firebaseConfig={
+  apiKey:"AIzaSyBWChasJHpnIneDqfvXl6_f1P0GL0ekMVk",
+  authDomain:"drippin-1d28e.firebaseapp.com",
+  projectId:"drippin-1d28e",
+  storageBucket:"drippin-1d28e.firebasestorage.app",
+  messagingSenderId:"911757313680",
+  appId:"1:911757313680:web:a6995261c65621eee17a15"
+};
+let fbAuth=null,fbDb=null,fbUser=null,fbStorage=null;
+if(window.firebase){
+  firebase.initializeApp(firebaseConfig);
+  fbAuth=firebase.auth();fbDb=firebase.firestore();
+  try{fbStorage=firebase.storage()}catch(e){fbStorage=null}
+  fbAuth.onAuthStateChanged(async u=>{
+    fbUser=u;updateSyncUI();
+    if(u){try{await cloudSync()}catch(e){console.error('sync',e);toast('同期に失敗しました')}}
+  });
+}
+function updateSyncUI(){
+  const b=$('#syncBtn');if(!b)return;
+  b.classList.toggle('on',!!fbUser);
+  b.querySelector('.jp').textContent=fbUser?'同期ON':'同期';
+}
+window.cloudLogin=async()=>{
+  if(!fbAuth){toast('オフラインです');return}
+  if(fbUser){toast('同期ON：'+(fbUser.email||'ログイン済み'));return}
+  const prov=new firebase.auth.GoogleAuthProvider();
+  try{await fbAuth.signInWithPopup(prov)}
+  catch(e){try{await fbAuth.signInWithRedirect(prov)}catch(e2){toast('ログインできませんでした')}}
+};
+/* ---- data safety: account / export / import ---- */
+window.openAccount=()=>{
+  const synced=!!fbUser;const count=visits.length;
+  openSheet(`
+    <h2>Your Data<small>データとバックアップ</small></h2>
+    <div class="acct ${synced?'ok':'warn'}">
+      <div class="acct-ic">${synced?'✓':'!'}</div>
+      <div><b>${synced?'クラウドにバックアップ中':'まだバックアップされていません'}</b>
+      <span>${synced?esc(fbUser.email||'ログイン済み'):'記録はこの端末の中だけに保存されています。'}</span></div>
+    </div>
+    ${synced?'':'<button class="btn primary" style="width:100%;margin-top:14px" onclick="cloudLogin()">☁ Googleで無料バックアップを始める</button>'}
+    <div class="acct-row">
+      <button class="btn ghost" onclick="exportData()">↓ 書き出す</button>
+      <button class="btn ghost" onclick="$('#importFile').click()">↑ 読み込む</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json" hidden>
+    <p class="hint">現在 ${count} 件の記録。iPhoneのSafariは長く使わないと端末内のデータを消すことがあります。大切な記録はクラウド同期かファイル書き出しで守れます。</p>
+    <p class="hint" style="text-align:center;margin-top:10px"><a href="./privacy.html" target="_blank" rel="noopener" style="color:var(--caramel-deep);text-decoration:underline;text-underline-offset:2px">プライバシーポリシー</a></p>
+  `);
+  $('#importFile').onchange=e=>{if(e.target.files[0])importData(e.target.files[0])};
+};
+window.exportData=()=>{
+  const data={app:'drippin',v:1,exportedAt:new Date().toISOString(),cafes,visits,wishes};
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`drippin-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('バックアップを書き出しました ✓');
+};
+async function importData(file){
+  try{
+    const d=JSON.parse(await file.text());
+    if(!d.visits){toast('対応していないファイルです');return}
+    const cafeIds=new Set(cafes.map(c=>c.id));
+    for(const c of (d.cafes||[]))if(!cafeIds.has(c.id)){cafes.push(c);await DB.put('cafes',c);cloudSaveCafe(c).catch(()=>{})}
+    const visitIds=new Set(visits.map(v=>v.id));
+    for(const v of (d.visits||[]))if(!visitIds.has(v.id)){visits.push(v);await DB.put('visits',v);cloudSaveVisit(v).catch(()=>{})}
+    const wishIds=new Set(wishes.map(w=>w.id));
+    for(const w of (d.wishes||[]))if(!wishIds.has(w.id)){wishes.push(w);await DB.put('wishes',w);cloudSaveWish(w).catch(()=>{})}
+    visits.sort((a,b)=>b.date.localeCompare(a.date));
+    renderAll();closeSheet();toast('読み込みました ☕');
+  }catch(e){console.error('import',e);toast('読み込みに失敗しました')}
+}
+const uroot=()=>fbDb.collection('users').doc(fbUser.uid);
+async function cloudSaveCafe(c){if(!fbUser)return;await uroot().collection('cafes').doc(c.id).set(c)}
+async function cloudDeleteCafe(id){if(!fbUser)return;await uroot().collection('cafes').doc(id).delete()}
+async function uploadPhoto(visitId,i,dataUrl){
+  const ref=fbStorage.ref().child(`users/${fbUser.uid}/photos/${visitId}_${i}.jpg`);
+  await ref.putString(dataUrl,'data_url');
+  return ref.getDownloadURL();
+}
+async function cloudSaveVisit(v){
+  if(!fbUser)return;
+  const photos=v.photos||(v.photo?[v.photo]:[]);
+  const meta={...v};delete meta.photos;delete meta.photo;meta.photoCount=photos.length;
+  // 第一候補：Storageに写真を上げてURLだけFirestoreへ（1MB制限・コスト対策）
+  if(fbStorage){
+    try{
+      meta.photoURLs=await Promise.all(photos.map((p,i)=>p.startsWith('http')?p:uploadPhoto(v.id,i,p)));
+      await uroot().collection('visits').doc(v.id).set(meta);
+      return;
+    }catch(e){console.warn('Storage未設定のためレガシー方式で保存',e)}
+  }
+  // フォールバック：従来の1枚=1ドキュメント方式
+  const writes=[uroot().collection('visits').doc(v.id).set(meta)];
+  photos.forEach((p,i)=>writes.push(uroot().collection('photos').doc(v.id+'_'+i).set({visitId:v.id,i,data:p})));
+  await Promise.all(writes);
+}
+async function cloudSaveWish(w){if(!fbUser)return;await uroot().collection('wishes').doc(w.id).set(w)}
+async function cloudDeleteWish(id){if(!fbUser)return;await uroot().collection('wishes').doc(id).delete()}
+async function cloudDeleteVisit(id,photoCount){
+  if(!fbUser)return;
+  const dels=[uroot().collection('visits').doc(id).delete()];
+  for(let i=0;i<(photoCount||10);i++){
+    dels.push(uroot().collection('photos').doc(id+'_'+i).delete());
+    if(fbStorage)dels.push(fbStorage.ref().child(`users/${fbUser.uid}/photos/${id}_${i}.jpg`).delete().catch(()=>{}));
+  }
+  await Promise.all(dels);
+}
+async function cloudSync(){
+  // pull cloud data
+  const [cs,vs,ps,ws]=await Promise.all([
+    uroot().collection('cafes').get(),
+    uroot().collection('visits').get(),
+    uroot().collection('photos').get(),
+    uroot().collection('wishes').get()
+  ]);
+  const cloudCafes=cs.docs.map(d=>d.data());
+  const photoMap={};
+  ps.docs.forEach(d=>{const p=d.data();(photoMap[p.visitId]=photoMap[p.visitId]||[])[p.i]=p.data});
+  const cloudVisits=vs.docs.map(d=>{
+    const v=d.data();
+    v.photos=(v.photoURLs&&v.photoURLs.length)?v.photoURLs:(photoMap[v.id]||[]).filter(Boolean);
+    delete v.photoURLs;
+    v.photo=v.photos[0]||null;
+    return v;
+  });
+  // push local-only records to cloud
+  const cloudCafeIds=new Set(cloudCafes.map(c=>c.id));
+  const cloudVisitIds=new Set(cloudVisits.map(v=>v.id));
+  for(const c of cafes)if(!cloudCafeIds.has(c.id))await cloudSaveCafe(c);
+  for(const v of visits)if(!cloudVisitIds.has(v.id))await cloudSaveVisit(v);
+  // merge cloud-only records into local
+  const cafeIds=new Set(cafes.map(c=>c.id));
+  for(const c of cloudCafes)if(!cafeIds.has(c.id)){cafes.push(c);await DB.put('cafes',c)}
+  const visitIds=new Set(visits.map(v=>v.id));
+  for(const v of cloudVisits)if(!visitIds.has(v.id)&&v.photo){visits.push(v);await DB.put('visits',v)}
+  visits.sort((a,b)=>b.date.localeCompare(a.date));
+  // wishes: two-way merge
+  const cloudWishes=ws.docs.map(d=>d.data());
+  const cloudWishIds=new Set(cloudWishes.map(w=>w.id));
+  for(const w of wishes)if(!cloudWishIds.has(w.id))await cloudSaveWish(w);
+  const wishIds=new Set(wishes.map(w=>w.id));
+  for(const w of cloudWishes)if(!wishIds.has(w.id)){wishes.push(w);await DB.put('wishes',w)}
+  renderAll();
+  toast('☁ 同期しました');
+}
+
+/* =============== views =============== */
+const cafeById=id=>cafes.find(c=>c.id===id);
+function show(view){
+  $$('.view').forEach(v=>v.classList.remove('active'));
+  $('#view-'+view).classList.add('active');
+  $$('.tab-btn[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  document.body.classList.toggle('map-mode',view==='map');
+  if(view!=='map'&&typeof closePlaceCard==='function')closePlaceCard();
+  if(view==='map')setTimeout(initMap,60);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$$('.tab-btn[data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
+
+/* ---- home ---- */
+function renderHome(){
+  const el=$('#view-home');
+  if(!visits.length){
+    el.innerHTML=`
+    <div class="welcome">
+      <img class="wmark reveal in" src="icon.svg" alt="">
+      <h2>あなたのカフェ雑誌を、<br>今日から。</h2>
+      <p class="wlead">飲んだら、忘れてしまう。記したら、人生になる。<br>Drippinは、訪れたカフェを一杯ずつ<br>あなただけの雑誌にしていく記録帳です。</p>
+      <div class="wsteps">
+        <div><b>01</b><span>写真を選んで、3分で1ページ完成</span></div>
+        <div><b>02</b><span>地図に、あなただけのピンが増えていく</span></div>
+        <div><b>03</b><span>美しいカードで、ストーリーに共有</span></div>
+      </div>
+      <button class="btn primary" onclick="openAdd()">☕ 最初の一杯を記録する</button>
+      <button class="btn ghost" onclick="show('map');setTimeout(()=>{if(!$('#chipNearby').classList.contains('on'))$('#chipNearby').click()},400)">周辺のカフェを見てみる</button>
+      <div class="hintline">登録不要・データはこの端末に保存されます（☁同期でバックアップも）</div>
+    </div>`;
+    observeReveals();
+    return;
+  }
+  const[latest,...rest]=visits;
+  const lc=cafeById(latest.cafeId)||{name:'—'};
+  const MQ='Drip by drip, pin by pin — A Personal Café Journal — '.repeat(4);
+  const now=new Date(),thisMonth=visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).length;
+  const beanMiles=visits.reduce((s,v)=>s+(v.again||0),0);
+  el.innerHTML=`
+  ${(!fbUser&&visits.length>=2&&!localStorage.getItem('drippin_backup_dismissed'))?`<div class="backup-banner" onclick="openAccount()"><span>☁</span><div><b>記録はこの端末だけに保存されています</b><span>タップして無料でバックアップ →</span></div><button class="banner-x" onclick="event.stopPropagation();localStorage.setItem('drippin_backup_dismissed','1');this.closest('.backup-banner').remove()">✕</button></div>`:''}
+  <div class="statband">
+    <div class="st"><b data-count="${visits.length}">0</b><span>Cups</span></div>
+    <div class="st"><b data-count="${cafes.length}">0</b><span>Cafés</span></div>
+    <div class="st"><b data-count="${thisMonth}">0</b><span>This Month</span></div>
+  </div>
+  <div class="beanmile">🫘 これまで集めた豆 <b data-count="${beanMiles}">0</b> 粒</div>
+  <div class="kicker">Latest Entry</div>
+  <article class="hero${justRecorded?' develop':''}" onclick="openVisit('${latest.id}')">
+    <div class="tilt">
+    <img class="photo" src="${latest.photo}" alt="">
+    <div class="caption">
+      <div class="date">${fmtDate(latest.date)}</div>
+      <h2>${esc(lc.name)}</h2>
+      <div class="drink">${esc(latest.drink)||'&nbsp;'}</div>
+      <div class="rating-row">
+        <span class="axis">また行きたい ${beanRow(latest.again)}</span>
+      </div>
+      ${latest.memo?`<div class="memo">${esc(latest.memo)}</div>`:''}
+    </div>
+    </div>
+  </article>
+  ${revisitHTML()}
+  <div class="mq"><span class="in">${MQ}</span></div>
+  <div class="quote reveal">飲んだら、忘れてしまう。<br>記したら、人生になる。</div>
+  ${memoryHTML()}
+  ${monthlyIssueHTML()}
+  ${rest.length?`<div class="secthead reveal"><span class="word">Archive</span><span class="lbl">これまでの一杯 — ${visits.length} Entries</span></div>
+  <div class="maggrid insta">${visits.map((v,i)=>{const c=cafeById(v.cafeId)||{name:'—'};return`
+    <article class="entry reveal" onclick="openVisit('${v.id}')">
+      <div class="meta">
+        <div class="idx">${String(visits.length-i).padStart(2,'0')}</div>
+        <div class="d">${fmtDateJP(v.date)}</div>
+        <h3>${esc(c.name)}</h3>
+        <div class="dr">${esc(v.drink)||''}</div>
+      </div>
+      <img class="ph" src="${v.photo}" loading="lazy" alt="">
+    </article>`}).join('')}</div>`:''}`;
+  observeReveals();
+  countUp(el);
+  if(justRecorded)justRecorded=false;
+}
+
+/* ---- cafés ---- */
+let _cafesTab='visited';
+let _cafesQ='';
+let _cafesSort='avg';
+function renderCafes(tab){
+  if(tab)_cafesTab=tab;
+  const sec=$('#view-cafes');
+  const visitedNames=new Set(cafes.map(c=>c.name));
+  const liveWishes=wishes.filter(w=>!visitedNames.has(w.name));
+  const tabs=`<div class="cafe-tabs">
+    <button class="cafe-tab${_cafesTab==='visited'?' on':''}" onclick="renderCafes('visited')">訪問済み（${cafes.length}）</button>
+    <button class="cafe-tab${_cafesTab==='wish'?' on':''}" onclick="renderCafes('wish')">気になる（${liveWishes.length}）</button>
+  </div>`;
+  const head=`<div class="secthead"><span class="word">Cafés</span><span class="lbl">The Collection — あなたの店リスト</span></div>${tabs}`;
+  if(_cafesTab==='wish'){
+    if(!liveWishes.length){sec.innerHTML=head+`<div class="empty"><div class="glyph">★</div><h2>気になるお店はまだありません</h2><p>地図から「気になる」を登録しましょう。</p></div>`;return}
+    sec.innerHTML=head+`<div class="cafelist">`+liveWishes.map(w=>{const nm=esc(w.name).replace(/'/g,'&#39;');return`
+      <div class="wish-cafecard">
+        <div><h3>${esc(w.name)}</h3><div class="wc-acts"><a onclick="recordHere('${nm}',${w.lat},${w.lng})">記録する</a><a onclick="removeWish('${w.id}')">解除</a></div></div>
+        <span style="font-size:20px">🔖</span>
+      </div>`}).join('')+`</div>`;
+    return;
+  }
+  const searchBar=`<div class="cafe-search">
+    <div class="searchwrap">
+      <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+      <input type="search" id="cafeQ" placeholder="カフェを検索" value="${esc(_cafesQ)}" oninput="_cafesQ=this.value;renderCafes()">
+    </div>
+    <select class="cafe-sort" id="cafeSort" onchange="_cafesSort=this.value;renderCafes()">
+      <option value="avg"${_cafesSort==='avg'?' selected':''}>再訪評価順</option>
+      <option value="count"${_cafesSort==='count'?' selected':''}>訪問回数順</option>
+      <option value="name"${_cafesSort==='name'?' selected':''}>名前順</option>
+      <option value="recent"${_cafesSort==='recent'?' selected':''}>最近の訪問順</option>
+    </select>
+  </div>`;
+  if(!cafes.length){sec.innerHTML=head+searchBar+`<div class="empty"><div class="glyph">¶</div><h2>まだ一軒もありません</h2><p>「＋」から最初のカフェを登録しましょう。</p></div>`;return}
+  const q=_cafesQ.trim().toLowerCase();
+  const ranked=[...cafes].map(c=>{
+    const vs=visits.filter(v=>v.cafeId===c.id);
+    const avg=vs.length?vs.reduce((s,v)=>s+v.again,0)/vs.length:0;
+    const lastDate=vs.length?vs.reduce((m,v)=>v.date>m?v.date:m,''):0;
+    return{...c,count:vs.length,avg,lastDate};
+  }).filter(c=>!q||c.name.toLowerCase().includes(q)||(c.tags||[]).some(t=>t.toLowerCase().includes(q)))
+    .sort((a,b)=>{
+      if(_cafesSort==='count')return b.count-a.count||b.avg-a.avg;
+      if(_cafesSort==='name')return a.name.localeCompare(b.name,'ja');
+      if(_cafesSort==='recent')return b.lastDate.localeCompare(a.lastDate);
+      return b.avg-a.avg||b.count-a.count;
+    });
+  const list=ranked.length?`<div class="cafelist">`+ranked.map(c=>`
+    <div class="cafecard reveal" onclick="openCafe('${c.id}')">
+      <div><h3>${esc(c.name)}</h3><div class="tags">${(c.tags||[]).map(esc).join(' ・ ')}</div></div>
+      <div><div class="n">${c.count}</div><div class="nl">visits</div></div>
+    </div>`).join('')+`</div>`
+    :`<div class="cafe-noresult">「${esc(_cafesQ)}」の店が見つかりません</div>`;
+  sec.innerHTML=head+searchBar+list;
+  observeReveals();
+}
+
+/* ---- detail: visit ---- */
+let curVisitId=null;
+window.openVisit=id=>{
+  const v=visits.find(x=>x.id===id);if(!v)return;
+  const prevView=_curView();
+  curVisitId=id;
+  const idx=visits.findIndex(x=>x.id===id),total=visits.length;
+  const c=cafeById(v.cafeId)||{name:'—'};
+  $('#view-detail').innerHTML=`
+    <button class="backlink" onclick="show('home')">← Back to Journal</button>
+    <div class="pager">
+      <a class="${idx>0?'':'dis'}" onclick="flipVisit(-1)">‹ 新しい一杯</a>
+      <span>${idx+1} / ${total}</span>
+      <a class="${idx<total-1?'':'dis'}" onclick="flipVisit(1)">古い一杯 ›</a>
+    </div>
+    <article class="visit-article">
+      <img class="main" src="${v.photo}" alt="" onclick="openVisitPhotos('${v.id}',0)">
+      <div class="body">
+        <div class="date" style="font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--caramel-deep)">${fmtDate(v.date)}</div>
+        <h2 style="font-family:var(--serif-jp);font-weight:600;font-size:26px;letter-spacing:.04em;margin:4px 0">${esc(c.name)}</h2>
+        <div style="font-family:var(--serif);font-style:italic;color:var(--roast)">${esc(v.drink)||''}</div>
+        <div class="rating-row">
+          <span class="axis">また行きたい ${beanRow(v.again)}</span>
+        </div>
+        ${v.memo?`<p style="font-size:13.5px;font-weight:350;margin-top:12px;border-top:1px solid var(--line-soft);padding-top:12px">${esc(v.memo)}</p>`:''}
+        ${(v.photos&&v.photos.length>1)?`<div class="gallery">${v.photos.map((p,i)=>`<img src="${p}" loading="lazy" onclick="openVisitPhotos('${v.id}',${i})">`).join('')}</div>`:''}
+        <div class="toolbar">
+          <button class="minibtn" onclick="editVisit('${v.id}')">Edit ✎</button>
+          <button class="minibtn" onclick="shareVisit('${v.id}')">Share ↗</button>
+          <button class="minibtn danger" onclick="delVisit('${v.id}')">Delete</button>
+        </div>
+      </div>
+    </article>`;
+  show('detail');
+  if(prevView!=='detail')pushBack('detail',()=>show(prevView));
+};
+window.openVisitPhotos=(id,i)=>{const v=visits.find(x=>x.id===id);if(!v)return;openLightbox(v.photos&&v.photos.length?v.photos:[v.photo],i)};
+/* ---- page flip (swipe between visits) ---- */
+window.flipVisit=dir=>{ // +1=古い記録へ, -1=新しい記録へ
+  const idx=visits.findIndex(v=>v.id===curVisitId);if(idx<0)return;
+  const ni=idx+dir;if(ni<0||ni>=visits.length)return;
+  const art=$('#view-detail .visit-article');
+  const go=()=>{
+    openVisit(visits[ni].id);
+    const na=$('#view-detail .visit-article');
+    na&&na.animate([{opacity:0,transform:`translateX(${dir*52}px)`},{opacity:1,transform:'none'}],{duration:380,easing:'cubic-bezier(.2,.7,.2,1)'});
+  };
+  if(art){const a=art.animate([{opacity:1,transform:'none'},{opacity:0,transform:`translateX(${-dir*52}px)`}],{duration:220,easing:'ease-in'});a.onfinish=go}
+  else go();
+};
+(function(){
+  let sx=0,sy=0;const vd=$('#view-detail');
+  vd.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+  vd.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>70&&Math.abs(dy)<60)flipVisit(dx<0?1:-1);
+  },{passive:true});
+})();
+
+/* ---- time of day theme ---- */
+function applyTimeTheme(){
+  const h=new Date().getHours();
+  document.documentElement.dataset.theme=h>=5&&h<10?'morning':h>=10&&h<16?'day':h>=16&&h<19?'evening':'night';
+  if(baseTiles)baseTiles.setUrl(mapTileURL()); // baseTilesはvar（map初期化前はundefinedでスキップ）
+}
+applyTimeTheme();setInterval(applyTimeTheme,10*60*1000);
+
+window.delVisit=async id=>{
+  if(!await uiConfirm({title:'この記録を削除しますか？',msg:'一杯の記録と写真が消えます。<br>元に戻せません。',ok:'削除する',cancel:'やめる',danger:true}))return;
+  const target=visits.find(v=>v.id===id);
+  await DB.del('visits',id);visits=visits.filter(v=>v.id!==id);
+  cloudDeleteVisit(id,target?.photos?.length||1).catch(e=>console.error(e));
+  // この記録が参照していたカフェが他の記録から参照されていなければ、カフェ自体も削除
+  if(target?.cafeId && !visits.some(v=>v.cafeId===target.cafeId)){
+    await DB.del('cafes',target.cafeId);cafes=cafes.filter(c=>c.id!==target.cafeId);
+    cloudDeleteCafe(target.cafeId).catch(e=>console.error(e));
+  }
+  renderAll();show('home');toast('削除しました');
+};
+
+/* ---- edit visit ---- */
+window.editVisit=id=>{
+  const v=visits.find(x=>x.id===id);if(!v)return;
+  const c=cafeById(v.cafeId)||{};
+  draft={photos:[...(v.photos||(v.photo?[v.photo]:[])).filter(Boolean)],
+    again:v.again||3,
+    tags:c.tags||[],lat:c.lat||null,lng:c.lng||null};
+  const dateStr=v.date?new Date(v.date).toISOString().slice(0,10):new Date().toISOString().slice(0,10);
+  openSheet(`
+    <h2>Edit Entry<small>記録を編集</small></h2>
+    <div class="field"><label>Photographs — 写真</label>
+      <div class="photodrop has" id="pdrop" style="background-image:url(${draft.photos[0]||''})" onclick="$('#pfile').click()"></div>
+      <div class="photothumbs" id="pthumbs"></div>
+      <input type="file" id="pfile" accept="image/*" multiple hidden>
+    </div>
+    <div class="field"><label>Date — 訪問日</label><input type="date" id="fdate" value="${dateStr}"></div>
+    <div class="field"><label>The Cup — 飲んだもの</label><input type="text" id="fdrink" placeholder="例：エチオピア ハンドドリップ" value="${esc(v.drink||'')}"></div>
+    <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}" class="${i<=draft.again?'on':''}">${BEAN}</button>`).join('')}</div><div class="bean-ends"><span>もう行かない</span><span>通いたい</span></div></div>
+    <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo">${esc(v.memo||'')}</textarea></div>
+    <button type="button" class="advtoggle" onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden;this.classList.toggle('open')">カフェ情報を修正する <span class="ar">▾</span></button>
+    <div class="advbox" hidden>
+      <div class="field" style="margin-top:12px"><label>Café — お店の名前</label><input type="text" id="ecname" value="${esc(c.name||'')}"></div>
+      <div class="field"><label>Tags — タグ</label>
+        <div class="chips">${TAGS.map(t=>`<button class="chip${(c.tags||[]).includes(t)?' on':''}" data-tag="${t}">${t}</button>`).join('')}</div>
+      </div>
+      <button type="button" class="advtoggle" style="margin-top:8px" onclick="const b=this.nextElementSibling;b.hidden=!b.hidden;this.classList.toggle('open');if(!b.hidden)setTimeout(initPickMap,80)">場所を修正する <span class="ar">▾</span></button>
+      <div class="advbox" hidden>
+        <div class="field" style="margin-top:12px"><label>Location — 場所（地図をタップ）</label>
+          <div id="pickmap"></div>
+        </div>
+      </div>
+    </div>
+    <div class="btnrow"><button class="btn ghost" onclick="tryCloseSheet()">閉じる</button><button class="btn primary" id="saveBtn">保存する</button></div>
+  `);
+  addSheetOpen=true;
+  renderThumbs();
+  // photo upload (edit: add more photos)
+  $('#pfile').onchange=async e=>{
+    const files=[...e.target.files];if(!files.length)return;
+    for(const f of files){const d=await compress(f,1400,.82);draft.photos.push(d)}
+    renderThumbs();e.target.value='';
+  };
+  // photo thumbnail: tap img → set cover, tap × → delete
+  $('#pthumbs').addEventListener('click',e=>{
+    const del=e.target.closest('.thumb-del');
+    if(del){const i=parseInt(del.dataset.del);if(!isNaN(i)){draft.photos.splice(i,1);renderThumbs();if(!draft.photos.length){const pd=$('#pdrop');pd.classList.remove('has');pd.style.backgroundImage=''}return}}
+    const img=e.target.closest('img');if(!img)return;
+    const idx=parseInt(img.dataset.idx);if(!isNaN(idx))setCover(idx);
+  });
+  // tags (inside cafe edit section)
+  $$('#sheetBody .chip').forEach(ch=>ch.onclick=()=>{
+    ch.classList.toggle('on');
+    const t=ch.dataset.tag;
+    draft.tags=ch.classList.contains('on')?[...draft.tags,t]:draft.tags.filter(x=>x!==t);
+  });
+  // beans
+  $$('.beanpick').forEach(bp=>{
+    bp.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      const val=+b.dataset.v;draft[bp.dataset.key]=val;
+      bp.querySelectorAll('button').forEach(x=>{const on=+x.dataset.v<=val;x.classList.toggle('on',on);x.classList.remove('pop');if(on){void x.offsetWidth;x.classList.add('pop')}});
+      if(navigator.vibrate)navigator.vibrate(8);
+    });
+  });
+  $('#saveBtn').onclick=async()=>{
+    if(saving)return;
+    if(!draft.photos.length){toast('写真を選んでください');return}
+    const target=visits.find(x=>x.id===id);if(!target)return;
+    saving=true;const sb=$('#saveBtn');sb.disabled=true;sb.textContent='保存中…';
+    const dateVal=$('#fdate').value||new Date().toISOString().slice(0,10);
+    target.photo=draft.photos[0];target.photos=draft.photos;
+    target.drink=$('#fdrink').value.trim();
+    target.again=draft.again;
+    target.memo=$('#fmemo').value.trim();
+    target.date=new Date(dateVal+'T12:00:00').toISOString();
+    try{
+      // カフェ情報の更新（店名・タグ・場所）
+      const editedCafe=cafeById(target.cafeId);
+      if(editedCafe){
+        const newName=$('#ecname')?.value.trim();
+        if(newName)editedCafe.name=newName;
+        editedCafe.tags=[...draft.tags];
+        if(draft.lat!=null)editedCafe.lat=draft.lat;
+        if(draft.lng!=null)editedCafe.lng=draft.lng;
+        await DB.put('cafes',editedCafe);
+        cloudSaveCafe(editedCafe).catch(e=>console.error(e));
+      }
+      await DB.put('visits',target);cloudSaveVisit(target).catch(e=>console.error(e));
+    }
+    catch(e){console.error('edit save',e);toast('保存に失敗しました');sb.disabled=false;sb.textContent='保存する';saving=false;return}
+    saving=false;addSheetOpen=false;
+    visits.sort((a,b)=>b.date.localeCompare(a.date));
+    closeSheet();renderAll();openVisit(id);toast('更新しました ☕');
+  };
+};
+
+/* ---- detail: cafe ---- */
+window.openCafe=id=>{
+  const c=cafeById(id);if(!c)return;
+  const prevView=_curView();
+  const vs=visits.filter(v=>v.cafeId===id);
+  $('#view-detail').innerHTML=`
+    <button class="backlink" onclick="show('cafes')">← Back to Cafés</button>
+    <div class="detail-top"><h2>${esc(c.name)}</h2>
+      <span style="font-size:11px;letter-spacing:.2em;color:var(--caramel-deep)">${vs.length} VISITS</span></div>
+    <div class="tags" style="font-size:12px;color:var(--caramel-deep)">${(c.tags||[]).map(esc).join(' ・ ')}</div>
+    <div class="maggrid" style="margin-top:30px">${vs.map(v=>`
+      <article class="entry" onclick="openVisit('${v.id}')">
+        <img class="ph" src="${v.photo}" loading="lazy" alt="">
+        <div class="meta"><div class="d">${fmtDateJP(v.date)}</div><div class="dr">${esc(v.drink)||''}</div></div>
+      </article>`).join('')||'<p class="hint">まだ記録がありません。</p>'}</div>`;
+  show('detail');
+  if(prevView!=='detail')pushBack('detail',()=>show(prevView));
+};
+
+/* ---- map ---- */
+let map=null,visitedLayer=null,discLayer=null,wishLayer=null,journeyLayer=null,showNearby=false;
+let _journeyLineOn=localStorage.getItem('drippin_journey')!=='0';
+var baseTiles=null; // varで巻き上げ：applyTimeTheme(先行実行)から参照されるため
+// 夜もタイルは明るいvoyagerのまま（視認性優先）。夜の雰囲気はCSSフィルタで薄く付ける
+const mapTileURL=()=>'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+const GENRES={cafe:{label:'カフェ',emoji:'☕'},sweets:{label:'スイーツ',emoji:'🍰'},bakery:{label:'ベーカリー',emoji:'🥐'}};
+const genreFilter={cafe:true,sweets:true,bakery:true};
+const SWEET_TYPES=new Set(['cake_shop','dessert_shop','dessert_restaurant','chocolate_shop','ice_cream_shop','confectionery']);
+function genreOf(primaryType,types){
+  const m=t=>t==='bakery'?'bakery':SWEET_TYPES.has(t)?'sweets':null;
+  if(primaryType){const g=m(primaryType);if(g)return g}
+  for(const t of types||[]){const g=m(t);if(g)return g}
+  return 'cafe';
+}
+const gmapsUrl=(name,gurl)=>gurl||('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(name));
+function initMap(){
+  if(!map){
+    map=L.map('map',{scrollWheelZoom:true,zoomControl:true}).setView([33.59,130.40],12); // 福岡
+    baseTiles=L.tileLayer(mapTileURL(),{
+      attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
+    visitedLayer=L.markerClusterGroup({maxClusterRadius:60,showCoverageOnHover:false,iconCreateFunction:cluster=>{const n=cluster.getChildCount();return L.divIcon({className:'cluster-pin',html:`<div class="cl-dot"><b>${n}</b></div>`,iconSize:[40,40],iconAnchor:[20,20]})}}).addTo(map);
+    wishLayer=L.layerGroup().addTo(map);
+    journeyLayer=L.layerGroup();
+    if(_journeyLineOn)journeyLayer.addTo(map);
+    discLayer=L.layerGroup().addTo(map);
+    map.on('moveend',()=>{if(showNearby)loadNearbyDebounced()});
+    // iOS Safariはピンタップ直後に地図clickも発火するため、直後500msは閉じない
+    map.on('click',()=>{if(Date.now()-pinTapAt<500)return;closePlaceCard()});
+    wireMapConsole();
+  }
+  visitedLayer.clearLayers();
+  const pts=[];
+  // 訪問順（時系列）に並べて「旅の軌跡」を描く
+  const journey=cafes.filter(c=>c.lat).map(c=>{
+    const vs=visits.filter(v=>v.cafeId===c.id);
+    const first=vs.length?vs.reduce((m,v)=>v.date<m?v.date:m,vs[0].date):c.id;
+    return{c,vs,first};
+  }).sort((a,b)=>String(a.first).localeCompare(String(b.first)));
+  if(journeyLayer)journeyLayer.clearLayers();
+  if(journey.length>1&&journeyLayer){
+    L.polyline(journey.map(j=>[j.c.lat,j.c.lng]),
+      {color:'#9a6437',weight:2.4,opacity:.6,dashArray:'2 9',lineCap:'round',interactive:false}
+    ).addTo(journeyLayer);
+  }
+  journey.forEach(({c,vs})=>{
+    const photo=vs[0]?.photo;
+    const icon=photo
+      ?L.divIcon({className:'photo-pin',html:`<div class="frame"><img src="${photo}"></div>`,iconSize:[52,52],iconAnchor:[26,59]})
+      :L.divIcon({className:'bean-pin',html:'<div class="dot"><span>☕</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
+    addPin(visitedLayer,[c.lat,c.lng],icon,()=>showPlaceCard({kind:'visited',name:c.name,photo,count:vs.length,cafeId:c.id}));
+    pts.push([c.lat,c.lng]);
+  });
+  renderWishes();
+  updatePassport();
+  const btn=$('#ppLineToggle');if(btn)btn.classList.toggle('on',_journeyLineOn);
+  if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:15});
+  setTimeout(()=>map.invalidateSize(),120);
+}
+/* 旅のパスポート（地図下部のステータス） */
+function updatePassport(){
+  const pc=cafes.filter(c=>c.lat).length;
+  $('#ppCafes').textContent=pc;
+  $('#ppCups').textContent=visits.length;
+  if(visits.length){
+    const earliest=visits.reduce((m,v)=>v.date<m?v.date:m,visits[0].date);
+    $('#ppSince').textContent=new Date(earliest).toLocaleDateString('en-US',{month:'short',year:'numeric'});
+  }else $('#ppSince').textContent='—';
+}
+function toggleJourneyLine(){
+  _journeyLineOn=!_journeyLineOn;
+  localStorage.setItem('drippin_journey',_journeyLineOn?'1':'0');
+  if(map&&journeyLayer){
+    if(_journeyLineOn)journeyLayer.addTo(map);else map.removeLayer(journeyLayer);
+  }
+  const btn=$('#ppLineToggle');
+  if(btn)btn.classList.toggle('on',_journeyLineOn);
+}
+function renderWishes(){
+  if(!wishLayer)return;
+  wishLayer.clearLayers();
+  const visitedNames=new Set(cafes.map(c=>c.name));
+  wishes.forEach(w=>{
+    if(visitedNames.has(w.name))return;
+    const icon=L.divIcon({className:'bean-pin wish-pin',html:'<div class="dot"><span>★</span></div>',iconSize:[30,30],iconAnchor:[15,28]});
+    addPin(wishLayer,[w.lat,w.lng],icon,()=>showPlaceCard({kind:'wish',name:w.name,lat:w.lat,lng:w.lng,gurl:w.gurl,wishId:w.id}));
+  });
+}
+/* ピン生成：click＋touchendの二重保険（iOSでclickが落ちるケース対策） */
+function addPin(layer,latlng,icon,handler){
+  const m=L.marker(latlng,{icon}).addTo(layer);
+  let handled=0;
+  const fire=()=>{if(Date.now()-handled<600)return;handled=Date.now();handler()};
+  m.on('click',fire);
+  const el=m.getElement();
+  if(el){
+    let sx=0,sy=0;
+    el.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+    el.addEventListener('touchend',e=>{
+      const t=e.changedTouches[0];
+      if(Math.abs(t.clientX-sx)>12||Math.abs(t.clientY-sy)>12)return; // ドラッグは無視
+      e.preventDefault();fire();
+    },{passive:false});
+  }
+  return m;
+}
+/* ---- place card ---- */
+var pinTapAt=0;
+function showPlaceCard(o){
+  pinTapAt=Date.now();
+  const safeName=esc(o.name).replace(/'/g,'&#39;');
+  const sub=o.kind==='visited'?`${o.count} VISITS`:o.kind==='wish'?'気になる':(GENRES[o.genre]?.label||'未訪問');
+  let acts='';
+  if(o.kind==='visited')acts=`<a onclick="openCafe('${o.cafeId}')">記録を見る</a>
+    <a class="ghost" href="${gmapsUrl(o.name)}" target="_blank" rel="noopener">Googleマップ</a>`;
+  else if(o.kind==='wish')acts=`<a onclick="recordHere('${safeName}',${o.lat},${o.lng})">☕ 記録する</a>
+    <a class="ghost" href="${gmapsUrl(o.name,o.gurl)}" target="_blank" rel="noopener">Googleマップ</a>
+    <a class="ghost" onclick="removeWish('${o.wishId}')">解除</a>`;
+  else acts=`<a onclick="recordHere('${safeName}',${o.lat},${o.lng})">☕ 記録する</a>
+    <a class="ghost" onclick="addWish('${safeName}',${o.lat},${o.lng},${o.gurl?`'${o.gurl}'`:'null'})">🔖 気になる</a>
+    <a class="ghost" href="${gmapsUrl(o.name,o.gurl)}" target="_blank" rel="noopener">マップ</a>`;
+  $('#placecard').innerHTML=`
+    <button class="x" onclick="closePlaceCard()">✕</button>
+    ${o.photo?`<img class="cph" src="${o.photo}">`:''}
+    <div class="pad"><h4>${esc(o.name)}</h4><div class="sub">${sub}</div>
+    <div class="acts">${acts}</div></div>`;
+  $('#placecard').classList.add('open');
+  document.body.classList.add('place-open');
+}
+window.closePlaceCard=()=>{
+  $('#placecard').classList.remove('open');
+  document.body.classList.remove('place-open');
+};
+window.addWish=async(name,lat,lng,gurl)=>{
+  if(wishes.some(w=>w.name===name)){toast('すでに気になるに入っています');return}
+  const w={id:uid(),name,lat,lng,gurl:gurl||null,addedAt:new Date().toISOString()};
+  wishes.push(w);await DB.put('wishes',w);cloudSaveWish(w).catch(()=>{});
+  closePlaceCard();renderWishes();renderDisc();renderHome();
+  toast('🔖 気になるに追加しました');
+};
+window.removeWish=async id=>{
+  const w=wishes.find(x=>x.id===id);if(!w)return;
+  wishes=wishes.filter(x=>x.id!==id);
+  await DB.del('wishes',id);cloudDeleteWish(id).catch(()=>{});
+  closePlaceCard();renderWishes();renderDisc();renderHome();
+  toast('解除しました');
+};
+
+/* ---- map console: search / nearby / visited toggle ---- */
+function wireMapConsole(){
+  $('#chipVisited').onclick=()=>{
+    const on=$('#chipVisited').classList.toggle('on');
+    on?map.addLayer(visitedLayer):map.removeLayer(visitedLayer);
+  };
+  $('#chipWish').onclick=()=>{
+    const on=$('#chipWish').classList.toggle('on');
+    on?map.addLayer(wishLayer):map.removeLayer(wishLayer);
+  };
+  $('#chipNearby').onclick=()=>{
+    showNearby=$('#chipNearby').classList.toggle('on');
+    document.body.classList.toggle('nearby-on',showNearby);
+    if(showNearby)loadNearby();else discLayer.clearLayers();
+  };
+  $$('.genrechip').forEach(b=>b.onclick=()=>{
+    genreFilter[b.dataset.genre]=b.classList.toggle('on');
+    renderDisc();
+  });
+  $('#mapgo').onclick=searchPlace;
+  $('#mapq').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace()});
+  $('#locateBtn').onclick=()=>{
+    navigator.geolocation?.getCurrentPosition(
+      p=>map.setView([p.coords.latitude,p.coords.longitude],16),
+      ()=>toast('位置情報を取得できませんでした'),
+      {timeout:6000}
+    );
+  };
+}
+let _nbT=null;
+const loadNearbyDebounced=()=>{clearTimeout(_nbT);_nbT=setTimeout(loadNearby,700)};
+const GMAP_KEY='AIzaSyBWChasJHpnIneDqfvXl6_f1P0GL0ekMVk';
+const discCache=new Map();
+let nearbyBusy=false;
+async function loadNearby(){
+  if(map.getZoom()<13){toast('もう少しズームすると周辺カフェが出ます');return}
+  if(nearbyBusy)return;nearbyBusy=true;
+  const chip=$('#chipNearby');const _lbl=chip.textContent;chip.classList.add('loading');chip.textContent='探索中…';
+  const c=map.getCenter();
+  const headers={'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.id,places.displayName,places.location,places.googleMapsUri,places.types,places.primaryType'};
+  const loc={latitude:c.lat,longitude:c.lng};
+  try{
+    const [r1,r2]=await Promise.all([
+      fetch('https://places.googleapis.com/v1/places:searchNearby',{method:'POST',headers,
+        body:JSON.stringify({includedTypes:['cafe','coffee_shop','tea_house','bakery'],languageCode:'ja',maxResultCount:20,rankPreference:'DISTANCE',
+          locationRestriction:{circle:{center:loc,radius:1500}}})}),
+      fetch('https://places.googleapis.com/v1/places:searchText',{method:'POST',headers,
+        body:JSON.stringify({textQuery:'コーヒーショップ カフェ 喫茶店',languageCode:'ja',maxResultCount:20,
+          locationRestriction:{circle:{center:loc,radius:1500}}})})
+    ]);
+    const CAFE_TYPES=new Set(['cafe','coffee_shop','tea_house','bakery','cake_shop','dessert_shop','dessert_restaurant','coffee_roastery','chocolate_shop','internet_cafe']);
+    for(const r of [r1,r2]){
+      if(!r.ok)continue;
+      const data=await r.json();
+      (data.places||[]).forEach(p=>{
+        const lat=p.location?.latitude,lng=p.location?.longitude;
+        const name=p.displayName?.text;
+        // 主分類がカフェ系のみ通す（すき家等は types に cafe を持つが primaryType は飲食店）
+        const isCafe=p.primaryType?CAFE_TYPES.has(p.primaryType):(p.types||[]).some(t=>CAFE_TYPES.has(t));
+        if(!isCafe)return;
+        if(lat&&name)discCache.set(p.id,{lat,lng,name,gurl:p.googleMapsUri||null,genre:genreOf(p.primaryType,p.types)});
+      });
+    }
+    renderDisc();
+  }catch(e){console.error('nearby',e);toast('周辺カフェの取得に失敗しました')}
+  finally{nearbyBusy=false;chip.classList.remove('loading');chip.textContent=_lbl}
+}
+function renderDisc(){
+  if(!discLayer)return; // 地図未初期化（ホームから呼ばれた等）
+  discLayer.clearLayers();
+  const visitedNames=new Set(cafes.map(c=>c.name));
+  const wishNames=new Set(wishes.map(w=>w.name));
+  discCache.forEach(d=>{
+    if(visitedNames.has(d.name)||wishNames.has(d.name))return;
+    if(!genreFilter[d.genre||'cafe'])return;
+    const emoji=GENRES[d.genre]?.emoji||'☕';
+    const icon=L.divIcon({className:'bean-pin disc-pin',html:`<div class="dot"><span>${emoji}</span></div>`,iconSize:[30,30],iconAnchor:[15,28]});
+    addPin(discLayer,[d.lat,d.lng],icon,()=>showPlaceCard({kind:'disc',name:d.name,lat:d.lat,lng:d.lng,gurl:d.gurl,genre:d.genre}));
+  });
+}
+async function searchPlace(){
+  const q=$('#mapq').value.trim();if(!q)return;
+  const res=$('#mapresults');
+  res.innerHTML='<div class="loadingrow"><span class="spin"></span>検索中…</div>';res.style.display='block';
+  try{
+    const r=await fetch('https://places.googleapis.com/v1/places:searchText',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.displayName,places.location,places.formattedAddress,places.googleMapsUri'},
+      body:JSON.stringify({textQuery:q,languageCode:'ja',regionCode:'JP'})
+    });
+    if(!r.ok)throw new Error(r.status);
+    const data=await r.json();
+    if(!data.places?.length){res.style.display='none';toast('見つかりませんでした');return}
+    searchResults=data.places.slice(0,5).map(p=>({
+      lat:p.location?.latitude,lng:p.location?.longitude,
+      name:p.displayName?.text||'',gurl:p.googleMapsUri||null,
+      addr:(p.formattedAddress||'').replace('日本、','')
+    }));
+    res.innerHTML=searchResults.map((s,i)=>`<div onclick='gotoSearched(${i})'>${esc(s.name)}<span style="opacity:.55;font-size:11px;margin-left:6px">${esc(s.addr)}</span></div>`).join('');
+    res.style.display='block';
+  }catch(e){res.style.display='none';toast('検索に失敗しました')}
+}
+var searchResults=[];
+window.gotoSearched=i=>{
+  const s=searchResults[i];if(!s)return;
+  $('#mapresults').style.display='none';$('#mapq').blur();
+  map.setView([s.lat,s.lng],16);
+  // 検索した店のカードを出す → 🔖気になる / 記録 / マップ が選べる
+  showPlaceCard({kind:'disc',name:s.name,lat:s.lat,lng:s.lng,gurl:s.gurl});
+  if(showNearby)loadNearby();
+};
+window.gotoPlace=(lat,lng)=>{$('#mapresults').style.display='none';map.setView([lat,lng],16);if(showNearby)loadNearby();};
+window.recordHere=(name,lat,lng)=>{
+  closePlaceCard();
+  openAdd({name,lat,lng});
+};
+
+/* =============== add sheet =============== */
+const TAGS=['自家焙煎','ハンドドリップ','電源あり','Wi-Fi','テラス','スイーツ','深夜営業','古民家','ロースター併設'];
+let draft={};
+function openSheet(html){addSheetOpen=false;$('#sheetBody').innerHTML=html;$('#sheet').scrollTop=0;$('#sheet').classList.add('open');$('#sheetBack').classList.add('open');if(_topTag()!=='sheet')pushBack('sheet',_doCloseSheet)}
+function _doCloseSheet(){$('#sheet').classList.remove('open');$('#sheetBack').classList.remove('open');addSheetOpen=false}
+function closeSheet(){if(_topTag()==='sheet')history.back();else _doCloseSheet()}
+/* 記録シートで入力途中なら確認してから閉じる（誤クローズ保護） */
+async function tryCloseSheet(){
+  if(addSheetOpen&&draftDirty()){
+    const ok=await uiConfirm({title:'記録をやめますか？',msg:'入力中の内容は保存されません。',ok:'やめる',cancel:'続ける',danger:false});
+    if(!ok)return;
+    addSheetOpen=false;
+  }
+  closeSheet();
+}
+$('#sheetBack').onclick=tryCloseSheet;
+/* グラブバー：ドラッグで閉じる＋タップでも閉じる */
+(function(){
+  const sheet=$('#sheet'),gz=$('#grabzone');
+  let sy=0,dy=0,dragging=false;
+  gz.addEventListener('touchstart',e=>{dragging=true;sy=e.touches[0].clientY;dy=0;sheet.style.transition='none'},{passive:true});
+  gz.addEventListener('touchmove',e=>{
+    if(!dragging)return;
+    dy=Math.max(0,e.touches[0].clientY-sy);
+    sheet.style.transform=`translateY(${dy}px)`;
+  },{passive:true});
+  gz.addEventListener('touchend',()=>{
+    sheet.style.transition='';sheet.style.transform='';
+    if(dy>100)tryCloseSheet();
+    dragging=false;dy=0;
+  });
+  gz.addEventListener('click',()=>{if(dy<8)tryCloseSheet()});
+})();
+
+$('#fab').onclick=()=>openAdd();
+function openAdd(prefill){
+  draft={photos:[],again:0,tags:[],lat:prefill?.lat??null,lng:prefill?.lng??null};
+  openSheet(`
+    <h2>New Entry<small>今日の一杯を記録</small></h2>
+    <div class="field"><label>Photographs — 写真（複数OK）</label>
+      <div class="photodrop" id="pdrop" onclick="$('#pfile').click()"><span style="font-family:var(--serif);font-size:28px;font-style:normal;line-height:1">＋</span><span>タップして写真を選ぶ（何枚でも）</span></div>
+      <div class="photothumbs" id="pthumbs"></div>
+      <input type="file" id="pfile" accept="image/*" multiple hidden>
+    </div>
+    <div class="field">
+      <label>Café — お店</label>
+      <div class="cafe-choice">
+        <button type="button" class="cafe-choice-btn on" id="choiceNew" onclick="showCafeChoice('new')"><span class="cc-icon">✦</span><span>新しいカフェ<br>を登録</span></button>
+        <button type="button" class="cafe-choice-btn" id="choicePast" onclick="showCafeChoice('past')"${cafes.length===0?' disabled':''}><span class="cc-icon">☕</span><span>過去のカフェ<br>を選択</span>${cafes.length?`<span class="cc-count">${cafes.length}件</span>`:''}</button>
+      </div>
+    </div>
+    <div id="pastcafe-area" style="display:none"></div>
+    <div class="field" id="newcafe">
+      <label>New Café Name — 店名</label><input type="text" id="fcname" placeholder="例：Drippin Coffee">
+      <div class="btnrow" style="margin-top:12px"><button class="btn ghost" type="button" id="findLoc" style="flex:none;padding:11px 20px;font-size:11px">🔍 店名から場所を検索</button></div>
+      <div id="locresults"></div>
+      <label style="margin-top:16px">Tags — タグ</label>
+      <div class="chips">${TAGS.map(t=>`<button class="chip" data-tag="${t}">${t}</button>`).join('')}</div>
+      <label style="margin-top:16px">Location — 場所（地図をタップ）</label>
+      <div id="pickmap"></div><div class="hint" id="pickhint">現在地から自動でピンを置きました。タップで調整できます。</div>
+    </div>
+    <div class="field"><label>Date — 訪問日</label><input type="date" id="fdate" value="${new Date().toISOString().slice(0,10)}" data-auto="1" oninput="this.dataset.auto='0'"></div>
+    <div class="field"><label>The Cup — 飲んだもの</label><input type="text" id="fdrink" placeholder="例：エチオピア ハンドドリップ"></div>
+    <div class="field"><label>また行きたい — Return</label><div class="beanpick" data-key="again">${[1,2,3,4,5].map(i=>`<button data-v="${i}">${BEAN}</button>`).join('')}</div><div class="bean-ends"><span>もう行かない</span><span>通いたい</span></div></div>
+    <div class="field"><label>Notes — 一言（任意）</label><textarea id="fmemo" placeholder="窓際の席。浅煎りが華やかだった。苦味しっかりで好み。"></textarea></div>
+    <div class="btnrow sticky"><button class="btn ghost" onclick="tryCloseSheet()">閉じる</button><button class="btn primary" id="saveBtn">記録する</button></div>
+  `);
+  draft.cafeMode='new';draft.cafeId=null;
+  wireSheet();addSheetOpen=true;
+  if(prefill){
+    $('#fcname').value=prefill.name||'';
+  }
+}
+
+let pickmap=null,pickmarker=null;
+function wireSheet(){
+  // photos (multiple, 1st = cover)
+  $('#pfile').onchange=async e=>{
+    const files=[...e.target.files];if(!files.length)return;
+    autofillDateFromPhotos(files);
+    for(const f of files){
+      const durl=await compress(f,1400,.82);
+      draft.photos.push(durl);
+    }
+    renderThumbs();
+    e.target.value='';
+  };
+  // photo thumbnail: tap img → set cover, tap × → delete
+  $('#pthumbs').addEventListener('click',e=>{
+    const del=e.target.closest('.thumb-del');
+    if(del){const i=parseInt(del.dataset.del);if(!isNaN(i)){draft.photos.splice(i,1);renderThumbs();if(!draft.photos.length){const pd=$('#pdrop');pd.classList.remove('has');pd.style.backgroundImage=''}return}}
+    const img=e.target.closest('img');if(!img)return;
+    const idx=parseInt(img.dataset.idx);if(!isNaN(idx))setCover(idx);
+  });
+  // cafe choice (handled by showCafeChoice onclick — new mode always default)
+  setTimeout(initPickMap,150);
+  // tags
+  $$('#newcafe .chip').forEach(ch=>ch.onclick=()=>{ch.classList.toggle('on');
+    const t=ch.dataset.tag;draft.tags=ch.classList.contains('on')?[...draft.tags,t]:draft.tags.filter(x=>x!==t)});
+  // beans
+  $$('.beanpick').forEach(bp=>{
+    bp.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      const v=+b.dataset.v;draft[bp.dataset.key]=v;
+      bp.querySelectorAll('button').forEach(x=>{
+        const on=+x.dataset.v<=v;
+        x.classList.toggle('on',on);
+        x.classList.remove('pop');
+        if(on){void x.offsetWidth;x.classList.add('pop')}
+      });
+      if(navigator.vibrate)navigator.vibrate(8);
+    });
+  });
+  $('#saveBtn').onclick=saveEntry;
+  // find location by cafe name (for registering after getting home)
+  $('#findLoc').onclick=async()=>{
+    const name=$('#fcname').value.trim();
+    if(!name){toast('先に店名を入力してください');return}
+    $('#findLoc').textContent='検索中…';
+    try{
+      const r=await fetch('https://places.googleapis.com/v1/places:searchText',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-Goog-Api-Key':GMAP_KEY,'X-Goog-FieldMask':'places.displayName,places.location,places.formattedAddress'},
+        body:JSON.stringify({textQuery:name,languageCode:'ja',regionCode:'JP'})
+      });
+      const data=await r.json();
+      if(!data.places?.length){toast('見つかりませんでした。地図タップで指定してください');return}
+      $('#locresults').innerHTML=data.places.slice(0,5).map(p=>{
+        const lat=p.location?.latitude,lng=p.location?.longitude;
+        const addr=(p.formattedAddress||'').replace('日本、','');
+        const nm=esc(p.displayName?.text||'');
+        return `<div data-name="${nm}" onclick="pickLoc(${lat},${lng},this)">📍 ${nm} <span style="opacity:.6;font-size:11px">${esc(addr)}</span></div>`;
+      }).join('');
+    }catch(e){toast('検索に失敗しました')}
+    finally{$('#findLoc').textContent='🔍 店名から場所を検索'}
+  };
+}
+window.pickLoc=(lat,lng,el)=>{
+  draft.lat=lat;draft.lng=lng;
+  // 検索ヒット店をタップしたら、その店名を入力欄に反映（空でも上書き：選んだ店が正）
+  const nm=el&&el.dataset?el.dataset.name:'';
+  if(nm){const nf=$('#fcname');if(nf)nf.value=nm;}
+  $('#locresults').innerHTML='';
+  if(pickmap){
+    pickmap.setView([lat,lng],17);
+    if(pickmarker)pickmap.removeLayer(pickmarker);
+    pickmarker=L.marker([lat,lng]).addTo(pickmap);
+  }
+  toast('ピンを置きました。ズレていたら地図タップで微調整');
+};
+function initPickMap(){
+  if(pickmap){pickmap.remove();pickmap=null}
+  const el=$('#pickmap');if(!el)return;
+  pickmap=L.map('pickmap').setView([33.59,130.40],12);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(pickmap);
+  const set=(lat,lng)=>{draft.lat=lat;draft.lng=lng;
+    if(pickmarker)pickmap.removeLayer(pickmarker);
+    pickmarker=L.marker([lat,lng]).addTo(pickmap)};
+  pickmap.on('click',e=>set(e.latlng.lat,e.latlng.lng));
+  if(draft.lat){
+    pickmap.setView([draft.lat,draft.lng],16);set(draft.lat,draft.lng);
+  }else{
+    navigator.geolocation?.getCurrentPosition(p=>{
+      pickmap.setView([p.coords.latitude,p.coords.longitude],15);
+      set(p.coords.latitude,p.coords.longitude);
+    },()=>{},{timeout:4000});
+  }
+  setTimeout(()=>pickmap.invalidateSize(),150);
+}
+// 写真EXIFから撮影日(DateTimeOriginal)を読む。失敗時はnull（iPhoneライブラリ写真の自動日付入力用）
+function exifDate(file){
+  return new Promise(res=>{
+    if(!file||!/^image\/jpe?g$/i.test(file.type||'')){res(null);return}
+    const fr=new FileReader();
+    fr.onload=()=>{
+      try{
+        const dv=new DataView(fr.result);
+        if(dv.getUint16(0)!==0xFFD8){res(null);return} // not JPEG
+        let off=2;const len=dv.byteLength;
+        while(off<len){
+          if(dv.getUint16(off)!==0xFFE1){ // APP1以外のマーカーはスキップ
+            if((dv.getUint16(off)&0xFF00)!==0xFF00){res(null);return}
+            off+=2+dv.getUint16(off+2);continue;
+          }
+          // APP1 (Exif)
+          const base=off+4;
+          if(dv.getUint32(base)!==0x45786966){res(null);return} // "Exif"
+          const tiff=base+6;
+          const le=dv.getUint16(tiff)===0x4949; // II=little endian
+          const u16=p=>dv.getUint16(p,le),u32=p=>dv.getUint32(p,le);
+          let ifd=tiff+u32(tiff+4),exifIFD=0;
+          const readStr=p=>{const c=u32(p+4),o=u32(p+8);let s='';for(let i=0;i<19&&i<c;i++){const ch=dv.getUint8(tiff+o+i);if(!ch)break;s+=String.fromCharCode(ch)}return s};
+          const scan=base0=>{const n=u16(base0);for(let i=0;i<n;i++){const e=base0+2+i*12,tag=u16(e);if(tag===0x8769)exifIFD=tiff+u32(e+8);if(tag===0x9003||tag===0x0132)return readStr(e)}return null};
+          let str=scan(ifd);
+          if((!str)&&exifIFD)str=scan(exifIFD);
+          if(str){const m=str.match(/(\d{4}):(\d{2}):(\d{2})/);if(m){res(new Date(+m[1],+m[2]-1,+m[3]));return}}
+          res(null);return;
+        }
+        res(null);
+      }catch(_){res(null)}
+    };
+    fr.onerror=()=>res(null);
+    fr.readAsArrayBuffer(file.slice(0,131072)); // 先頭128KBで十分
+  });
+}
+// 選択写真の最古の撮影日を訪問日に自動入力（手動編集済みならスキップ）
+async function autofillDateFromPhotos(files){
+  const fd=$('#fdate');if(!fd||fd.dataset.auto!=='1')return;
+  let best=null;
+  for(const f of files){const d=await exifDate(f);if(d&&(!best||d<best))best=d}
+  if(best){
+    const z=n=>String(n).padStart(2,'0');
+    fd.value=`${best.getFullYear()}-${z(best.getMonth()+1)}-${z(best.getDate())}`;
+    toast('📷 写真の撮影日を訪問日に入れました');
+  }
+}
+function compress(file,maxW,q){
+  return new Promise(res=>{
+    const img=new Image();img.onload=()=>{
+      const sc=Math.min(1,maxW/img.width);
+      const cv=document.createElement('canvas');
+      cv.width=img.width*sc;cv.height=img.height*sc;
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      res(cv.toDataURL('image/jpeg',q));
+    };img.src=URL.createObjectURL(file);
+  });
+}
+function renderThumbs(){
+  const el=$('#pthumbs');if(!el)return;
+  el.innerHTML=draft.photos.map((p,i)=>`
+    <div class="thumb-wrap">
+      <img src="${p}" class="${i===0?'cover':''}" data-idx="${i}" title="タップで表紙にする">
+      <button class="thumb-del" data-del="${i}" title="削除">×</button>
+    </div>`).join('');
+  if(draft.photos[0]){const pd=$('#pdrop');if(pd){pd.classList.add('has');pd.style.backgroundImage=`url(${draft.photos[0]})`}}
+}
+window.setCover=i=>{
+  draft.photos.unshift(...draft.photos.splice(i,1));
+  renderThumbs();
+};
+async function saveEntry(){
+  if(saving)return; // 二重送信防止
+  if(!draft.photos.length){toast('写真を選んでください');return}
+  if(draft.cafeMode==='past'&&!draft.cafeId){toast('カフェを選択してください');return}
+  if(draft.cafeMode!=='past'&&!$('#fcname').value.trim()){toast('カフェ名を入力してください');return}
+  const earnedBefore=new Set(earnedBadgeIds());
+  saving=true;const sb=$('#saveBtn');if(sb){sb.disabled=true;sb.textContent='保存中…'}
+  let cafeId=draft.cafeId||'__new';
+  try{
+    if(cafeId==='__new'){
+      const name=$('#fcname').value.trim();
+      const c={id:uid(),name,tags:draft.tags,lat:draft.lat,lng:draft.lng};
+      await DB.put('cafes',c);cafes.push(c);cafeId=c.id;
+      cloudSaveCafe(c).catch(e=>console.error(e));
+    }
+    const dateVal=$('#fdate').value||new Date().toISOString().slice(0,10);
+    var v={id:uid(),cafeId,photo:draft.photos[0],photos:draft.photos,drink:$('#fdrink').value.trim(),
+      again:draft.again||3,
+      memo:$('#fmemo').value.trim(),date:new Date(dateVal+'T12:00:00').toISOString()};
+    await DB.put('visits',v);visits.push(v);visits.sort((a,b)=>b.date.localeCompare(a.date));
+    cloudSaveVisit(v).catch(e=>console.error(e));
+  }catch(e){console.error('save',e);toast('保存に失敗しました');if(sb){sb.disabled=false;sb.textContent='記録する'}saving=false;return}
+  saving=false;addSheetOpen=false;
+  closeSheet();renderAll();
+  const rc=cafeById(cafeId)||{name:''};
+  await playRitual(v,rc);
+  justRecorded=true;
+  renderHome();
+  show('home');
+  const fresh=earnedBadgeIds().filter(id=>!earnedBefore.has(id));
+  if(fresh.length)setTimeout(()=>celebrateBadges(fresh),600);
+}
+
+/* =============== CAFE CHOICE HELPERS =============== */
+window.showCafeChoice=mode=>{
+  // 「過去のカフェを選択」をもう一度押したら閉じて新規モードに戻す
+  if(mode==='past'&&draft.cafeMode==='past')mode='new';
+  if(mode==='new')draft.cafeId=null;
+  draft.cafeMode=mode;
+  const nb=$('#choiceNew'),pb=$('#choicePast');
+  if(nb)nb.classList.toggle('on',mode==='new');
+  if(pb)pb.classList.toggle('on',mode==='past');
+  const newArea=$('#newcafe'),pastArea=$('#pastcafe-area');
+  if(newArea)newArea.style.display=mode==='new'?'block':'none';
+  if(pastArea){
+    pastArea.style.display=mode==='past'?'block':'none';
+    if(mode==='past'&&!draft.cafeId)renderPastCafeListFull();
+  }
+  if(mode==='new')setTimeout(initPickMap,80);
+};
+function renderPastCafeListFull(){
+  const area=$('#pastcafe-area');if(!area)return;
+  area.innerHTML=`<input type="search" class="past-cafe-search" placeholder="店名で検索…" id="pastCafeQ" oninput="renderPastCafeList(this.value)"><div class="past-cafe-list" id="pastcafe-list"></div>`;
+  renderPastCafeList('');
+}
+function renderPastCafeList(q){
+  const list=$('#pastcafe-list');if(!list)return;
+  const sq=(q||'').toLowerCase();
+  const filtered=cafes.filter(c=>!sq||c.name.toLowerCase().includes(sq));
+  if(!filtered.length){list.innerHTML=`<div style="padding:12px 14px;font-size:12px;color:var(--roast);opacity:.7">見つかりません</div>`;return}
+  list.innerHTML=filtered.map(c=>{
+    const cnt=visits.filter(v=>v.cafeId===c.id).length;
+    const nm=esc(c.name).replace(/'/g,'&#39;');
+    return`<div class="past-cafe-item${draft.cafeId===c.id?' selected':''}" onclick="selectPastCafe('${c.id}','${nm}')"><span style="flex:1">${esc(c.name)}</span>${cnt?`<span style="font-size:10px;letter-spacing:.1em;color:var(--caramel-deep)">${cnt}回</span>`:''}</div>`;
+  }).join('');
+}
+window.selectPastCafe=(id,name)=>{
+  draft.cafeId=id;
+  const area=$('#pastcafe-area');if(!area)return;
+  area.innerHTML=`<div class="past-cafe-selected"><span>☕ ${name}</span><button type="button" onclick="clearPastCafeSelection()">✕</button></div>`;
+};
+window.clearPastCafeSelection=()=>{
+  draft.cafeId=null;
+  renderPastCafeListFull();
+};
+
+/* =============== THE RITUAL — 記録の儀式 =============== */
+var justRecorded=false; // 記録直後のホーム復帰でheroを現像させるフラグ
+const MILESTONES={1:'はじめの一杯。',3:'3杯目。習慣のはじまり。',5:'5杯。旅がはじまった。',10:'10杯。立派な一冊に。',25:'25杯目。コレクター。',50:'50杯。これはもう作品。',100:'100杯。伝説の一冊。'};
+function playRitual(v,c){
+  return new Promise(res=>{
+    const r=$('#ritual');if(!r){res();return}
+    const total=visits.length;
+    r.querySelector('.r-pageno b').textContent=total;
+    r.querySelector('.r-cafe').textContent=c.name||'新しい一杯';
+    r.querySelector('.r-beans').innerHTML=beanRow(v.again||3);
+    r.querySelector('.r-tag').textContent=MILESTONES[total]||'あなたの雑誌に、新しい1ページ。';
+    r.classList.add('show');
+    if(navigator.vibrate)navigator.vibrate([12,50,16]);
+    const done=()=>{r.classList.remove('show');setTimeout(res,560)};
+    r._t&&clearTimeout(r._t);
+    r._t=setTimeout(done,2900);
+    // タップでスキップ
+    r.onclick=()=>{clearTimeout(r._t);done()};
+  });
+}
+
+/* =============== badges / monthly issue =============== */
+const BADGES=[
+  {id:'first',  n:'First Drip',   jp:'はじめの一杯',icon:'☕', test:s=>s.cups>=1,        hint:s=>'最初の一杯を'},
+  {id:'collect',n:'Collector',    jp:'蒐集家',    icon:'📚', test:s=>s.cups>=25,        hint:s=>`あと${25-s.cups}杯`},
+  {id:'half',   n:'Half Century', jp:'五十杯',    icon:'🎖', test:s=>s.cups>=50,        hint:s=>`あと${50-s.cups}杯`},
+  {id:'century',n:'Centurion',    jp:'百杯',      icon:'💯', test:s=>s.cups>=100,       hint:s=>`あと${100-s.cups}杯`},
+  {id:'explorer',n:'Explorer',    jp:'開拓者',    icon:'🧭', test:s=>s.cafes>=10,       hint:s=>`あと${10-s.cafes}軒`},
+  {id:'carto',  n:'Cartographer', jp:'地図職人',  icon:'🗺', test:s=>s.cafes>=30,       hint:s=>`あと${30-s.cafes}軒`},
+  {id:'regular',n:'Regular',      jp:'常連',      icon:'🎟', test:s=>s.maxRevisit>=3,   hint:s=>`同じ店にあと${3-s.maxRevisit}回`},
+  {id:'sanct',  n:'Sanctuary',    jp:'行きつけ',  icon:'🔁', test:s=>s.maxRevisit>=5,   hint:s=>`同じ店にあと${5-s.maxRevisit}回`},
+  {id:'habit',  n:'Habit',        jp:'習慣',      icon:'🌱', test:s=>s.streak>=3,       hint:s=>`連続記録あと${3-s.streak}ヶ月`},
+  {id:'seasons',n:'Four Seasons', jp:'四季',      icon:'🍂', test:s=>s.months>=12,      hint:s=>`あと${12-s.months}ヶ月分`},
+  {id:'wander', n:'Wanderer',     jp:'旅人',      icon:'✈️', test:s=>s.travel>=5,       hint:s=>`旅先あと${5-s.travel}軒`},
+  {id:'taster', n:'Connoisseur',  jp:'目利き',    icon:'🏅', test:s=>s.fiveCafes>=5,    hint:s=>`★5の店あと${5-s.fiveCafes}軒`},
+];
+function badgeStats(){
+  const now=new Date();
+  // 店ごとの訪問回数 → 最多再訪
+  const perCafe={};visits.forEach(v=>{perCafe[v.cafeId]=(perCafe[v.cafeId]||0)+1});
+  const counts=Object.values(perCafe);
+  const maxRevisit=counts.length?Math.max(...counts):0;
+  // 記録のある月（YYYY-MM）と最長連続月数
+  const ms=[...new Set(visits.map(v=>v.date.slice(0,7)))].sort();
+  let streak=ms.length?1:0,run=ms.length?1:0;
+  for(let i=1;i<ms.length;i++){
+    const [y0,m0]=ms[i-1].split('-').map(Number),[y1,m1]=ms[i].split('-').map(Number);
+    run=(y1*12+m1===y0*12+m0+1)?run+1:1;
+    if(run>streak)streak=run;
+  }
+  // 生活圏外（旅先）のカフェ数 — 1番のhomeArea判定を流用
+  const home=homeArea();
+  const travel=home?cafes.filter(c=>c.lat!=null&&c.lng!=null&&haversineKm(home.lat,home.lng,c.lat,c.lng)>HOME_RADIUS_KM).length:0;
+  return{
+    cups:visits.length,
+    cafes:cafes.length,
+    fiveCafes:new Set(visits.filter(v=>v.again>=5).map(v=>v.cafeId)).size,
+    maxRevisit,months:ms.length,streak,travel,
+  };
+}
+/* On This Day — 思い出の一杯（日替わりで過去の記録を1つ） */
+function memoryHTML(){
+  if(visits.length<2)return '';
+  const now=new Date(),today=now.getDate(),tmonth=now.getMonth();
+  const old=visits.filter(v=>(now-new Date(v.date))/864e5>=25); // 25日以上前
+  if(!old.length)return '';
+  let pick=null,label='';
+  pick=old.find(v=>{const d=new Date(v.date);return d.getDate()===today&&d.getMonth()===tmonth});
+  if(pick){const y=now.getFullYear()-new Date(pick.date).getFullYear();label=y>=1?`${y}年前の今日`:'去年の今日'}
+  if(!pick){pick=old.find(v=>new Date(v.date).getDate()===today);if(pick)label='思い出の一杯'}
+  if(!pick){const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/864e5);pick=old[doy%old.length];label='思い出の一杯'}
+  const c=cafeById(pick.cafeId)||{name:'—'};
+  return `<div class="secthead reveal"><span class="word">Memory</span><span class="lbl">${label} — ${fmtDateJP(pick.date)}</span></div>
+    <article class="memory reveal" onclick="openVisit('${pick.id}')">
+      <img src="${pick.photo}" loading="lazy" alt="">
+      <div class="mem-cap"><div class="mem-l">On This Day</div><h3>${esc(c.name)}</h3>${pick.drink?`<div class="mem-dr">${esc(pick.drink)}</div>`:''}<div class="mem-go">あの日をひらく →</div></div>
+    </article>`;
+}
+/* 生活圏の自動推定 — 記録カフェの密集地（直近重み付け重心）。自宅住所は保存しない */
+function haversineKm(lat1,lng1,lat2,lng2){
+  const R=6371,r=Math.PI/180;
+  const dLat=(lat2-lat1)*r,dLng=(lng2-lng1)*r;
+  const s=Math.sin(dLat/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s));
+}
+const HOME_RADIUS_KM=50; // この半径内＝気軽に行ける生活圏
+function homeArea(){
+  // 平均重心は旅先など外れ値に引っ張られるため、最も通っている店（直近重み付け）を生活圏のアンカーにする
+  const now=Date.now();const w={};
+  visits.forEach(v=>{
+    const c=cafeById(v.cafeId);if(!c||c.lat==null||c.lng==null)return;
+    const days=(now-new Date(v.date))/864e5;
+    w[v.cafeId]=(w[v.cafeId]||0)+Math.exp(-days/180); // 半減期約4ヶ月：昔住んでいた土地は薄れていく
+  });
+  let best=null,bw=0;
+  for(const id in w){if(w[id]>bw){bw=w[id];best=id}}
+  if(!best)return null;
+  const c=cafeById(best);return{lat:c.lat,lng:c.lng};
+}
+/* 再訪リマインド — お気に入りでしばらく行ってない店（生活圏内に限る） */
+function revisitHTML(){
+  if(cafes.length<2||visits.length<3)return '';
+  const now=new Date();let best=null;const home=homeArea();
+  cafes.forEach(c=>{
+    const vs=visits.filter(v=>v.cafeId===c.id);if(!vs.length)return;
+    // 旅先など生活圏外の店はリマインド対象外（座標不明の店は判定できないので残す）
+    if(home&&c.lat!=null&&c.lng!=null&&haversineKm(home.lat,home.lng,c.lat,c.lng)>HOME_RADIUS_KM)return;
+    const last=vs.reduce((m,v)=>v.date>m?v.date:m,vs[0].date);
+    const days=(now-new Date(last))/864e5;
+    const score=Math.max(...vs.map(v=>v.again||0));
+    if(days>=45&&score>=4&&(!best||days>best.days))best={c,days};
+  });
+  if(!best)return '';
+  return `<div class="revisit reveal" onclick="openCafe('${best.c.id}')">
+    <div class="rv-ic">☕</div>
+    <div><b>そろそろ、また「${esc(best.c.name)}」へ</b><span>最後の訪問から${Math.floor(best.days)}日。お気に入りの一軒です。</span></div>
+    <i>›</i></div>`;
+}
+/* Wishlist — 行ってみたい（気になる）をホームに surfaced */
+function wishlistHTML(){
+  if(!wishes.length)return '';
+  const visitedNames=new Set(cafes.map(c=>c.name));
+  const live=wishes.filter(w=>!visitedNames.has(w.name)); // 既に訪問済みは除外
+  if(!live.length)return '';
+  return `<div class="secthead reveal"><span class="word">Wishlist</span><span class="lbl">行ってみたい — ${live.length}軒</span></div>
+    <div class="wishrow">${live.map(w=>{const nm=esc(w.name).replace(/'/g,'&#39;');return`
+      <div class="wishcard reveal">
+        <div class="wc-top"><span class="wc-pin">🔖</span><button class="wc-x" title="解除" onclick="removeWish('${w.id}')">✕</button></div>
+        <h4>${esc(w.name)}</h4>
+        <div class="wc-acts">
+          <a onclick="recordHere('${nm}',${w.lat},${w.lng})">記録</a>
+          <a class="ghost" href="${gmapsUrl(w.name,w.gurl)}" target="_blank" rel="noopener">地図</a>
+        </div>
+      </div>`}).join('')}</div>`;
+}
+function monthlyIssueHTML(){
+  const now=new Date();
+  const mv=visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()});
+  if(!mv.length)return '';
+  const monthName=now.toLocaleDateString('en-US',{month:'long'});
+  const cover=(mv.find(v=>v.photo)||{}).photo||'';
+  const strip=cover?`<img src="${cover}" loading="lazy" alt="">`:'';
+  return `<div class="secthead reveal"><span class="word">Issue</span><span class="lbl">今月の一冊 — ${monthName} ${now.getFullYear()}</span></div>
+    <div class="issue-cover reveal" onclick="shareMonthly()"><div class="ic-strip">${strip}</div>
+      <div class="ic-meta"><div class="ic-n">${mv.length}</div><div class="ic-l">表紙を<br>つくる ↗</div></div></div>`;
+}
+function badgesHTML(){
+  const s=badgeStats();const earned=BADGES.filter(b=>b.test(s)).length;
+  return `<div class="secthead reveal"><span class="word">Badges</span><span class="lbl">あなたの記章 — ${earned} / ${BADGES.length}</span></div>
+    <div class="badges reveal">${BADGES.map(b=>{const on=b.test(s);
+      return `<div class="badge ${on?'on':''}"><div class="bg-ic">${on?b.icon:'🔒'}</div><div class="bg-n">${b.n}</div><div class="bg-jp">${on?b.jp:b.hint(s)}</div></div>`;
+    }).join('')}</div>`;
+}
+
+/* =============== count-up（数字が育つ） =============== */
+function countUp(scope){
+  (scope||document).querySelectorAll('[data-count]').forEach(el=>{
+    const target=+el.dataset.count||0;
+    if(target<=0){el.textContent='0';return}
+    const dur=1000,t0=performance.now();
+    (function step(t){const p=Math.min(1,(t-t0)/dur);
+      el.textContent=Math.round(target*(1-Math.pow(1-p,3)));
+      if(p<1)requestAnimationFrame(step);
+    })(t0);
+  });
+}
+
+/* =============== instagram story share =============== */
+window.shareVisit=id=>{
+  const v=visits.find(x=>x.id===id);const c=cafeById(v.cafeId)||{name:''};
+  openSheet(`
+    <h2>Share<small>ストーリー用カード</small></h2>
+    <div class="share-wrap">
+      <canvas id="shareCv" width="1080" height="1920"></canvas>
+      <div class="tplrow">
+        <button class="minibtn" data-tpl="full">写真全面</button>
+        <button class="minibtn" data-tpl="polaroid">ポラロイド</button>
+      </div>
+      <div class="btnrow"><button class="btn ghost" onclick="closeSheet()">閉じる</button><button class="btn dark" id="doShare">共有する ↗</button></div>
+    </div>`);
+  let tpl='full';
+  const draw=()=>drawShare($('#shareCv'),v,c,tpl);
+  $$('.tplrow .minibtn').forEach(b=>b.onclick=()=>{tpl=b.dataset.tpl;draw()});
+  draw();
+  $('#doShare').onclick=async()=>{
+    const cv=$('#shareCv');
+    cv.toBlob(async blob=>{
+      const file=new File([blob],'coffeelog.jpg',{type:'image/jpeg'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){
+        try{await navigator.share({files:[file]})}catch(e){}
+      }else{
+        const a=document.createElement('a');a.href=cv.toDataURL('image/jpeg',.92);
+        a.download='coffeelog.jpg';a.click();toast('画像を保存しました');
+      }
+    },'image/jpeg',.92);
+  };
+};
+/* =============== monthly issue cover share =============== */
+window.shareMonthly=()=>{
+  const now=new Date();
+  const mv=visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()});
+  if(!mv.length){toast('今月の記録がまだありません');return}
+  openSheet(`
+    <h2>This Month<small>今月の一冊 — 表紙をつくる</small></h2>
+    <div class="share-wrap">
+      <canvas id="shareCv" width="1080" height="1920"></canvas>
+      <div class="btnrow"><button class="btn ghost" onclick="closeSheet()">閉じる</button><button class="btn dark" id="doShare">共有する ↗</button></div>
+    </div>`);
+  drawMonthlyCover($('#shareCv'),mv,now);
+  $('#doShare').onclick=async()=>{
+    const cv=$('#shareCv');
+    cv.toBlob(async blob=>{
+      const file=new File([blob],'drippin-issue.jpg',{type:'image/jpeg'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]})}catch(e){}}
+      else{const a=document.createElement('a');a.href=cv.toDataURL('image/jpeg',.92);a.download='drippin-issue.jpg';a.click();toast('画像を保存しました')}
+    },'image/jpeg',.92);
+  };
+};
+function drawMonthlyCover(cv,mv,now){
+  const ctx=cv.getContext('2d');const W=1080,H=1920;
+  const photos=mv.map(v=>v.photo).filter(Boolean).slice(0,4);
+  const cafeCount=new Set(mv.map(v=>v.cafeId)).size;
+  const imgs=[];let loaded=0;
+  if(!photos.length){paint();return}
+  photos.forEach((src,i)=>{const im=new Image();im.onload=im.onerror=()=>{loaded++;if(loaded===photos.length)paint()};im.src=src;imgs[i]=im});
+  function paint(){
+    ctx.fillStyle='#F5EFE4';ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center';
+    ctx.fillStyle='#8C5E36';ctx.font="italic 600 54px 'Playfair Display'";ctx.fillText("Drippin'",W/2,118);
+    ctx.fillStyle='#B07D4F';ctx.font="400 24px 'Playfair Display'";ctx.fillText('M O N T H L Y   I S S U E',W/2,164);
+    drawCollage(ctx,imgs.filter(im=>im&&im.width),70,236,W-140,936);
+    let y=1342;
+    ctx.fillStyle='#2B2018';ctx.font="600 138px 'Playfair Display'";
+    ctx.fillText(now.toLocaleDateString('en-US',{month:'long'}).toUpperCase(),W/2,y);
+    ctx.fillStyle='#B07D4F';ctx.font="italic 400 44px 'Playfair Display'";ctx.fillText(now.getFullYear(),W/2,y+66);
+    ctx.fillStyle='#4A372A';ctx.font="500 42px 'Shippori Mincho'";
+    ctx.fillText(`${mv.length}杯　・　${cafeCount}軒`,W/2,y+168);
+    ctx.strokeStyle='rgba(43,32,24,.18)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(W/2-110,H-152);ctx.lineTo(W/2+110,H-152);ctx.stroke();
+    ctx.font="400 26px 'Playfair Display'";ctx.fillStyle='rgba(140,94,54,.75)';ctx.fillText(APP_URL,W/2,H-92);
+  }
+}
+function drawCollage(ctx,imgs,x,y,w,h){
+  const n=imgs.length,g=12;
+  if(n===0){ctx.fillStyle='#EDE4D3';ctx.fillRect(x,y,w,h);return}
+  if(n===1){coverDraw(ctx,imgs[0],x,y,w,h);return}
+  if(n===2){const hh=(h-g)/2;coverDraw(ctx,imgs[0],x,y,w,hh);coverDraw(ctx,imgs[1],x,y+hh+g,w,hh);return}
+  const ww=(w-g)/2,hh=(h-g)/2;
+  coverDraw(ctx,imgs[0],x,y,ww,hh);coverDraw(ctx,imgs[1],x+ww+g,y,ww,hh);
+  coverDraw(ctx,imgs[2],x,y+hh+g,ww,hh);
+  if(imgs[3])coverDraw(ctx,imgs[3],x+ww+g,y+hh+g,ww,hh);
+  else{ctx.fillStyle='#EDE4D3';ctx.fillRect(x+ww+g,y+hh+g,ww,hh)}
+}
+const APP_URL='apeachamh-cyber.github.io/coffee-log'; // 独自ドメイン決定時にここを書き換える
+function drawShare(cv,v,c,tpl){
+  const ctx=cv.getContext('2d');const W=1080,H=1920;
+  const img=new Image();
+  img.onload=()=>{
+    ctx.fillStyle='#F5EFE4';ctx.fillRect(0,0,W,H);
+    if(tpl==='full'){
+      // ===== Magazine Cover =====
+      coverDraw(ctx,img,0,0,W,H*0.66);
+      // 写真→クリームへのグラデーション
+      const gr=ctx.createLinearGradient(0,H*0.52,0,H*0.66);
+      gr.addColorStop(0,'rgba(245,239,228,0)');gr.addColorStop(1,'#F5EFE4');
+      ctx.fillStyle=gr;ctx.fillRect(0,H*0.5,W,H*0.17);
+      ctx.fillStyle='#F5EFE4';ctx.fillRect(0,H*0.66,W,H*0.34);
+      // マストヘッド（写真上）
+      ctx.textAlign='center';
+      ctx.shadowColor='rgba(43,32,24,.55)';ctx.shadowBlur=28;ctx.shadowOffsetY=4;
+      ctx.fillStyle='#FDFBF6';ctx.font="italic 600 88px 'Playfair Display'";
+      ctx.fillText("Drippin'",W/2,150);
+      ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+      ctx.font="400 26px 'Playfair Display'";ctx.fillStyle='rgba(253,251,246,.92)';
+      ctx.fillText('A  P E R S O N A L  C A F É  J O U R N A L',W/2,200);
+      // 本文
+      let y=H*0.66+92;
+      ctx.font="500 32px 'Playfair Display'";ctx.fillStyle='#B07D4F';
+      ctx.fillText(fmtDate(v.date).toUpperCase().split('').join(' '),W/2,y);y+=98;
+      ctx.fillStyle='#2B2018';ctx.font="600 94px 'Shippori Mincho'";
+      ctx.fillText(fitText(ctx,c.name,W-140),W/2,y);y+=78;
+      if(v.drink){ctx.font="italic 500 46px 'Playfair Display'";ctx.fillStyle='#4A372A';
+        ctx.fillText(fitText(ctx,v.drink,W-220),W/2,y);}
+      y+=90;drawBeans(ctx,W/2,y,v.again);y+=92;
+      if(v.memo){ctx.font="italic 400 38px 'Shippori Mincho'";ctx.fillStyle='#6B5849';
+        ctx.fillText('“ '+fitText(ctx,v.memo,W-260)+' ”',W/2,y);}
+      // フッター（ブランド＋URL＝バイラル導線）
+      ctx.strokeStyle='rgba(43,32,24,.18)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(W/2-110,H-168);ctx.lineTo(W/2+110,H-168);ctx.stroke();
+      ctx.font="italic 600 44px 'Playfair Display'";ctx.fillStyle='#8C5E36';
+      ctx.fillText("Drippin'",W/2,H-104);
+      ctx.font="400 26px 'Playfair Display'";ctx.fillStyle='rgba(140,94,54,.75)';
+      ctx.fillText(APP_URL,W/2,H-58);
+    }else{
+      // ===== Polaroid =====
+      ctx.fillStyle='#E8DEC9';ctx.fillRect(0,0,W,H);
+      grain(ctx,W,H);
+      ctx.textAlign='center';
+      ctx.font="italic 600 64px 'Playfair Display'";ctx.fillStyle='#2B2018';
+      ctx.fillText("Drippin'",W/2,160);
+      ctx.font="400 24px 'Playfair Display'";ctx.fillStyle='#8C5E36';
+      ctx.fillText('A  P E R S O N A L  C A F É  J O U R N A L',W/2,206);
+      const pw=W-200,ph=pw, px=100, py=(H-ph-260)/2+30;
+      ctx.save();ctx.translate(W/2,py+ph/2+90);ctx.rotate(-0.02);ctx.translate(-W/2,-(py+ph/2+90));
+      ctx.shadowColor='rgba(43,32,24,.35)';ctx.shadowBlur=60;ctx.shadowOffsetY=24;
+      ctx.fillStyle='#FDFBF6';ctx.fillRect(px-36,py-36+90,pw+72,ph+260);
+      ctx.shadowColor='transparent';
+      coverDraw(ctx,img,px,py+90,pw,ph);
+      ctx.fillStyle='#2B2018';
+      ctx.font="600 64px 'Shippori Mincho'";
+      ctx.fillText(fitText(ctx,c.name,pw-60),W/2,py+ph+90+110);
+      ctx.font="italic 400 38px 'Playfair Display'";ctx.fillStyle='#8C5E36';
+      ctx.fillText(fmtDate(v.date),W/2,py+ph+90+168);
+      ctx.restore();
+      drawBeans(ctx,W/2,H-220,v.again);
+      ctx.font="400 26px 'Playfair Display'";ctx.fillStyle='rgba(140,94,54,.8)';
+      ctx.fillText(APP_URL,W/2,H-70);
+    }
+  };
+  img.src=v.photo;
+}
+function coverDraw(ctx,img,x,y,w,h){
+  const s=Math.max(w/img.width,h/img.height);
+  const iw=img.width*s,ih=img.height*s;
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+  ctx.drawImage(img,x+(w-iw)/2,y+(h-ih)/2,iw,ih);ctx.restore();
+}
+function fitText(ctx,text,maxW){
+  let t=text||'';while(ctx.measureText(t).width>maxW&&t.length>2)t=t.slice(0,-2)+'…';return t;
+}
+function beanShape(ctx,x,y,r,fill){
+  ctx.save();ctx.translate(x,y);ctx.rotate(-0.24);
+  ctx.fillStyle=fill;
+  ctx.beginPath();ctx.ellipse(0,0,r*0.78,r,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#F5EFE4';ctx.lineWidth=Math.max(3,r*0.16);ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(0,-r*0.8);
+  ctx.bezierCurveTo(-r*0.55,-r*0.25,r*0.55,r*0.25,0,r*0.8);ctx.stroke();
+  ctx.restore();
+}
+function drawBeans(ctx,cx,cy,n){
+  const r=28,gap=84,x0=cx-gap*2;
+  for(let i=0;i<5;i++)beanShape(ctx,x0+gap*i,cy,r,i<n?'#8C5E36':'#D9CBB2');
+}
+function grain(ctx,W,H){
+  for(let i=0;i<2200;i++){
+    ctx.fillStyle=`rgba(43,32,24,${Math.random()*0.05})`;
+    ctx.fillRect(Math.random()*W,Math.random()*H,2,2);
+  }
+}
+
+/* =============== hero 3D tilt =============== */
+document.addEventListener('pointermove',e=>{
+  const hero=document.querySelector('.hero .tilt');if(!hero)return;
+  const r=hero.getBoundingClientRect();
+  if(e.clientY<r.top-200||e.clientY>r.bottom+200)return;
+  const dx=(e.clientX-(r.left+r.width/2))/r.width;
+  const dy=(e.clientY-(r.top+r.height/2))/r.height;
+  hero.style.transform=`rotateY(${dx*6}deg) rotateX(${-dy*5}deg)`;
+});
+document.addEventListener('pointerleave',()=>{
+  const hero=document.querySelector('.hero .tilt');
+  if(hero)hero.style.transform='';
+});
+
+/* =============== pull-to-record（ホームで下に引いて記録） =============== */
+(function(){
+  const ind=$('#pullInd');let sy=0,pulling=false,dist=0;
+  window.addEventListener('touchstart',e=>{
+    pulling=(_curView()==='home'&&window.scrollY<=0&&!$('#sheet').classList.contains('open'));
+    if(pulling){sy=e.touches[0].clientY;dist=0}
+  },{passive:true});
+  window.addEventListener('touchmove',e=>{
+    if(!pulling)return;
+    dist=e.touches[0].clientY-sy;
+    if(dist>0&&window.scrollY<=0){
+      ind.style.opacity=Math.min(1,dist/90);
+      ind.style.transform=`translateX(-50%) translateY(${Math.min(dist*.45,52)}px)`;
+      ind.classList.toggle('ready',dist>90);
+      $('#pullTxt').textContent=dist>90?'はなして更新':'引いて更新';
+    }else if(dist<0){pulling=false;ind.style.opacity='0'}
+  },{passive:true});
+  window.addEventListener('touchend',()=>{
+    if(pulling&&dist>90){if(navigator.vibrate)navigator.vibrate(12);doRefresh()}
+    if(ind){ind.style.opacity='0';ind.style.transform='translateX(-50%)';ind.classList.remove('ready')}
+    pulling=false;dist=0;
+  },{passive:true});
+})();
+// 引いて更新：ログイン時はクラウド同期、未ログインは端末データを再描画
+async function doRefresh(){
+  if(typeof fbUser!=='undefined'&&fbUser){
+    try{await cloudSync()}catch(e){console.error('refresh',e);renderAll();toast('更新しました')}
+  }else{renderAll();toast('更新しました')}
+}
+
+/* =============== onboarding =============== */
+let _onbStep=0;
+function showSlide(n){
+  _onbStep=n;
+  document.querySelectorAll('.onb-slide').forEach(s=>s.classList.toggle('show',+s.dataset.i===n));
+  document.querySelectorAll('#onbDots i').forEach((d,i)=>d.classList.toggle('act',i===n));
+  const btn=$('#onbNext'),last=n===2;
+  btn.textContent=last?'はじめる ☕':'次へ';
+  btn.classList.toggle('go',last);
+}
+function nextOnb(){ if(_onbStep>=2){finishOnb();} else {showSlide(_onbStep+1);} }
+function finishOnb(){
+  localStorage.setItem('drippin_onboarded','1');
+  const o=$('#onb');o.style.transition='opacity .45s ease';o.style.opacity='0';
+  setTimeout(()=>{o.classList.remove('on');o.style.opacity='';o.style.transition='';},450);
+}
+function maybeOnboard(){
+  if(localStorage.getItem('drippin_onboarded'))return;
+  $('#onb').classList.add('on');showSlide(0);
+}
+/* =============== boot =============== */
+function renderAll(){renderHome();renderCafes();renderInsights();if(map)initMap()}
+/* ---- insights（統計＋バッジ） ---- */
+function renderInsights(){
+  const sec=$('#view-insights');if(!sec)return;
+  const s=badgeStats();
+  const now=new Date();
+  const thisMonth=visits.filter(v=>{const d=new Date(v.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).length;
+  const cards=[
+    {n:s.cups,    u:'cups',   l:'総杯数'},
+    {n:s.cafes,   u:'cafés',  l:'訪問した店'},
+    {n:thisMonth, u:'cups',   l:'今月'},
+    {n:s.months,  u:'months', l:'記録した月'},
+    {n:s.streak,  u:'months', l:'連続記録'},
+    {n:s.travel,  u:'cafés',  l:'旅先の店'},
+  ];
+  sec.innerHTML=`<div class="secthead reveal"><span class="word">Insights</span><span class="lbl">あなたの軌跡 — Drippinは溜まる</span></div>
+    <div class="statgrid reveal">${cards.map(c=>`<div class="statcard"><b>${c.n}</b><span class="su">${c.u}</span><span class="sl">${c.l}</span></div>`).join('')}</div>
+    ${badgesHTML()}`;
+  observeReveals();
+}
+load().then(async()=>{
+  // 記録が0件のカフェを一掃（既存の孤立カフェ対策・初回のみ実質的に動く）
+  const usedIds=new Set(visits.map(v=>v.cafeId));
+  const orphans=cafes.filter(c=>!usedIds.has(c.id));
+  for(const c of orphans){await DB.del('cafes',c.id);cloudDeleteCafe(c.id).catch(()=>{})}
+  if(orphans.length)cafes=cafes.filter(c=>usedIds.has(c.id));
+  renderAll();
+  maybeOnboard();
+});
+/* =============== PWA =============== */
+if('serviceWorker' in navigator){
+  // 新しいSWが有効化されたら一度だけ自動リロード（更新を確実に反映）
+  let _swReloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(_swReloaded)return;_swReloaded=true;location.reload();
+  });
+  navigator.serviceWorker.register('./sw.js').then(reg=>{reg.update();}).catch(()=>{});
+}
+/* =============== version & debug =============== */
+const APP_VER='0.9.38';
+document.getElementById('ver').textContent='v'+APP_VER;
+if(location.search.includes('debug')){
+  const s=document.createElement('script');s.src='https://unpkg.com/eruda';
+  s.onload=()=>eruda.init();document.head.appendChild(s);
+}
+</script>
+<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+<script>
+/* =============== Liquid Coffee — WebGL background =============== */
+(function(){
+  if(location.search.includes('lab'))return; // Labモード：WebGL無効（自動監査の安定化）
+  if(!window.THREE)return;
+  const cv=document.getElementById('bg3d');
+  const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  const scene=new THREE.Scene();
+  scene.fog=new THREE.Fog(0xf5efe4,14,34);
+  const cam=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,100);
+  cam.position.set(0,0,16);
+
+  // warm studio lighting
+  const amb=new THREE.AmbientLight(0xfff3e0,.85);scene.add(amb);
+  const key=new THREE.DirectionalLight(0xfff0d8,1.6);key.position.set(6,10,8);scene.add(key);
+  const rim=new THREE.DirectionalLight(0xffc890,.9);rim.position.set(-8,-4,-6);scene.add(rim);
+  const fill=new THREE.PointLight(0xffe8c8,.7,40);fill.position.set(0,-6,10);scene.add(fill);
+  // 夜用の残り火（焙煎の灯り）。昼は消灯
+  const ember=new THREE.PointLight(0xff7a2e,0,30);ember.position.set(0,-2,5);scene.add(ember);
+
+  // coffee bean: two scaled hemispheres with a crease
+  function beanGeo(){
+    const g=new THREE.SphereGeometry(1,48,32);
+    const p=g.attributes.position;
+    for(let i=0;i<p.count;i++){
+      let x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+      // bean proportions
+      y*=.62;z*=.42;
+      // crease along the top
+      const crease=Math.exp(-Math.pow(x*3.2,2));
+      if(z>0)z-=crease*.22;
+      // slight banana curve
+      z+=Math.pow(x,2)*.12;
+      p.setXYZ(i,x,y,z);
+    }
+    g.computeVertexNormals();
+    return g;
+  }
+  const geo=beanGeo();
+  const roasts=[0x4a2f1d,0x5d3a22,0x6e4527,0x3a2515,0x7d5430];
+  const beans=[];
+  const N=innerWidth<700?14:22;
+  for(let i=0;i<N;i++){
+    const m=new THREE.MeshPhysicalMaterial({
+      color:roasts[i%roasts.length],roughness:.32,metalness:0,
+      clearcoat:1,clearcoatRoughness:.18,sheen:.4,sheenColor:0xffd9a8,
+    });
+    const b=new THREE.Mesh(geo,m);
+    const s=.5+Math.random()*1.05;
+    b.scale.setScalar(s);
+    b.position.set((Math.random()-.5)*24,(Math.random()-.5)*18,-5-Math.random()*12);
+    b.rotation.set(Math.random()*6.28,Math.random()*6.28,Math.random()*6.28);
+    b.userData={r0:b.rotation.clone(),p0:b.position.clone(),
+      sp:.12+Math.random()*.25,ph:Math.random()*6.28,amp:.5+Math.random()*.9};
+    scene.add(b);beans.push(b);
+  }
+  // soft cream orbs for depth
+  const orbMat=new THREE.MeshPhysicalMaterial({color:0xfdf6e8,roughness:.95,transparent:true,opacity:.5});
+  for(let i=0;i<6;i++){
+    const o=new THREE.Mesh(new THREE.SphereGeometry(2.4+Math.random()*2,24,16),orbMat);
+    o.position.set((Math.random()-.5)*30,(Math.random()-.5)*20,-16-Math.random()*10);
+    scene.add(o);
+  }
+
+  // テーマに応じて昼/夜のライティングを切替（夜＝暗いフォグ＋残り火）
+  function styleScene(){
+    const night=document.documentElement.dataset.theme==='night';
+    if(night){
+      scene.fog.color.setHex(0x1a1310);scene.fog.near=12;scene.fog.far=40;
+      amb.color.setHex(0x5a4330);amb.intensity=.9;
+      key.color.setHex(0xffe0b0);key.intensity=.85;
+      rim.color.setHex(0xffb066);rim.intensity=.8;
+      fill.intensity=.4;
+      ember.intensity=2.2;
+      orbMat.color.setHex(0x4a3320);orbMat.opacity=.22;
+    }else{
+      scene.fog.color.setHex(0xf5efe4);scene.fog.near=14;scene.fog.far=34;
+      amb.color.setHex(0xfff3e0);amb.intensity=.85;
+      key.intensity=1.6;
+      rim.color.setHex(0xffc890);rim.intensity=.9;
+      fill.intensity=.7;
+      ember.intensity=0;
+      orbMat.color.setHex(0xfdf6e8);orbMat.opacity=.5;
+    }
+  }
+  styleScene();
+  new MutationObserver(styleScene).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+  let mx=0,my=0,tx=0,ty=0;
+  addEventListener('pointermove',e=>{tx=(e.clientX/innerWidth-.5);ty=(e.clientY/innerHeight-.5)});
+  addEventListener('deviceorientation',e=>{if(e.gamma!=null){tx=e.gamma/90;ty=(e.beta-45)/90}});
+  addEventListener('resize',()=>{
+    renderer.setSize(innerWidth,innerHeight);
+    cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();
+  });
+  let scrollY=0,lastY=0,vel=0;
+  addEventListener('scroll',()=>{
+    vel+=Math.min(Math.abs(window.scrollY-lastY)*.002,.18);
+    lastY=window.scrollY;scrollY=window.scrollY;
+  });
+
+  const clock=new THREE.Clock();
+  (function tick(){
+    requestAnimationFrame(tick);
+    if(document.body.classList.contains('map-mode'))return;
+    const t=clock.getElapsedTime();
+    mx+=(tx-mx)*.04;my+=(ty-my)*.04;
+    cam.position.x=mx*2.2;cam.position.y=-my*1.6+scrollY*-.002;
+    cam.lookAt(0,0,-4);
+    vel*=.93; // scroll energy decays
+    beans.forEach(b=>{
+      const u=b.userData;
+      b.position.y=u.p0.y+Math.sin(t*u.sp+u.ph)*u.amp;
+      b.position.x=u.p0.x+Math.cos(t*u.sp*.7+u.ph)*u.amp*.5;
+      u.spin=(u.spin||0)+u.sp*(0.006+vel*.06);
+      b.rotation.x=u.r0.x+u.spin*.6;
+      b.rotation.y=u.r0.y+u.spin*.4;
+    });
+    renderer.render(scene,cam);
+  })();
+})();
+</script>
+</body>
+</html>

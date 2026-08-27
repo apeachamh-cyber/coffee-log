@@ -1,0 +1,5 @@
+node_modules/
+artifacts/
+data/
+reports/
+viewer/session.json
