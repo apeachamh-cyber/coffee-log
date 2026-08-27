@@ -3,8 +3,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { config } from 'dotenv';
 import { existsSync } from 'node:fs';
 
-const ENV_PATH = 'C:\\Users\\百々廣久\\Desktop\\x-company\\config\\.env';
-if (existsSync(ENV_PATH)) config({ path: ENV_PATH, override: true });
+// ANTHROPIC_API_KEY は環境変数、または lab/.env から読む
+if (existsSync('.env')) config({ path: '.env', override: true });
 
 const MODEL = process.env.LAB_MODEL || 'claude-haiku-4-5-20251001';
 

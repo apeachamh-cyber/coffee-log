@@ -18,7 +18,7 @@ cd lab
 npm install
 npx playwright install chromium
 ```
-AIレビューは `C:\Users\百々廣久\Desktop\x-company\config\.env` の `ANTHROPIC_API_KEY` を使用。
+AIレビューは環境変数 `ANTHROPIC_API_KEY` を使用（`lab/.env` に置いてもよい）。
 
 ## 使い方
 ```powershell
